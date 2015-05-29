@@ -16,22 +16,23 @@ using namespace std;
 
 bool moves::comMove(paths* path, int ptcl){
     double delta = 0.5;
-    double shift = delta *(path->getUte()->randnormed(2)-1);
+    double shift[] = {delta *(path->getUte()->randnormed(2)-1),delta *(path->getUte()->randnormed(2)-1),delta *(path->getUte()->randnormed(2)-1)};
     
-    vector<double> bptc = {};
+    vector<vector<double>> bptc = {};
     for(int i = 0; i<path->beads.size();i++){
         bptc.push_back(path->beads[i][ptcl]);
     }
     
     double oldAct = 0.0;
-    for(int slice = 0; slice < path->getNumSlices(); slice++){
+    for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
         oldAct += path->potentialAction(slice);
     }
-    for(int slice = 0; slice < path->getNumSlices(); slice++){
-        path->beads[slice][ptcl] = bptc[slice]+shift;
+    for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
+        for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++)
+            path->beads[slice][ptcl][ndim] = bptc[slice][ndim]+shift[ndim];
     }
     double newAct = 0.0;
-    for(int slice = 0; slice < path->getNumSlices(); slice++){
+    for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
         newAct += path->potentialAction(slice);
     }
     
@@ -49,29 +50,31 @@ bool moves::comMove(paths* path, int ptcl){
 bool moves::stagingMove(paths* path, int ptcl){
     int m = 16;
     
-    int alpha_start = path->getUte()->randint(path->getNumSlices());
-    int alpha_end = (alpha_start + m)%path->getNumSlices();
+    int alpha_start = path->getUte()->randint(path->getParam()->getNumTimeSlices());
+    int alpha_end = (alpha_start + m)%path->getParam()->getNumTimeSlices();
     
-    vector<double> oldbeads(m-1, 0.0);
+    vector<vector<double>> oldbeads(m-1, vector<double>(path->getParam()->getndim(),0.0));
     double oldAct = 0.0;
     for(int a = 1; a <m; a++){
-        int slice = (alpha_start + a)%path->getNumSlices();
+        int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
         oldbeads[a-1]= path->beads[slice][ptcl];
         oldAct += path->potentialAction(slice);
     }
     
-    if(path->isBoson())
+    if(path->getParam()->getboson())
         pickPermutation(path, alpha_start, alpha_end);
     
     double newAct = 0.0;
     for(int a = 1; a <m; a++){
-        int slice = (alpha_start + a)%path->getNumSlices();
-        int slicem1 = (slice + path->getNumSlices() - 1)%path->getNumSlices();
-        double tau1 = (m-a)*path->getTau();
-        double avex = (tau1*path->beads[slicem1][ptcl]+path->getTau()*path->beads[alpha_end][ptcl])/(path->getTau()+tau1);
-        double width = sqrt(2.0*path->getLam()/(1.0/path->getTau() + 1.0/tau1));
-        double move = avex + path->getUte()->randgaussian(width);
-        path->beads[slice][ptcl] = move;
+        int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
+        int slicem1 = (slice + path->getParam()->getNumTimeSlices() - 1)%path->getParam()->getNumTimeSlices();
+        double tau1 = (m-a)*path->getParam()->gettau();
+        for(int ndim = 0; ndim < path->getParam()->getndim();ndim++){
+            double avex = (tau1*path->beads[slicem1][ptcl][ndim]+path->getParam()->gettau()*path->beads[alpha_end][ptcl][ndim])/(path->getParam()->gettau()+tau1);
+            double width = sqrt(2.0*path->getParam()->getlam()/(1.0/path->getParam()->gettau() + 1.0/tau1));
+            double move = avex + path->getUte()->randgaussian(width);
+            path->beads[slice][ptcl][ndim] = move;
+        }
         newAct += path->potentialAction(slice);
     }
     
@@ -80,7 +83,7 @@ bool moves::stagingMove(paths* path, int ptcl){
     }
     else{
         for(int a = 1; a< m; a++){
-            int slice = (alpha_start + a)%path->getNumSlices();
+            int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
             path->beads[slice][ptcl] = oldbeads[a-1];
         }
         return false;
@@ -90,12 +93,14 @@ bool moves::stagingMove(paths* path, int ptcl){
 void moves::bisectionMove(paths* path, int ptcl, int alpha_start, int alpha_end, int m){
     
     if(m != 1 && m%2 == 0){
-        int slice = (alpha_start + m/2)%path->getNumSlices();
-        double tau1 = (m/2)*path->getTau();
-        double avex = (path->beads[alpha_start][ptcl]+path->beads[alpha_end][ptcl])/2;
-        double width = sqrt(path->getLam()*tau1);
-        double move = avex + path->getUte()->randgaussian(width);
-        path->beads[slice][ptcl] = move;
+        int slice = (alpha_start + m/2)%path->getParam()->getNumTimeSlices();
+        double tau1 = (m/2)*path->getParam()->gettau();
+        for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++){
+            double avex = (path->beads[alpha_start][ptcl][ndim]+path->beads[alpha_end][ptcl][ndim])/2;
+            double width = sqrt(path->getParam()->gettau()*tau1);
+            double move = avex + path->getUte()->randgaussian(width);
+            path->beads[slice][ptcl][ndim] = move;
+        }
         bisectionMove(path, ptcl, alpha_start, slice, m/2);
         bisectionMove(path, ptcl, slice, alpha_end, m/2);
     }
@@ -104,22 +109,22 @@ void moves::bisectionMove(paths* path, int ptcl, int alpha_start, int alpha_end,
 bool moves::bisectionMoveHelper(paths* path, int ptcl){
     int m = 16;
 
-    int alpha_start = path->getUte()->randint(path->getNumSlices());
-    int alpha_end = (alpha_start + m)%path->getNumSlices();
+    int alpha_start = path->getUte()->randint(path->getParam()->getNumTimeSlices());
+    int alpha_end = (alpha_start + m)%path->getParam()->getNumTimeSlices();
     
-    vector<double> oldbeads(m-1, 0.0);
+    vector<vector<double>> oldbeads(m-1, vector<double>(path->getParam()->getndim(),0.0));
     
     double oldKinAct = 0.0;
     double oldPotAct = 0.0;
-    for(int a = 1; a <= m; a++){
-        int slice = (alpha_start + a)%path->getNumSlices();
+    for(int a = 1; a < m; a++){
+        int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
         oldbeads[a-1]= path->beads[slice][ptcl];
         oldPotAct += path->potentialAction(slice);
         oldKinAct += path->kineticAction(slice,1);
     }
     vector<int> permpart;
     
-    if(path->isBoson())
+    if(path->getParam()->getboson())
         permpart = pickPermutation(path, alpha_start, alpha_end);
     
     double newPotAct = 0.0;
@@ -132,7 +137,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     double newKinAct = 0.0;
     for(int a = 1; a <= m; a++ ){
-        int slice = (alpha_start + a)%path->getNumSlices();
+        int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
         newPotAct += path->potentialAction(slice);
         newKinAct += path->kineticAction(slice, 1);
     }
@@ -151,7 +156,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
         return true;
     else{
         for(int a = 1; a< m; a++){
-            int slice = (alpha_start + a)%path->getNumSlices();
+            int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
             path->beads[slice][ptcl] = oldbeads[a-1];
         }
         return false;
@@ -159,22 +164,22 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
 }
 
 vector<int> moves::pickPermutation(paths* path, int alpha_start, int alpha_end){
-    int dist = (alpha_end-alpha_start+path->getNumSlices())%path->getNumSlices();
+    int dist = (alpha_end-alpha_start+path->getParam()->getNumTimeSlices())%path->getParam()->getNumTimeSlices();
     vector<double> permWeight;
     vector<double> problist;
     
     vector<vector<int>> permVec(path->getPermList());
     
-    vector<double> oldEndBeads(path->beads[alpha_end]);
+    vector<vector<double>> oldEndBeads(path->beads[alpha_end]);
 
     for(int i = 0; i < permVec.size(); i++){
         vector<int> oneperm = permVec[i];
-        for(int ptcl = 0; ptcl < path->getNumParticles(); ptcl++){
+        for(int ptcl = 0; ptcl < path->getParam()->getNumParticles(); ptcl++){
             path->beads[alpha_end][ptcl] = oldEndBeads[oneperm[ptcl]];
         }
         
         double action = 0.0;
-        for(int ptcl = 0; ptcl < path->getNumParticles(); ptcl++){
+        for(int ptcl = 0; ptcl < path->getParam()->getNumParticles(); ptcl++){
             action += path->kineticAction(alpha_start,dist);
         }
         problist.push_back(action);
@@ -209,9 +214,9 @@ vector<int> moves::pickPermutation(paths* path, int alpha_start, int alpha_end){
     vector<int> chosenPerm = permVec[choice];
     
     vector<int> chgdpart = {};
-    for(int slice = alpha_end; slice < path->getNumSlices(); slice ++){
-        vector<double> beforePerm(path->beads[slice]);
-        for(int ptclnum = 0; ptclnum < path->getNumParticles(); ptclnum++){
+    for(int slice = alpha_end; slice < path->getParam()->getNumTimeSlices(); slice ++){
+        vector<vector<double>> beforePerm(path->beads[slice]);
+        for(int ptclnum = 0; ptclnum < path->getParam()->getNumParticles(); ptclnum++){
             path->beads[slice][ptclnum] = beforePerm[chosenPerm[ptclnum]];
             if(ptclnum != chosenPerm[ptclnum]){
                 chgdpart.push_back(ptclnum);

@@ -24,14 +24,14 @@ string utility::currentDateTime() {
     return buf;
 }
 
-utility::utility(){
+utility::utility(int procnum){
     gsl_rng_env_setup();
     
     T = gsl_rng_default;
     r = gsl_rng_alloc (T);
     
     unsigned long int seed;
-    seed = time(NULL);
+    seed = time(NULL)*procnum;
     gsl_rng_set(r,seed);
 
 }

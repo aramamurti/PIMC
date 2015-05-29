@@ -14,13 +14,14 @@
 #include <set>
 #include "potentials.h"
 #include "utility.h"
+#include "parameters.h"
 
 
 using namespace std;
 
 class paths{
 public:
-    paths(vector<vector<double>> beads, double tau, double lam, bool boson);
+    paths(int procnum);
     ~paths();
     double vext(double R);
     double potentialAction(int slice);
@@ -28,10 +29,7 @@ public:
     double kineticEnergy();
     double potentialEnergy();
     double energy();
-    int getNumParticles();
-    int getNumSlices();
-    double getTau();
-    double getLam();
+    parameters* getParam();
     void constPerms();
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
@@ -39,20 +37,16 @@ public:
     utility* getUte();
     bool isBoson();
     
-    vector<vector<double>> beads;
+    vector<vector<vector<double>>> beads;
+
 
     
 
 private:
-    double tau;
-    double lam;
-    int numTimeSlices;
-    int numParticles;
+    parameters* param;
     potentials* pot;
     vector<vector<int>> permList;
     utility* ute;
-    bool boson;
-
 };
 
 #endif /* defined(__PIMCtest__paths__) */

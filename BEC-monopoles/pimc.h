@@ -19,7 +19,7 @@ class pimc{
 public:
     pimc();
     ~pimc(){};
-    vector<double> run(int numSteps, paths* path);
+    vector<double> run(int numSteps, paths* path, vector<bool> pmv);
     
     int skip;
     int equil;

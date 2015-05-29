@@ -19,28 +19,28 @@ pimc::pimc(){
     numaccepts = 0;
 }
 
-vector<double> pimc::run(int numSteps, paths* path){
+vector<double> pimc::run(int numSteps, paths* path, vector<bool> pmv){
     vector<double> energytr = {};
     
     moves mvs;
-        
+    
     for(int step = 0; step < numSteps; step++){
-        int ptcl = (int) path->getUte()->randnormed(path->getNumParticles())%path->getNumParticles();
-        if(mvs.comMove(path, ptcl))
-            numacceptc += 1;
-        
-        /*if(mvs.stagingMove(path, ptcl))
-            numaccepts += 1;*/
-        
-        if(mvs.bisectionMoveHelper(path, ptcl))
-            numaccepts += 1;
+        int ptcl = (int) path->getUte()->randnormed(path->getParam()->getNumParticles())%path->getParam()->getNumParticles();
+        if(pmv[0])
+            if(mvs.comMove(path, ptcl))
+                numacceptc += 1;
+        if(pmv[1])
+            if(mvs.stagingMove(path, ptcl))
+                numaccepts += 1;
+        if(pmv[2])
+            if(mvs.bisectionMoveHelper(path, ptcl))
+                numaccepts += 1;
         
         if(step % skip == 0 && step>equil)
             energytr.push_back(path->energy());
     }
     
-    cout << "Center of mass acceptance: "<< 1.0*numacceptc/(numSteps*path->getNumParticles()) << "\n";
-    cout << "Staging acceptance: "<< 1.0*numaccepts/(numSteps*path->getNumParticles()) << "\n\n";
+    cout << "\nCenter of mass acceptance: "<< 1.0*numacceptc/(numSteps*path->getParam()->getNumParticles()) << "\n" << "Staging acceptance: "<< 1.0*numaccepts/(numSteps*path->getParam()->getNumParticles()) << "\n\n";
     
     return energytr;
 }

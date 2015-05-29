@@ -21,7 +21,7 @@ using namespace std;
 
 class utility{
 public:
-    utility();
+    utility(int procnum);
     ~utility();
     string currentDateTime();
     double randnormed(int max);

@@ -7,10 +7,10 @@
 //
 
 #include "potentials.h"
+#include "parameters.h"
 #include <cmath>
 #include <vector>
 #include <iostream>
-#include "constants.h"
 
 
 using namespace std;
@@ -22,7 +22,7 @@ double potentials::harmonicPotential(double pos, double m, double w){
 }
 
 double potentials::harmonicPotentialDeriv(vector<double> pos, double m, double w){
-    int ndim = constants().getNdim();
+    int ndim = parameters().getndim();
     double hpdiv = 0;
     for(int j = 0; j < ndim; j++){
         hpdiv += pos[j];
@@ -32,7 +32,7 @@ double potentials::harmonicPotentialDeriv(vector<double> pos, double m, double w
 }
 
 double potentials::harmonicPotentialVir(vector<double> pos,double m, double w){
-    int ndim = constants().getNdim();
+    int ndim = parameters().getndim();
     double potVal = 0.0;
     for(int j =0; j< ndim; j++) {
         potVal += pos[j]*m*pow(w,2)*pos[j];

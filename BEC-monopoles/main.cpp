@@ -14,34 +14,43 @@
 #include "moves.h"
 #include "paths.h"
 #include "pimc.h"
-
+#include "mpi.h"
 
 using namespace std;
 
 
 int main(int argc, const char * argv[]) {
-    double T = 0.05;
-    double lam = 0.5;
     
-    int numParticles = 1;
-    int numTimeSlices = 40;
-    int numSteps = 300000;
-    double tau = 1/(T*numTimeSlices);
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
     
-    cout<< "Simulation Parameters:\n";
-    cout<< "N      = \t" << numParticles <<"\n";
-    cout<< "tau    = \t" << tau << "\n";
-    cout << "lambda =\t" << lam <<"\n";
-    cout<< "T      = \t" << T << "\n\n";
-        
-    vector<vector<double>> beads(numTimeSlices, vector<double>(numParticles,0.0));
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     
-    paths* path = new paths(beads, tau, lam, true);
+    // Get the rank of the process
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    
+    // Get the name of the processor
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len);
+    
+    // Print off a hello world message
+    printf("Running from processor %d"
+           " out of %d processors\n", world_rank+1, world_size);
+    
+    paths* path = new paths(world_rank+1);
     pimc sim;
-    vector<double> energy = sim.run(numSteps, path);
+    vector<bool> pmv = path->getParam()->getMoves();
+    vector<double> energy = sim.run(path->getParam()->getNumSteps(), path, pmv);
+    cout<< "Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<<"\n";
     delete path;
+
     
-    cout<< "Energy = " <<utility().vecavg(energy) << " +/- "<< utility().vecstd(energy)/sqrt(energy.size())<<"\n";
+    // Finalize the MPI environment.
+    MPI_Finalize();
     
     return 0;
 }

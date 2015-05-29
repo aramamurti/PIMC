@@ -11,38 +11,40 @@
 #include <cmath>
 #include <numeric>
 #include <algorithm>
-#include "constants.h"
 
 
-paths::paths(vector<vector<double>> beads, double tau, double lam, bool boson){
-    ute = new utility();
+paths::paths(int procnum){
+    ute = new utility(procnum);
+    param = new parameters();
     
-    this->boson = boson;
-    this->tau = tau;
-    this->lam = lam;
+    cout<< "Simulation Parameters:\n" << "N      = \t" << param->getNumParticles() <<"\n" <<"tau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\n" << "T      = \t" << param->getT() << "\n\n";
+    
+    vector<vector<vector<double>>> beads(param->getNumTimeSlices(), vector<vector<double>>(param->getNumParticles(),vector<double>(param->getndim(), 0.0)));
     this->beads = beads;
-    numTimeSlices = (int) beads.size();
-    numParticles = (int) beads[0].size();
-    for(int slice = 0; slice < numTimeSlices; slice++){
-        for(int ptcl = 0; ptcl < numParticles; ptcl++){
-            this->beads[slice][ptcl]= 0.5*(ute->randnormed(2)-1);
+    for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+            for(int ndim = 0; ndim < param->getndim(); ndim++){
+                this->beads[slice][ptcl][ndim]= 0.5*(ute->randnormed(2)-1);
+            }
         }
     }
-    unique_ptr<potentials> pot(new potentials());
+
+    pot = new potentials();
     constPerms();
 }
 
 paths::~paths(){
     delete pot;
     delete ute;
+    delete param;
 }
 
 
 void paths::constPerms(){
-    vector<int> d(numParticles);
+    vector<int> d(param->getNumParticles());
     int k;
-    if(numParticles <= 4)
-        k = numParticles;
+    if(param->getNumParticles() <= 4)
+        k = param->getNumParticles();
     else
         k = 4;
     
@@ -61,7 +63,7 @@ void paths::constPerms(){
     } while (next_permutation(d.begin(),d.end()));
     
     for(int i = 0; i < initPermList.size(); i++){
-        vector<int> identity(numParticles);
+        vector<int> identity(param->getNumParticles());
         iota(identity.begin(),identity.end(),0);
         int displaced[k];
         for(int j = 0; j < k; j++){
@@ -85,66 +87,60 @@ double paths::vext(double R){
 
 double paths::potentialAction(int slice){
     double pot = 0;
-    for(int ptcl = 0; ptcl < numParticles; ptcl++){
-        pot += vext(beads[slice][ptcl]);
+    for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+        for(int ndim = 0; ndim < param->getndim(); ndim++){
+            pot += vext(beads[slice][ptcl][ndim]);
+        }
     }
-    return tau*pot;
+    return param->gettau()*pot;
 }
 
 double paths::kineticAction(int slice, int dist){
     double kin = 0;
-    for(int ptcl = 0; ptcl < numParticles; ptcl++){
-        kin += 1/(2*numTimeSlices*dist*tau)*pow(beads[slice][ptcl]-beads[(slice-dist+numTimeSlices)%numTimeSlices][ptcl],2);
+    for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+        for(int ndim = 0; ndim < param->getndim(); ndim++){
+            kin += 1/(2*param->getNumTimeSlices()*dist*param->gettau())*pow(beads[slice][ptcl][ndim]-beads[(slice-dist+param->getNumTimeSlices())%param->getNumTimeSlices()][ptcl][ndim],2);
+        }
     }
     return kin;
 }
 
 double paths::potentialEnergy(){
     double PE = 0.0;
-    double m = constants().getM();
-    double w = constants().getOmega();
-    for(int slice = 0; slice<getNumSlices();slice++){
-        for(int ptcl = 0; ptcl<getNumParticles(); ptcl++){
-            double R = beads[slice][ptcl];
-            PE += pot->harmonicPotential(R, m, w);
+    double m = param->getm();
+    double w = param->getomega();
+    for(int slice = 0; slice<param->getNumTimeSlices();slice++){
+        for(int ptcl = 0; ptcl<param->getNumParticles(); ptcl++){
+            for(int ndim = 0; ndim < param->getndim(); ndim++){
+                double R = beads[slice][ptcl][ndim];
+                PE += pot->harmonicPotential(R, m, w);
+            }
         }
     }
-    PE = PE/getNumSlices();
+    PE = PE/param->getNumTimeSlices();
     return PE;
 }
 
 double paths::kineticEnergy(){
     double tot = 0.0;
-    double norm = 1.0/(4.0*getLam()*pow(getTau(),2));
-    for(int slice = 0; slice < getNumSlices(); slice++){
-        int slicep1 = (slice+1)%getNumSlices();
-        for(int ptcl = 0; ptcl < getNumParticles(); ptcl++){
-            double delR = beads[slicep1][ptcl]-beads[slice][ptcl];
-            tot -= norm*delR*delR;
+    double norm = 1.0/(4.0*param->getlam()*pow(param->gettau(),2));
+    for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+        int slicep1 = (slice+1)%param->getNumTimeSlices();
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+            for(int ndim = 0; ndim < param->getndim(); ndim++){
+                double delR = beads[slicep1][ptcl][ndim]-beads[slice][ptcl][ndim];
+                tot -= norm*delR*delR;
+            }
         }
     }
-    double KE = 0.5*getNumParticles()/getTau() +tot/getNumSlices();
+    double KE = 0.5*param->getndim()*param->getNumParticles()/param->gettau() +tot/param->getNumTimeSlices();
     return KE;
 }
+
 
 double paths::energy(){
     double energy = kineticEnergy()+potentialEnergy();
     return energy;
-}
-
-int paths::getNumParticles(){
-    return numParticles;
-}
-int paths::getNumSlices(){
-    return numTimeSlices;
-}
-
-double paths::getTau(){
-    return tau;
-}
-
-double paths::getLam(){
-    return lam;
 }
 
 vector<vector<int>> paths::getPermList(){
@@ -155,6 +151,6 @@ utility* paths::getUte(){
     return ute;
 }
 
-bool paths::isBoson(){
-    return boson;
+parameters* paths::getParam(){
+    return param;
 }
