@@ -82,3 +82,28 @@ void utility::print(vector<double> a){
     cout<<"\n";
     
 }
+
+vector<double> utility::location(vector<double> bead, double boxsize){
+    int ndim = (int)bead.size();
+    vector<double> loc;
+    for(int i = 0; i < ndim; i++){
+        if(boxsize != -1)
+            loc.push_back(fmod(bead[i],boxsize));
+        else
+            loc.push_back(bead[i]);
+    }
+    return loc;
+}
+vector<double> utility::distance(vector<double> bead1, vector<double> bead2, double boxsize){
+    int ndim = (int)bead1.size();
+    vector<double> dist;
+    for(int i = 0; i < ndim; i++){
+        if(boxsize != -1){
+            dist.push_back(fmod(bead2[i]-bead1[i],boxsize/2));
+        }
+        else
+            dist.push_back(bead2[i]-bead1[i]);
+    }
+    return dist;
+}
+

@@ -16,14 +16,13 @@
 #include "utility.h"
 #include "parameters.h"
 
-
 using namespace std;
 
 class paths{
 public:
     paths(int procnum);
     ~paths();
-    double vext(double R);
+    double vext(int slice, int ptcl);
     double potentialAction(int slice);
     double kineticAction(int slice, int dist);
     double kineticEnergy();

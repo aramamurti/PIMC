@@ -21,8 +21,6 @@ public:
     ~pimc(){};
     vector<double> run(int numSteps, paths* path, vector<bool> pmv);
     
-    int skip;
-    int equil;
     int numaccepts;
     int numacceptc;
 };

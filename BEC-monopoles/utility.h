@@ -30,6 +30,8 @@ public:
     double vecavg(vector<double> vec);
     double vecstd(vector<double> v);
     void print(vector<double> vec);
+    vector<double> location(vector<double> bead, double boxsize);
+    vector<double> distance(vector<double> bead1, vector<double> bead2, double boxsize);
     
 private:
     const gsl_rng_type * T;

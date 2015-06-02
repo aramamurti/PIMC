@@ -13,8 +13,6 @@
 using namespace std;
 
 pimc::pimc(){
-    skip = 100;
-    equil = 1000;
     numacceptc = 0;
     numaccepts = 0;
 }
@@ -36,7 +34,7 @@ vector<double> pimc::run(int numSteps, paths* path, vector<bool> pmv){
             if(mvs.bisectionMoveHelper(path, ptcl))
                 numaccepts += 1;
         
-        if(step % skip == 0 && step>equil)
+        if(step % path->getParam()->getSkip() == 0 && step>path->getParam()->getEquil())
             energytr.push_back(path->energy());
     }
     

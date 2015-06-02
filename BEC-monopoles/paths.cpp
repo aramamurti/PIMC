@@ -81,16 +81,24 @@ void paths::constPerms(){
     permList.erase(last, permList.end());
 }
 
-double paths::vext(double R){
-    return 0.5*R*R;
+double paths::vext(int slice, int ptcl){
+    
+    //calculate the distances to all other same-slice beads
+    double vVal = 0.0;
+    for(int i = 0; i < param->getNumParticles(); i++){
+        if(i != ptcl){
+            vector<double> distvec =ute->distance(beads[slice][ptcl], beads[slice][i], param->getBoxSize());
+            vVal += pot->lj_int(sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0)));
+        }
+    }
+    return pot->harmonicPotential(ute->location(beads[slice][ptcl],-1), 1, 1);
 }
 
 double paths::potentialAction(int slice){
     double pot = 0;
     for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-        for(int ndim = 0; ndim < param->getndim(); ndim++){
-            pot += vext(beads[slice][ptcl][ndim]);
-        }
+        pot += vext(slice, ptcl);
+        
     }
     return param->gettau()*pot;
 }
@@ -107,14 +115,9 @@ double paths::kineticAction(int slice, int dist){
 
 double paths::potentialEnergy(){
     double PE = 0.0;
-    double m = param->getm();
-    double w = param->getomega();
     for(int slice = 0; slice<param->getNumTimeSlices();slice++){
         for(int ptcl = 0; ptcl<param->getNumParticles(); ptcl++){
-            for(int ndim = 0; ndim < param->getndim(); ndim++){
-                double R = beads[slice][ptcl][ndim];
-                PE += pot->harmonicPotential(R, m, w);
-            }
+                PE += vext(slice, ptcl);
         }
     }
     PE = PE/param->getNumTimeSlices();

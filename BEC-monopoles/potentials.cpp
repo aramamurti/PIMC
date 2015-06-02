@@ -15,27 +15,17 @@
 
 using namespace std;
 
-double potentials::harmonicPotential(double pos, double m, double w){
+double potentials::harmonicPotential(vector<double> loc, double m, double w){
     double potVal = 0.0;
-    potVal += 0.5*m*pow(w,2)*pow(pos,2);
+    for(int i = 0; i < loc.size(); i++){
+        potVal += 0.5*m*pow(w,2)*pow(loc[i],2);
+    }
     return potVal;
 }
 
-double potentials::harmonicPotentialDeriv(vector<double> pos, double m, double w){
-    int ndim = parameters().getndim();
-    double hpdiv = 0;
-    for(int j = 0; j < ndim; j++){
-        hpdiv += pos[j];
-    }
-    hpdiv *= m*w;
-    return hpdiv;
-}
-
-double potentials::harmonicPotentialVir(vector<double> pos,double m, double w){
-    int ndim = parameters().getndim();
-    double potVal = 0.0;
-    for(int j =0; j< ndim; j++) {
-        potVal += pos[j]*m*pow(w,2)*pos[j];
-    }
+double potentials::lj_int(double dist){
+    double eps = 10.2;
+    double sig = 2.28;
+    double potVal = 4*eps*(pow((sig/dist),12) - pow((sig/dist),6));
     return potVal;
 }

@@ -29,12 +29,14 @@ private:
     int numParticles;
     bool boson;
     int numSteps;
+    int skip;
+    int equil;
+    double boxsize;
+    bool pbc;
     vector<bool> pmv;
     
 public:
     parameters(){
-        bool input = false;
-        
         ndim = 1;
         m = 1.0, hbar = 1.0, kb = 1.0, w = 1.0;
         T = 0.05;
@@ -45,33 +47,17 @@ public:
         numParticles = 1;
         numTimeSlices = 40;
         numSteps = 300000;
+        skip = 100;
+        equil = 1000;
+        
         tau = 1/(T*numTimeSlices);
         pmv = {true, true, false};
         
-//        if(input){
-//            cout << "Number of particles: ";
-//            cin >> numParticles;
-//            cout <<endl;
-//            
-//            cout << "Number of imaginary-time slices: ";
-//            cin >> numTimeSlices;
-//            cout <<endl;
-//            
-//            cout << "Are the particles bosons? (y/n::1/0) ";
-//            cin >> boson;
-//            cout <<endl;
-//            
-//            cout << "Number of imaginary-time slices: ";
-//            cin >> numTimeSlices;
-//            cout <<endl;
-//            
-//            cout << "Number of dimensions: ";
-//            cin >> ndim;
-//            cout << endl;
-//            
-//        }
-        
-        
+        pbc = true;
+        if(pbc){
+            boxsize = 10;
+        }
+
     }
     ~parameters(){}
     
@@ -85,8 +71,11 @@ public:
     double gettau(){return tau;}
     double getlam(){return lam;}
     int getNumSteps(){return numSteps;}
+    int getSkip(){return skip;}
+    int getEquil(){return equil;}
     int getNumTimeSlices(){return numTimeSlices;}
     int getNumParticles(){return numParticles;}
+    double getBoxSize(){return boxsize;}
     vector<bool> getMoves(){return pmv;}
 };
 

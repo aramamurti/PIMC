@@ -18,9 +18,9 @@ class potentials{
 public:
     potentials(){};
     ~potentials(){};
-    double harmonicPotential(double pos, double m, double w);
-    double harmonicPotentialDeriv(vector<double> pos, double m, double w);
-    double harmonicPotentialVir(vector<double> pos,double m, double w);
+    double harmonicPotential(vector<double> loc, double m, double w);
+    double free(){return 0;}
+    double lj_int(double dist);
 };
 
 
