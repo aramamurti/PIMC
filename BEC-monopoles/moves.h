@@ -13,9 +13,6 @@
 #include <vector>
 #include "paths.h"
 
-
-using namespace std;
-
 class moves{
 
 public:
@@ -27,7 +24,7 @@ public:
     void stagingMove(paths* path, int ptcl, int alpha_start, int alpha_end, int m);
     void bisectionMove(paths* path, int ptcl, int alpha_start, int alpha_end, int m);
     bool bisectionMoveHelper(paths* path, int ptcl);
-    vector<int> pickPermutation(paths* path, int alpha_start, int alpha_end);
+    std::vector<int> pickPermutation(paths* path, int alpha_start, int alpha_end);
 };
 
 #endif /* defined(__PIMC__moves__) */

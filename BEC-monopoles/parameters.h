@@ -12,8 +12,6 @@
 #include <stdio.h>
 #include <cmath>
 
-using namespace std;
-
 class parameters{
     
 private:
@@ -34,7 +32,7 @@ private:
     int equil;
     double boxsize;
     bool pbc;
-    vector<bool> pmv;
+    std::vector<bool> pmv;
     
 public:
     parameters(){
@@ -43,7 +41,7 @@ public:
         T = 0.2;
         lam = pow(hbar,2)/(2*m);
         
-        boson = true;
+        boson = false;
         
         numParticles = 3;
         numTimeSlices = 80;
@@ -82,7 +80,7 @@ public:
     int getNumTimeSlices(){return numTimeSlices;}
     int getNumParticles(){return numParticles;}
     double getBoxSize(){return boxsize;}
-    vector<bool> getMoves(){return pmv;}
+    std::vector<bool> getMoves(){return pmv;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */

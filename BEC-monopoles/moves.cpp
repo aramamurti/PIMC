@@ -11,14 +11,14 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 
-using namespace std;
 
 bool moves::comMove(paths* path, int ptcl){
     double delta = 0.5;
     double shift[] = {delta *(path->getUte()->randnormed(2)-1),delta *(path->getUte()->randnormed(2)-1),delta *(path->getUte()->randnormed(2)-1)};
     
-    vector<vector<double>> bptc = {};
+    std::vector<std::vector<double>> bptc = {};
     for(int i = 0; i<path->beads.size();i++){
         bptc.push_back(path->beads[i][ptcl]);
     }
@@ -53,15 +53,15 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     int alpha_start = path->getUte()->randint(path->getParam()->getNumTimeSlices());
     int alpha_end = (alpha_start + m)%path->getParam()->getNumTimeSlices();
     
-    cout << alpha_start << endl;
+    /*std::cout << alpha_start << std::endl;
     
-    cout << alpha_end << endl;
+    std::cout << alpha_end << std::endl;
     
-    getchar();
+    getchar();*/
     
     path->recompSingProb(path->getLastP(), alpha_start);
     
-    vector<vector<vector<double>>> oldbeads(m-1, vector<vector<double>>(path->getParam()->getNumParticles(), vector<double>(path->getParam()->getndim(),0.0)));
+    std::vector<std::vector<std::vector<double>>> oldbeads(m-1, std::vector<std::vector<double>>(path->getParam()->getNumParticles(), std::vector<double>(path->getParam()->getndim(),0.0)));
     double oldKinAct = 0.0;
     double oldPotAct = 0.0;
     for(int a = 1; a < m; a++){
@@ -71,11 +71,11 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
         oldKinAct += path->kineticAction(slice,1);
     }
     
-    vector<int> chosenPerm = {};
-    vector<int> permpart = {};
-    vector<vector<double>> shift(path->getParam()->getNumParticles(), vector<double>(path->getParam()->getndim(),0.0));
+    std::vector<int> chosenPerm = {0,1,2};
+    std::vector<int> permpart = {};
+    std::vector<std::vector<double>> shift(path->getParam()->getNumParticles(), std::vector<double>(path->getParam()->getndim(),0.0));
     
-    vector<int> oldConn(path->getNextConnection());
+    std::vector<int> oldConn(path->getNextConnection());
     if(path->getParam()->getboson()){
         chosenPerm = pickPermutation(path, alpha_start, alpha_end);
         
@@ -83,12 +83,12 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
             if(ptclnum != chosenPerm[ptclnum]){
                 permpart.push_back(ptclnum);
                 path->setNextConnection(ptclnum, chosenPerm[ptclnum]);
-                cout << ptclnum << "\t" << chosenPerm[ptclnum]<< endl;;
+                std::cout << ptclnum << "\t" << chosenPerm[ptclnum]<< std::endl;;
             }
         
         
-        vector<vector<double>> dists;
-        vector<vector<double>> distpbc;
+        std::vector<std::vector<double>> dists;
+        std::vector<std::vector<double>> distpbc;
         
         for(int ptclnum = 0; ptclnum < permpart.size(); ptclnum++){
             dists.push_back(path->getUte()->distance(path->beads[alpha_start][permpart[ptclnum]],path->beads[alpha_end][chosenPerm[permpart[ptclnum]]],-1));
@@ -101,6 +101,13 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
             }
         }
     }
+    
+    else{
+        std::vector<int> identity(path->getParam()->getNumParticles());
+        iota(identity.begin(),identity.end(),0);
+        chosenPerm = identity;
+    }
+    
     
     if(permpart.size() == 0){
         permpart.push_back(ptcl);
@@ -132,7 +139,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     
     if(path->getUte()->randnormed(1)<exp(-(diff))){
         for(int slice = alpha_end; slice < path->getParam()->getNumTimeSlices(); slice ++){
-            vector<vector<double>> beforePerm(path->beads[slice]);
+            std::vector<std::vector<double>> beforePerm(path->beads[slice]);
             for(int ptclnum = 0; ptclnum < permpart.size(); ptclnum++)
                 for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++)
                     path->beads[slice][permpart[ptclnum]][ndim] = beforePerm[chosenPerm[permpart[ptclnum]]][ndim]-shift[ptclnum][ndim];
@@ -145,7 +152,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
         return true;
     }
     else{
-        cout << "woo" << endl;
+        //std::cout << "woo" << std::endl;
         for(int a = 1; a < m; a++){
             int slice = (alpha_start + a)%path->getParam()->getNumTimeSlices();
             for(int part = 0; part < path->getParam()->getNumParticles(); part ++){
@@ -245,9 +252,9 @@ void moves::stagingMove(paths *path, int ptcl, int alpha_start, int alpha_end, i
  }
  }*/
 
-vector<int> moves::pickPermutation(paths* path, int alpha_start, int alpha_end){
-    vector<double> permWeight = (*path->getProbList())[alpha_start];
-    vector<double>::iterator it2;
+std::vector<int> moves::pickPermutation(paths* path, int alpha_start, int alpha_end){
+    std::vector<double> permWeight = (*path->getProbList())[alpha_start];
+    std::vector<double>::iterator it2;
     
     double sum = 0.0;
     for(it2 = permWeight.begin(); it2 != permWeight.end(); it2++)
@@ -278,7 +285,7 @@ vector<int> moves::pickPermutation(paths* path, int alpha_start, int alpha_end){
         }
     }
     
-    vector<int> chosenPerm = (*path->getPermList())[choice];
+    std::vector<int> chosenPerm = (*path->getPermList())[choice];
     
     return chosenPerm;
 }

@@ -15,23 +15,23 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-using namespace std;
-
 #endif /* defined(__PIMC__utility__) */
 
 class utility{
 public:
     utility(int procnum);
     ~utility();
-    string currentDateTime();
+    std::string currentDateTime();
     double randnormed(int max);
     int randint(int max);
     double randgaussian(double width);
-    double vecavg(vector<double> vec);
-    double vecstd(vector<double> v);
+    double vecavg(std::vector<double> vec);
+    double vecstd(std::vector<double> v);
     double pbc(double a, double b);
-    vector<double> location(vector<double> bead, double boxsize);
-    vector<double> distance(vector<double> bead1, vector<double> bead2, double boxsize);
+    int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
+    int permutation(int n, int k){return factorial(n)/factorial(n-k);}
+    std::vector<double> location(std::vector<double> bead, double boxsize);
+    std::vector<double> distance(std::vector<double> bead1, std::vector<double> bead2, double boxsize);
     
 private:
     const gsl_rng_type * T;

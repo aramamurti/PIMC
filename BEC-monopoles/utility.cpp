@@ -13,10 +13,7 @@
 #include <numeric>
 #include <cmath>
 
-
-using namespace std;
-
-string utility::currentDateTime() {
+std::string utility::currentDateTime() {
     time_t     now = time(0);
     struct tm  tstruct;
     char       buf[80];
@@ -53,7 +50,7 @@ double utility::randgaussian(double width){
     return gsl_ran_gaussian_ziggurat(r, width);
 }
 
-double utility::vecavg(vector<double> v)
+double utility::vecavg(std::vector<double> v)
 {
     double sum = accumulate(v.begin(), v.end(), 0.0);
     double mean = sum / v.size();
@@ -61,19 +58,19 @@ double utility::vecavg(vector<double> v)
     return mean;
 }
 
-double utility::vecstd(vector<double> v){
+double utility::vecstd(std::vector<double> v){
     double mean = vecavg(v);
-    vector<double> diff(v.size());
-    std::transform(v.begin(), v.end(), diff.begin(),bind2nd(minus<double>(), mean));
+    std::vector<double> diff(v.size());
+    std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<double>(), mean));
     double sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
     double stdev = sqrt(sq_sum / v.size());
     
     return stdev;
 }
 
-vector<double> utility::location(vector<double> bead, double boxsize){
+std::vector<double> utility::location(std::vector<double> bead, double boxsize){
     int ndim = (int)bead.size();
-    vector<double> loc;
+    std::vector<double> loc;
     for(int i = 0; i < ndim; i++){
         if(boxsize != -1)
             loc.push_back(pbc(bead[i]+boxsize/2,boxsize)-boxsize/2);
@@ -82,9 +79,9 @@ vector<double> utility::location(vector<double> bead, double boxsize){
     }
     return loc;
 }
-vector<double> utility::distance(vector<double> bead1, vector<double> bead2, double boxsize){
+std::vector<double> utility::distance(std::vector<double> bead1, std::vector<double> bead2, double boxsize){
     int ndim = (int)bead1.size();
-    vector<double> dist;
+    std::vector<double> dist;
     bead1 = location(bead1,boxsize);
     bead2 = location(bead2,boxsize);
     for(int i = 0; i < ndim; i++){

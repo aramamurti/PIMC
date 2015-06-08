@@ -16,12 +16,14 @@
 #include "utility.h"
 #include "parameters.h"
 
-using namespace std;
-
 class paths{
 public:
+    
+    //constructor and destructor
     paths(int procnum);
     ~paths();
+    
+    //methods
     double vext(int slice, int ptcl);
     double potentialAction(int slice);
     double kineticAction(int slice, int dist);
@@ -29,24 +31,27 @@ public:
     double potentialEnergy();
     double energy();
     double cv();
-    parameters* getParam(){return param;}
     void constPerms();
-    void recompSingProb(vector<int> chdpart, int stslice);
-    int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
-    int permutation(int n, int k){return factorial(n)/factorial(n-k);}
-    vector<vector<double>>* getProbList(){return &probList;}
-    vector<vector<int>>* getPermList(){return &permList;}
-    void setLast(vector<int> chdpart){last_chgd_part = chdpart;}
-    vector<int> getLastP(){return last_chgd_part;}
-    int getDist(){return multistep_dist;}
-    vector<int> getNextConnection(){return nextConnection;}
-    void setNextConnection(int ptcl, int newlink){nextConnection[ptcl] = newlink;}
-    void setNextConnection(vector<int> nConn){nextConnection = nConn;}
-    utility* getUte(){return ute;}
+    void recompSingProb(std::vector<int> chdpart, int stslice);
     
+    //setter methods
+    void setLast(std::vector<int> chdpart){last_chgd_part = chdpart;}
+    void setNextConnection(int ptcl, int newlink){nextConnection[ptcl] = newlink;}
+    void setNextConnection(std::vector<int> nConn){nextConnection = nConn;}
+    
+    
+    //getter methods
+    int getDist(){return multistep_dist;}
+    utility* getUte(){return ute;}
+    parameters* getParam(){return param;}
+    std::vector<int> getLastP(){return last_chgd_part;}
+    std::vector<int> getNextConnection(){return nextConnection;}
+    std::vector<std::vector<double>>* getProbList(){return &probList;}
+    std::vector<std::vector<int>>* getPermList(){return &permList;}
+
     void print();
     
-    vector<vector<vector<double>>> beads;
+    std::vector<std::vector<std::vector<double>>> beads;
 
 
     
@@ -54,13 +59,13 @@ public:
 private:
     parameters* param;
     potentials* pot;
-    vector<vector<int>> permList;
-    vector<vector<int>> permPart;
-    vector<vector<double>> probList;
+    std::vector<std::vector<int>> permList;
+    std::vector<std::vector<int>> permPart;
+    std::vector<std::vector<double>> probList;
     utility* ute;
-    vector<int> last_chgd_part;
+    std::vector<int> last_chgd_part;
     int multistep_dist;
-    vector<int> nextConnection;
+    std::vector<int> nextConnection;
     bool printed;
 
 };

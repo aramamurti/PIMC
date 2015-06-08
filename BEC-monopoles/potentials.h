@@ -12,13 +12,11 @@
 #include <stdio.h>
 #include <vector>
 
-using namespace std;
-
 class potentials{
 public:
     potentials(){};
     ~potentials(){};
-    double harmonicPotential(vector<double> loc, double m, double w);
+    double harmonicPotential(std::vector<double> loc, double m, double w);
     double free(){return 0;}
     double lj_int(double dist);
 };

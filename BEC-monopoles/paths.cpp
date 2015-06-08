@@ -23,10 +23,10 @@ paths::paths(int procnum){
     multistep_dist = 16;
     printed = false;
     
-    cout<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n\n";
+    std::cout<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n\n";
     
     
-    vector<vector<vector<double>>> beads(param->getNumTimeSlices(), vector<vector<double>>(param->getNumParticles(),vector<double>(param->getndim(), 0.0)));
+    std::vector<std::vector<std::vector<double>>> beads(param->getNumTimeSlices(), std::vector<std::vector<double>>(param->getNumParticles(),std::vector<double>(param->getndim(), 0.0)));
     this->beads = beads;
     
     double offset[param->getNumParticles()][param->getndim()];
@@ -60,19 +60,19 @@ paths::~paths(){
 
 
 void paths::constPerms(){
-    vector<int> d(param->getNumParticles());
+    std::vector<int> d(param->getNumParticles());
     int k;
     if(param->getNumParticles() <= 4)
         k = param->getNumParticles();
     else
         k = 4;
     
-    vector<vector<int>> initPermList = {};
+    std::vector<std::vector<int>> initPermList = {};
     iota(d.begin(),d.end(),0);
     
     do
     {
-        vector<int> tempvec = {};
+        std::vector<int> tempvec = {};
         for (int i = 0; i < k; i++)
         {
             tempvec.push_back(d[i]);
@@ -82,7 +82,7 @@ void paths::constPerms(){
     } while (next_permutation(d.begin(),d.end()));
     
     for(int i = 0; i < initPermList.size(); i++){
-        vector<int> identity(param->getNumParticles());
+        std::vector<int> identity(param->getNumParticles());
         iota(identity.begin(),identity.end(),0);
         int displaced[k];
         for(int j = 0; j < k; j++){
@@ -100,7 +100,7 @@ void paths::constPerms(){
     permList.erase(last, permList.end());
     
     for(int i = 0; i < permList.size(); i++){
-        vector<int> cp = {};
+        std::vector<int> cp = {};
         for(int j = 0; j < permList[i].size(); j++)
             if(permList[i][j] != j)
                 cp.push_back(j);
@@ -111,9 +111,9 @@ void paths::constPerms(){
     for(int slice = 0; slice < param->getNumTimeSlices(); slice ++){
         
         int end = (slice + multistep_dist)% param->getNumTimeSlices();
-        vector<double> problist;
+        std::vector<double> problist;
         
-        vector<vector<double>> oldEndBeads(beads[end]);
+        std::vector<std::vector<double>> oldEndBeads(beads[end]);
         
         double oldAction = 0.0;
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
@@ -121,7 +121,7 @@ void paths::constPerms(){
         }
         
         for(int i = 0; i < permList.size(); i++){
-            vector<int> oneperm = permList[i];
+            std::vector<int> oneperm = permList[i];
             int chdptcl = 0;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 beads[end][ptcl] = oldEndBeads[oneperm[ptcl]];
@@ -147,15 +147,15 @@ void paths::constPerms(){
 }
 
 
-void paths::recompSingProb(vector<int> chdpart, int stslice){
+void paths::recompSingProb(std::vector<int> chdpart, int stslice){
     if(!chdpart.empty()){
     sort(chdpart.begin(),chdpart.end());
-    vector<int> v(4);
+    std::vector<int> v(4);
     for(int perm = 0; perm < permList.size(); perm ++){
-        vector<int>::iterator it = set_intersection(permPart[perm].begin(), permPart[perm].end(), chdpart.begin(),chdpart.end(),v.begin());
+        std::vector<int>::iterator it = set_intersection(permPart[perm].begin(), permPart[perm].end(), chdpart.begin(),chdpart.end(),v.begin());
         if(it - v.begin() != 0){
             int end = (stslice + multistep_dist)% param->getNumTimeSlices();
-            vector<vector<double>> oldEndBeads(beads[end]);
+            std::vector<std::vector<double>> oldEndBeads(beads[end]);
             
             double oldAction = 0.0;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
@@ -163,7 +163,7 @@ void paths::recompSingProb(vector<int> chdpart, int stslice){
             }
             double oldDens = exp(-oldAction);
             
-            vector<int> oneperm = permList[perm];
+            std::vector<int> oneperm = permList[perm];
             int chdptcl = 0;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 beads[end][ptcl] = oldEndBeads[oneperm[ptcl]];
@@ -221,7 +221,7 @@ double paths::kineticAction(int slice, int dist){
                 ptcl2 = nextConnection[ptcl];
                 slicep = slicep%param->getNumTimeSlices();
             }
-            vector<double> distVec = ute->distance(beads[slicep][ptcl2], beads[slice][ptcl], -1);
+            std::vector<double> distVec = ute->distance(beads[slicep][ptcl2], beads[slice][ptcl], -1);
             kin += 1/(2*param->getNumTimeSlices()*dist*param->gettau())*inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
         }
     }
@@ -250,7 +250,7 @@ double paths::kineticEnergy(){
                 ptcl2 = nextConnection[ptcl];
                 slicep1 = slicep1%param->getNumTimeSlices();
             }
-            vector<double> distVec = ute->distance(beads[slice][ptcl], beads[slicep1][ptcl2], -1);
+            std::vector<double> distVec = ute->distance(beads[slice][ptcl], beads[slicep1][ptcl2], -1);
             double dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
             tot -= norm*dist;
         }
@@ -268,22 +268,22 @@ double paths::energy(){
 
 void paths::print(){
     if(printed == false){
-    ofstream outfile;
+    std::ofstream outfile;
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-            stringstream sstm;
+            std::stringstream sstm;
             sstm << "ptcl" << ptcl <<".csv";
-            string result = sstm.str();
+            std::string result = sstm.str();
             outfile.open(result);
             for(int slice = 0; slice < param->getNumTimeSlices()*2; slice++){
-                vector<double> a;
+                std::vector<double> a;
                 if(slice < param->getNumTimeSlices())
                     a = beads[slice][ptcl];
                 else
                     a = beads[slice%param->getNumTimeSlices()][nextConnection[ptcl]];
                 for (int i = 0; i < a.size(); i++) {
-                    stringstream strs;
+                    std::stringstream strs;
                     outfile<<a[i];
-                    string strel = strs.str();
+                    std::string strel = strs.str();
                     strs.str("");
                     strs.clear();
                     outfile << strel+", ";

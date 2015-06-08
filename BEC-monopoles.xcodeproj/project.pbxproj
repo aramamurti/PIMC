@@ -37,7 +37,6 @@
 		B98249D01B17A45E003B0DC6 /* paths.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = paths.cpp; sourceTree = "<group>"; };
 		B98249D11B17A45E003B0DC6 /* paths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = paths.h; sourceTree = "<group>"; };
 		B98249D21B17A45E003B0DC6 /* pimc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pimc.cpp; sourceTree = "<group>"; };
-		B98249D31B17A45E003B0DC6 /* pimc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
 		B98249D41B17A45E003B0DC6 /* potentials.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = potentials.cpp; sourceTree = "<group>"; };
 		B98249D51B17A45E003B0DC6 /* potentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = potentials.h; sourceTree = "<group>"; };
 		B98249D61B17A45E003B0DC6 /* utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utility.cpp; sourceTree = "<group>"; };
@@ -45,6 +44,7 @@
 		B98249E01B18CACB003B0DC6 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
 		B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
+		B9B041F01B25F95A0005E355 /* pimc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,7 +84,7 @@
 				B98249C31B17A441003B0DC6 /* main.cpp */,
 				B98249E01B18CACB003B0DC6 /* parameters.h */,
 				B98249D21B17A45E003B0DC6 /* pimc.cpp */,
-				B98249D31B17A45E003B0DC6 /* pimc.h */,
+				B9B041F01B25F95A0005E355 /* pimc.h */,
 				B98249D01B17A45E003B0DC6 /* paths.cpp */,
 				B98249D11B17A45E003B0DC6 /* paths.h */,
 				B98249CE1B17A45E003B0DC6 /* moves.cpp */,

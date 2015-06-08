@@ -12,10 +12,7 @@
 #include <vector>
 #include <iostream>
 
-
-using namespace std;
-
-double potentials::harmonicPotential(vector<double> loc, double m, double w){
+double potentials::harmonicPotential(std::vector<double> loc, double m, double w){
     double potVal = 0.0;
     for(int i = 0; i < loc.size(); i++){
         potVal += 0.5*m*pow(w,2)*pow(loc[i],2);
