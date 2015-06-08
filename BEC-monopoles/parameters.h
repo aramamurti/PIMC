@@ -10,6 +10,7 @@
 #define __BEC_monopoles__parameters__
 
 #include <stdio.h>
+#include <cmath>
 
 using namespace std;
 
@@ -38,29 +39,34 @@ private:
 public:
     parameters(){
         ndim = 1;
-        m = 1.0, hbar = 1.0, kb = 1.0, w = 1.0;
-        T = 0.05;
-        lam = 0.5;
+        m = 1, hbar = 1.0, kb = 1.0, w = 1.0;
+        T = 0.2;
+        lam = pow(hbar,2)/(2*m);
         
         boson = true;
         
-        numParticles = 1;
-        numTimeSlices = 40;
+        numParticles = 3;
+        numTimeSlices = 80;
         numSteps = 300000;
         skip = 100;
-        equil = 1000;
+        equil = 10000;
         
         tau = 1/(T*numTimeSlices);
         pmv = {true, true, false};
         
-        pbc = true;
-        if(pbc){
-            boxsize = 10;
-        }
+        pbc = false;
+        if(pbc)
+            boxsize = 6e-10;
+        else
+            boxsize = -1;
 
     }
     ~parameters(){}
     
+    void setT(double newT){
+        T = newT;
+        tau = 1/(T*numTimeSlices);
+    }
     int getndim(){return ndim;}
     double getT(){return T;}
     double gethbar(){return hbar;}

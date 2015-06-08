@@ -28,13 +28,23 @@ public:
     double kineticEnergy();
     double potentialEnergy();
     double energy();
-    parameters* getParam();
+    double cv();
+    parameters* getParam(){return param;}
     void constPerms();
+    void recompSingProb(vector<int> chdpart, int stslice);
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
-    vector<vector<int>> getPermList();
-    utility* getUte();
-    bool isBoson();
+    vector<vector<double>>* getProbList(){return &probList;}
+    vector<vector<int>>* getPermList(){return &permList;}
+    void setLast(vector<int> chdpart){last_chgd_part = chdpart;}
+    vector<int> getLastP(){return last_chgd_part;}
+    int getDist(){return multistep_dist;}
+    vector<int> getNextConnection(){return nextConnection;}
+    void setNextConnection(int ptcl, int newlink){nextConnection[ptcl] = newlink;}
+    void setNextConnection(vector<int> nConn){nextConnection = nConn;}
+    utility* getUte(){return ute;}
+    
+    void print();
     
     vector<vector<vector<double>>> beads;
 
@@ -45,7 +55,14 @@ private:
     parameters* param;
     potentials* pot;
     vector<vector<int>> permList;
+    vector<vector<int>> permPart;
+    vector<vector<double>> probList;
     utility* ute;
+    vector<int> last_chgd_part;
+    int multistep_dist;
+    vector<int> nextConnection;
+    bool printed;
+
 };
 
 #endif /* defined(__PIMCtest__paths__) */

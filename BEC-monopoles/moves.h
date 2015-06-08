@@ -23,7 +23,8 @@ public:
     ~moves(){};
     
     bool comMove(paths* path, int ptcl);
-    bool stagingMove(paths* path, int ptcl);
+    bool stagingMoveHelper(paths* path, int ptcl);
+    void stagingMove(paths* path, int ptcl, int alpha_start, int alpha_end, int m);
     void bisectionMove(paths* path, int ptcl, int alpha_start, int alpha_end, int m);
     bool bisectionMoveHelper(paths* path, int ptcl);
     vector<int> pickPermutation(paths* path, int alpha_start, int alpha_end);

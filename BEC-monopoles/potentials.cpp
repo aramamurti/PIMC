@@ -25,7 +25,7 @@ double potentials::harmonicPotential(vector<double> loc, double m, double w){
 
 double potentials::lj_int(double dist){
     double eps = 10.2;
-    double sig = 2.28;
+    double sig = 2.28e-10;
     double potVal = 4*eps*(pow((sig/dist),12) - pow((sig/dist),6));
     return potVal;
 }

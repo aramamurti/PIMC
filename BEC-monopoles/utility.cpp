@@ -9,6 +9,7 @@
 #include "utility.h"
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <numeric>
 #include <cmath>
 
@@ -70,25 +71,12 @@ double utility::vecstd(vector<double> v){
     return stdev;
 }
 
-void utility::print(vector<double> a){
-    for (int i = 0; i < a.size(); i++) {
-        stringstream strs;
-        strs<<a[i];
-        string strel = strs.str();
-        strs.str("");
-        strs.clear();
-        cout << strel+"\t";
-    }
-    cout<<"\n";
-    
-}
-
 vector<double> utility::location(vector<double> bead, double boxsize){
     int ndim = (int)bead.size();
     vector<double> loc;
     for(int i = 0; i < ndim; i++){
         if(boxsize != -1)
-            loc.push_back(fmod(bead[i],boxsize));
+            loc.push_back(pbc(bead[i]+boxsize/2,boxsize)-boxsize/2);
         else
             loc.push_back(bead[i]);
     }
@@ -97,13 +85,23 @@ vector<double> utility::location(vector<double> bead, double boxsize){
 vector<double> utility::distance(vector<double> bead1, vector<double> bead2, double boxsize){
     int ndim = (int)bead1.size();
     vector<double> dist;
+    bead1 = location(bead1,boxsize);
+    bead2 = location(bead2,boxsize);
     for(int i = 0; i < ndim; i++){
-        if(boxsize != -1){
-            dist.push_back(fmod(bead2[i]-bead1[i],boxsize/2));
-        }
-        else
-            dist.push_back(bead2[i]-bead1[i]);
+        double dimdist = bead2[i]-bead1[i];
+        if(boxsize != -1)
+            dimdist = pbc(dimdist+boxsize/2, boxsize)-boxsize/2;
+        dist.push_back(dimdist);
     }
     return dist;
 }
 
+double utility::pbc(double a, double b)
+{
+    if(b < 0)
+        return fmod(-a, -b);
+    double ret = fmod(a,b);
+    if(ret < 0)
+        ret+=b;
+    return ret;
+}

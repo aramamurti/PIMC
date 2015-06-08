@@ -23,19 +23,21 @@ vector<double> pimc::run(int numSteps, paths* path, vector<bool> pmv){
     moves mvs;
     
     for(int step = 0; step < numSteps; step++){
+
         int ptcl = (int) path->getUte()->randnormed(path->getParam()->getNumParticles())%path->getParam()->getNumParticles();
-        if(pmv[0])
+        /*if(pmv[0])
             if(mvs.comMove(path, ptcl))
-                numacceptc += 1;
+                numacceptc += 1;*/
         if(pmv[1])
-            if(mvs.stagingMove(path, ptcl))
+            if(mvs.stagingMoveHelper(path, ptcl))
                 numaccepts += 1;
-        if(pmv[2])
+        /*if(pmv[2])
             if(mvs.bisectionMoveHelper(path, ptcl))
-                numaccepts += 1;
+                numaccepts += 1;*/
         
-        if(step % path->getParam()->getSkip() == 0 && step>path->getParam()->getEquil())
+        if(step % path->getParam()->getSkip() == 0 && step>path->getParam()->getEquil()){
             energytr.push_back(path->energy());
+        }
     }
     
     cout << "\nCenter of mass acceptance: "<< 1.0*numacceptc/(numSteps*path->getParam()->getNumParticles()) << "\n" << "Staging acceptance: "<< 1.0*numaccepts/(numSteps*path->getParam()->getNumParticles()) << "\n\n";

@@ -4,6 +4,11 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>BEC-monopoles Debug.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>BEC-monopoles.xcscheme</key>
 		<dict>
 			<key>orderHint</key>

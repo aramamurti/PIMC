@@ -27,6 +27,7 @@ int main(int argc, const char * argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
     paths* path = new paths(world_rank+1);
+    cout << "Started process " << world_rank+1 << endl;
     pimc sim;
     vector<bool> pmv = path->getParam()->getMoves();
     vector<double> energy = sim.run(path->getParam()->getNumSteps(), path, pmv);

@@ -29,7 +29,7 @@ public:
     double randgaussian(double width);
     double vecavg(vector<double> vec);
     double vecstd(vector<double> v);
-    void print(vector<double> vec);
+    double pbc(double a, double b);
     vector<double> location(vector<double> bead, double boxsize);
     vector<double> distance(vector<double> bead1, vector<double> bead2, double boxsize);
     
