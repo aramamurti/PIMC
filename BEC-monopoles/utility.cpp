@@ -7,11 +7,7 @@
 //
 
 #include "utility.h"
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <numeric>
-#include <cmath>
+
 
 std::string utility::currentDateTime() {
     time_t     now = time(0);
@@ -79,11 +75,11 @@ std::vector<double> utility::location(std::vector<double> bead, double boxsize){
     }
     return loc;
 }
-std::vector<double> utility::distance(std::vector<double> bead1, std::vector<double> bead2, double boxsize){
-    int ndim = (int)bead1.size();
+std::vector<double> utility::distance(std::vector<std::vector<double>> beads, double boxsize){
+    int ndim = (int)beads[0].size();
     std::vector<double> dist;
-    bead1 = location(bead1,boxsize);
-    bead2 = location(bead2,boxsize);
+    std::vector<double> bead1 = location(beads[0],boxsize);
+    std::vector<double> bead2 = location(beads[1],boxsize);
     for(int i = 0; i < ndim; i++){
         double dimdist = bead2[i]-bead1[i];
         if(boxsize != -1)

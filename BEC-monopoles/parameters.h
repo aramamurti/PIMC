@@ -9,18 +9,14 @@
 #ifndef __BEC_monopoles__parameters__
 #define __BEC_monopoles__parameters__
 
-#include <stdio.h>
-#include <cmath>
+#include "uni_header.h"
 
 class parameters{
     
 private:
     double tau;
     double T;
-    double hbar;
     double kb;
-    double w;
-    double m;
     double lambda;
     int ndim;
     double lam;
@@ -32,29 +28,30 @@ private:
     int equil;
     double boxsize;
     bool pbc;
-    std::vector<bool> pmv;
+    std::vector<bool> pots;
+
     
 public:
     parameters(){
         ndim = 1;
-        m = 1, hbar = 1.0, kb = 1.0, w = 1.0;
+        kb = 1.0;
         T = 0.2;
-        lam = pow(hbar,2)/(2*m);
+        lam = 0.5;//pow(hbar,2)/(2*m);
         
-        boson = false;
+        boson = true;
         
-        numParticles = 3;
+        numParticles = 4;
         numTimeSlices = 80;
-        numSteps = 300000;
+        numSteps = 20000;
         skip = 100;
         equil = 10000;
+        pots = {true, false};
         
         tau = 1/(T*numTimeSlices);
-        pmv = {true, true, false};
         
         pbc = false;
         if(pbc)
-            boxsize = 6e-10;
+            boxsize = 10;
         else
             boxsize = -1;
 
@@ -67,10 +64,7 @@ public:
     }
     int getndim(){return ndim;}
     double getT(){return T;}
-    double gethbar(){return hbar;}
     double getkb(){return kb;}
-    double getomega(){return w;}
-    double getm(){return m;}
     bool getboson(){return boson;}
     double gettau(){return tau;}
     double getlam(){return lam;}
@@ -80,7 +74,7 @@ public:
     int getNumTimeSlices(){return numTimeSlices;}
     int getNumParticles(){return numParticles;}
     double getBoxSize(){return boxsize;}
-    std::vector<bool> getMoves(){return pmv;}
+    std::vector<bool> getPots(){return pots;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */

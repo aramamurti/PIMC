@@ -7,10 +7,6 @@
 //
 
 #include "potentials.h"
-#include "parameters.h"
-#include <cmath>
-#include <vector>
-#include <iostream>
 
 double potentials::harmonicPotential(std::vector<double> loc, double m, double w){
     double potVal = 0.0;
@@ -22,7 +18,7 @@ double potentials::harmonicPotential(std::vector<double> loc, double m, double w
 
 double potentials::lj_int(double dist){
     double eps = 10.2;
-    double sig = 2.28e-10;
+    double sig = 2.28;
     double potVal = 4*eps*(pow((sig/dist),12) - pow((sig/dist),6));
     return potVal;
 }

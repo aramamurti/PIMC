@@ -9,8 +9,7 @@
 #ifndef __PIMC__potentials__
 #define __PIMC__potentials__
 
-#include <stdio.h>
-#include <vector>
+#include "uni_header.h"
 
 class potentials{
 public:
