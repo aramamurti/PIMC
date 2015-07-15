@@ -27,7 +27,7 @@ public:
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
     std::vector<double> location(std::vector<double> bead, double boxsize);
-    std::vector<double> distance(std::vector<std::vector<double>> beads, double boxsize);
+    std::vector<double> dist(std::vector<std::vector<double>> beads, double boxsize);
     
 private:
     const gsl_rng_type * T;

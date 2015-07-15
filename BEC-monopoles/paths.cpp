@@ -67,12 +67,12 @@ paths::paths(int procnum)
             k = maxPtcls;
     
         
-        std::vector<std::vector<int>> initPermList = {};
+        std::vector<std::vector<int>> initPermList(0);
         iota(d.begin(),d.end(),0);
         
         do
         {
-            std::vector<int> tempvec = {};
+            std::vector<int> tempvec(0);
             for (int i = 0; i < k; i++)
             {
                 tempvec.push_back(d[i]);
@@ -100,7 +100,7 @@ paths::paths(int procnum)
         permList.erase(last, permList.end());
         
         for(std::vector<std::vector<int>>::iterator it = permList.begin(); it != permList.end(); it++){
-            std::vector<int> cp = {};
+            std::vector<int> cp(0);
             for(int j = 0; j < (*it).size(); j++)
                 if((*it)[j] != j)
                     cp.push_back(j);
@@ -173,7 +173,8 @@ paths::paths(int procnum)
     double paths::kineticAction(int slice, int dist){
         double kin = 0;
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-            std::vector<double> distVec = ute->distance(beads->getPair(ptcl, slice, dist), -1);
+            std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, dist);
+            std::vector<double> distVec = ute->dist(pair, -1);
             kin += 1/(4*param->getlam()*param->gettau()*dist)*inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
         }
         return kin;
@@ -195,7 +196,8 @@ paths::paths(int procnum)
         double norm = 1.0/(4.0*param->getlam()*pow(param->gettau(),2));
         for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-                std::vector<double> distVec = ute->distance(beads->getPair(ptcl, slice, 1), -1);
+                std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, 1);
+                std::vector<double> distVec = ute->dist(pair, -1);
                 double dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
                 tot -= norm*dist;
             }

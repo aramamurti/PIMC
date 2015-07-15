@@ -19,13 +19,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		B98249BE1B17A441003B0DC6 /* CopyFiles */ = {
+		B98249BE1B17A441003B0DC6 /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
 			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -115,7 +116,7 @@
 			buildPhases = (
 				B98249BC1B17A441003B0DC6 /* Sources */,
 				B98249BD1B17A441003B0DC6 /* Frameworks */,
-				B98249BE1B17A441003B0DC6 /* CopyFiles */,
+				B98249BE1B17A441003B0DC6 /* Copy Files */,
 			);
 			buildRules = (
 			);
@@ -180,7 +181,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LIBRARY = "libstdc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -222,7 +223,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LIBRARY = "libstdc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -260,10 +261,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					/usr/local/include/,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/open-mpi/1.8.1/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
 				OTHER_LDFLAGS = "-lm";
 				"OTHER_LDFLAGS[arch=*]" = (
@@ -284,10 +282,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					/usr/local/include/,
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/open-mpi/1.8.1/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
 				OTHER_LDFLAGS = "-lm";
 				"OTHER_LDFLAGS[arch=*]" = (

@@ -75,7 +75,7 @@ std::vector<double> utility::location(std::vector<double> bead, double boxsize){
     }
     return loc;
 }
-std::vector<double> utility::distance(std::vector<std::vector<double>> beads, double boxsize){
+std::vector<double> utility::dist(std::vector<std::vector<double>> beads, double boxsize){
     int ndim = (int)beads[0].size();
     std::vector<double> dist;
     std::vector<double> bead1 = location(beads[0],boxsize);

@@ -16,7 +16,7 @@
 
 class paths{
 public:
-    typedef std::shared_ptr<LinkedList<std::vector<double>>> list_ptr;
+    typedef std::tr1::shared_ptr<LinkedList<std::vector<double>>> list_ptr;
 
     //constructor and destructor
     paths(int procnum);

@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <vector>
 #include <algorithm>
+#include <backward/algo.h>
 #include <numeric>
 #include <functional>
 #include <fstream>
@@ -20,5 +21,6 @@
 #include <cmath>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <tr1/memory>
 
 #endif

@@ -18,7 +18,7 @@ private:
     
     class LinkNode {
     public:
-        typedef std::shared_ptr<LinkNode> node_ptr;
+        typedef std::tr1::shared_ptr<LinkNode> node_ptr;
         
         T data;
         node_ptr leftNode;
@@ -31,7 +31,7 @@ private:
         ~LinkNode() {
         }
     };
-    typedef std::shared_ptr<LinkNode> node_ptr;
+    typedef std::tr1::shared_ptr<LinkNode> node_ptr;
     
     bool circular = false;
     std::vector<int> size{0};
@@ -64,8 +64,8 @@ public:
             node_ptr temp = *it;
             while (temp != NULL) {
                 node_ptr next(temp->rightNode);
-                temp->rightNode = 0;
-                temp->leftNode = 0;
+                temp->rightNode.reset();
+                temp->leftNode.reset();
                 temp.reset();
                 temp = next;
             }
@@ -76,8 +76,8 @@ public:
         node_ptr linkNode(new LinkNode(t));
         while(size.size() <= index){
             size.push_back(0);
-            head.push_back(0);
-            tail.push_back(0);
+            head.push_back(node_ptr());
+            tail.push_back(node_ptr());
         }
         
         ++size[index];
@@ -153,10 +153,10 @@ public:
         
         if(!i.empty()){
             std::vector<int> identity(i.back()+1);
-            std::iota(identity.begin(),identity.end(),0);
+            iota(identity.begin(),identity.end(),0);
             
             std::vector<int> invj(i.back()+1);
-            std::iota(invj.begin(),invj.end(),0);
+            iota(invj.begin(),invj.end(),0);
             
             for(std::vector<int>::iterator it = j.begin(); it != j.end(); it++)
                 invj[*it] = (i[it-j.begin()]);
@@ -214,8 +214,10 @@ public:
                 ++tempPos;
             }
         }
-        return std::vector<T>{temp->data, temp2->data};
-        
+        std::vector<T> ret(0);
+        ret.push_back(temp->data);
+        ret.push_back(temp2->data);
+        return ret;        
     }
     
     
@@ -232,8 +234,8 @@ public:
         else{
             for(typename std::vector<node_ptr>::iterator it = head.begin(); it != head.end(); it++){
                 node_ptr ln = *it;
-                ln->leftNode = 0;
-                tail[it-head.begin()]->rightNode = 0;
+                ln->leftNode.reset();
+                tail[it-head.begin()]->rightNode.reset();
             }
             circular = false;
         }
@@ -334,8 +336,8 @@ public:
                 oldVal = oldVal->rightNode;
             }
         }
-        newVal = 0;
-        oldVal = 0;
+        newVal.reset();
+        oldVal.reset();
     }
     
     

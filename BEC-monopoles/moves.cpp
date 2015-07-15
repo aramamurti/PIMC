@@ -65,8 +65,8 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     std::vector<int> identity(path->getParam()->getNumParticles());
     iota(identity.begin(),identity.end(),0);
     std::vector<int> chosenPerm = identity;
-    std::vector<int> origpart = {};
-    std::vector<int> permpart = {};
+    std::vector<int> origpart(0);
+    std::vector<int> permpart(0);
     
     if(path->getParam()->getboson()){
         chosenPerm = pickPermutation(path, start);
@@ -123,7 +123,7 @@ void moves::stagingMove(paths *path, int ptcl, int start, int m){
         int slicem1 = (slice - 1 + path->getParam()->getNumTimeSlices())%path->getParam()->getNumTimeSlices();
         double tau1 = (m-a)*path->getParam()->gettau();
         
-        std::vector<double> move = {};
+        std::vector<double> move(0);
         for(int ndim = 0; ndim < path->getParam()->getndim();ndim++){
             double avex = (tau1*path->getBeads()->getOne(ptcl, slicem1)[ndim]+path->getParam()->gettau()*path->getBeads()->getOne(ptcl, end)[ndim])/(path->getParam()->gettau()+tau1);
             double width = sqrt(2.0*path->getParam()->getlam()/(1.0/path->getParam()->gettau() + 1.0/tau1));
@@ -140,7 +140,7 @@ void moves::bisectionMove(paths* path, int ptcl, int start, int m){
     if(m != 1 && m%2 == 0){
         int slice = (start + m/2)%path->getParam()->getNumTimeSlices();
         double tau1 = (m/2)*path->getParam()->gettau();
-        std::vector<double> move = {};
+        std::vector<double> move(0);
         for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++){
             double avex = (path->getBeads()->getOne(ptcl, start)[ndim]+path->getBeads()->getOne(ptcl, end)[ndim])/(2);
             double width = sqrt(path->getParam()->getlam()*tau1);
@@ -171,8 +171,8 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     std::vector<int> identity(path->getParam()->getNumParticles());
     iota(identity.begin(),identity.end(),0);
     std::vector<int> chosenPerm = identity;
-    std::vector<int> origpart = {};
-    std::vector<int> permpart = {};
+    std::vector<int> origpart(0);
+    std::vector<int> permpart(0);
     
     if(path->getParam()->getboson()){
         chosenPerm = pickPermutation(path, start);

@@ -21,7 +21,7 @@ pimc::pimc(){
 }
 
 std::vector<double> pimc::run(int numSteps, paths* path, Gnuplot &g){
-    std::vector<double> energytr = {};
+    std::vector<double> energytr(0);
     
     moves mvs;
     /*g.set_style("lines");

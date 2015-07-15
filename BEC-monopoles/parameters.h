@@ -40,7 +40,7 @@ public:
         
         boson = true;
         
-        numParticles = 4;
+        numParticles = 12;
         numTimeSlices = 80;
         numSteps = 20000;
         skip = 100;
