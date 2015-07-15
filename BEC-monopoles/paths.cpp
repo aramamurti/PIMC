@@ -146,18 +146,17 @@ paths::paths(int procnum)
     
     double paths::vext(int slice, int ptcl){
         
-        double vVal = pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
-//        if(param->getPots()[0])
-//            vVal += pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
-//        if(param->getPots()[1])
-//            for(int i = 0; i < param->getNumParticles(); i++){
-//                if(i != ptcl){
-//                    std::vector<double> distvec =ute->distance(beads->getPair(ptcl, i, 0), param->getBoxSize());
-//                    vVal += pot->lj_int(sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0)));
-//                }
-//            }
-//        
-//
+        double vVal = 0;
+        if(param->getPots()[0])
+            vVal += pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
+        if(param->getPots()[1])
+            for(int i = 0; i < param->getNumParticles(); i++){
+                if(i != ptcl){
+                    std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                    vVal += pot->lj_int(sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0)));
+                }
+            }
+
         return vVal;
 
     }
@@ -214,11 +213,6 @@ paths::paths(int procnum)
         //std::cout<<kineticEnergy()<<std::endl;
         return energy;
     }
-    
-    void paths::setBeads(LinkedList<std::vector<double>> ll){
-        beads->reset(ll);
-    }
-    
     
     
     

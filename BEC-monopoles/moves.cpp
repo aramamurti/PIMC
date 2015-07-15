@@ -21,7 +21,7 @@ bool moves::comMove(paths* path, int ptcl){
     for(std::vector<double>::iterator it = shift.begin(); it != shift.end(); it++ )
         *it = delta *(path->getUte()->randnormed(2)-1);
     
-    paths::list_ptr oldLL(new LinkedList<std::vector<double>>(*path->getBeads()));
+    path->getBeads()->setOld();
     
     double oldAct = 0.0;
     for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
@@ -40,7 +40,7 @@ bool moves::comMove(paths* path, int ptcl){
         return true;
     }
     else{
-        path->setBeads(*oldLL);
+        path->getBeads()->resetOld();
         return false;
     }
 }
@@ -55,7 +55,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     
     double oldPotAct = 0.0;
     
-    paths::list_ptr oldLL(new LinkedList<std::vector<double>>(*path->getBeads()));
+    path->getBeads()->setOld();
     
     for(int a = 0; a < m+1; a++){
         int slice = (start + a)%path->getParam()->getNumTimeSlices();
@@ -100,7 +100,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
         //std::cout<<"rejected"<<std::endl;
         
         path->getBeads()->reverseswap(origpart, permpart, start, m);
-        path->setBeads(*oldLL);
+        path->getBeads()->resetOld();
         return false;
     }
     
@@ -108,7 +108,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     
     if((permTot0/permTot1) < path->getUte()->randnormed(1)){
         path->getBeads()->reverseswap(origpart, permpart, start, m);
-        path->setBeads(*oldLL);
+        path->getBeads()->resetOld();
         return false;
     }
     return true;
@@ -161,7 +161,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     double oldPotAct = 0.0;
     
-    paths::list_ptr oldLL(new LinkedList<std::vector<double>>(*path->getBeads()));
+    path->getBeads()->setOld();
     
     for(int a = 0; a < m+1; a++){
         int slice = (start + a)%path->getParam()->getNumTimeSlices();
@@ -207,7 +207,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
         //std::cout<<"rejected"<<std::endl;
         
         path->getBeads()->reverseswap(origpart, permpart, start, m);
-        path->setBeads(*oldLL);
+        path->getBeads()->resetOld();
         return false;
     }
     
@@ -215,7 +215,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     if((permTot0/permTot1) < path->getUte()->randnormed(1)){
         path->getBeads()->reverseswap(origpart, permpart, start, m);
-        path->setBeads(*oldLL);
+        path->getBeads()->resetOld();
         return false;
     }
     return true;

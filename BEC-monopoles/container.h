@@ -21,6 +21,7 @@ private:
         typedef std::tr1::shared_ptr<LinkNode> node_ptr;
         
         T data;
+        T olddat;
         node_ptr leftNode;
         node_ptr rightNode;
         LinkNode(T e) {
@@ -34,15 +35,18 @@ private:
     typedef std::tr1::shared_ptr<LinkNode> node_ptr;
     
     bool circular = false;
-    std::vector<int> size{0};
-    std::vector<node_ptr> head{0};
-    std::vector<node_ptr> tail{0};
+    std::vector<int> size;
+    std::vector<node_ptr> head;
+    std::vector<node_ptr> tail;
     
     
     
 public:
     
     LinkedList() {
+        size.resize(0);
+        head.resize(0);
+        tail.resize(0);
     }
     
     LinkedList(const LinkedList &ll)
@@ -74,10 +78,10 @@ public:
     
     void pushBack(T t, int index = 0) {
         node_ptr linkNode(new LinkNode(t));
-        while(size.size() <= index){
-            size.push_back(0);
-            head.push_back(node_ptr());
-            tail.push_back(node_ptr());
+        if(size.size() <= index){
+            size.resize(index+1);
+            head.resize(index+1);
+            tail.resize(index+1);
         }
         
         ++size[index];
@@ -102,6 +106,26 @@ public:
                 *it += shift[it-temp->data.begin()];
             }
             temp = temp->rightNode;
+        }
+    }
+    
+    void setOld(){
+        for(int i = 0; i < size.size(); i++){
+            node_ptr temp = head[i];
+            for(int j = 0; j<size[i];j++){
+                temp->olddat = temp->data;
+                temp = temp->rightNode;
+            }
+        }
+    }
+    
+    void resetOld(){
+        for(int i = 0; i < size.size(); i++){
+            node_ptr temp = head[i];
+            for(int j = 0; j<size[i];j++){
+                temp->data = temp->olddat;
+                temp = temp->rightNode;
+            }
         }
     }
     
@@ -321,25 +345,6 @@ public:
         
         return p;
     }
-    
-    void reset(LinkedList<T> ll){
-        
-        node_ptr newVal;
-        node_ptr oldVal;
-        for(std::vector<int>::iterator it = ll.size.begin(); it!= ll.size.end(); it++){
-            int index = it-ll.size.begin();
-            newVal = ll.head[index];
-            oldVal = head[index];
-            for(int i = 0; i < *it; i++){
-                oldVal->data = newVal->data;
-                newVal = newVal->rightNode;
-                oldVal = oldVal->rightNode;
-            }
-        }
-        newVal.reset();
-        oldVal.reset();
-    }
-    
     
 };
 

@@ -33,8 +33,6 @@ public:
     void constPerms();
     double recompSingProb(int stslice);
     
-    void setBeads(LinkedList<std::vector<double>> ll);
-    
     //getter methods
     int getDist(){return multistep_dist;}
     utility* getUte(){return ute;}

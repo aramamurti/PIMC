@@ -28,7 +28,7 @@ private:
     int equil;
     double boxsize;
     bool pbc;
-    std::vector<bool> pots;
+    bool pots[2];
 
     
 public:
@@ -40,18 +40,19 @@ public:
         
         boson = true;
         
-        numParticles = 12;
+        numParticles = 20;
         numTimeSlices = 80;
-        numSteps = 20000;
+        numSteps = 100000;
         skip = 100;
         equil = 10000;
-        pots = {true, false};
+        pots[0] = false;
+        pots[1] = true;
         
         tau = 1/(T*numTimeSlices);
         
-        pbc = false;
+        pbc = true;
         if(pbc)
-            boxsize = 10;
+            boxsize = 9.7;
         else
             boxsize = -1;
 
@@ -74,7 +75,7 @@ public:
     int getNumTimeSlices(){return numTimeSlices;}
     int getNumParticles(){return numParticles;}
     double getBoxSize(){return boxsize;}
-    std::vector<bool> getPots(){return pots;}
+    bool* getPots(){return pots;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */
