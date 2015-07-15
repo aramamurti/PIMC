@@ -23,12 +23,11 @@ int main(int argc, const char * argv[]) {
     
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    Gnuplot g("plot");
     
     paths* path = new paths(world_rank);
     std::cout << "Started process " << world_rank << std::endl;
     pimc sim;
-    std::vector<double> energy = sim.run(path->getParam()->getNumSteps(), path, g);
+    std::vector<double> energy = sim.run(path->getParam()->getNumSteps(), path);
     std::cout<< "Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<<"\n";
     
     delete path;

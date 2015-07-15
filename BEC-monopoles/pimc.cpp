@@ -20,14 +20,10 @@ pimc::pimc(){
     numacceptb = 0;
 }
 
-std::vector<double> pimc::run(int numSteps, paths* path, Gnuplot &g){
+std::vector<double> pimc::run(int numSteps, paths* path){
     std::vector<double> energytr(0);
     
     moves mvs;
-    /*g.set_style("lines");
-    
-    Gnuplot g1("plot2");
-    g1.set_style("lines");*/
     
     for(int step = 0; step < numSteps; step++){
         std::cout<<step<<std::endl;
@@ -41,13 +37,6 @@ std::vector<double> pimc::run(int numSteps, paths* path, Gnuplot &g){
         
         if(step % path->getParam()->getSkip() == 0 && step>path->getParam()->getEquil()){
             energytr.push_back(path->energy());
-            /*g.reset_plot();
-            g.plot_x(energytr, "energy");
-            
-            g1.reset_plot();
-            for(int ptcl = 0; ptcl < path->getParam()->getNumParticles(); ptcl++){
-                g1.plot_x(path->getBeads()->returnLinkedList(ptcl), " " );
-            }*/
         }
     }
     

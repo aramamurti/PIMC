@@ -8,12 +8,11 @@
 
 #ifndef BEC_monopoles_pimc_h
 #define BEC_monopoles_pimc_h
-#include "gnuplot_i.hpp"
 class pimc{
 public:
     pimc();
     ~pimc(){};
-    std::vector<double> run(int numSteps, paths* path, Gnuplot &g);
+    std::vector<double> run(int numSteps, paths* path);
 private:
     int numaccepts;
     int numacceptc;

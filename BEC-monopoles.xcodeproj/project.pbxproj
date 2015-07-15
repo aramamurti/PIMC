@@ -15,7 +15,6 @@
 		B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D61B17A45E003B0DC6 /* utility.cpp */; };
 		B98249E41B18EA28003B0DC6 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */; };
 		B98249E51B18EA28003B0DC6 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */; };
-		B9A483AC1B28D66A005FFE8B /* gnuplot_i.cc in Sources */ = {isa = PBXBuildFile; fileRef = B9A483AA1B28D66A005FFE8B /* gnuplot_i.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,8 +46,6 @@
 		B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
 		B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
 		B9A483A41B28CCC1005FFE8B /* uni_header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
-		B9A483AA1B28D66A005FFE8B /* gnuplot_i.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gnuplot_i.cc; sourceTree = "<group>"; };
-		B9A483AB1B28D66A005FFE8B /* gnuplot_i.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = gnuplot_i.hpp; sourceTree = "<group>"; };
 		B9B041F01B25F95A0005E355 /* pimc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
 		B9C40F801B26364A007A41BD /* container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = container.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -100,8 +97,6 @@
 				B9C40F801B26364A007A41BD /* container.h */,
 				B98249D61B17A45E003B0DC6 /* utility.cpp */,
 				B98249D71B17A45E003B0DC6 /* utility.h */,
-				B9A483AA1B28D66A005FFE8B /* gnuplot_i.cc */,
-				B9A483AB1B28D66A005FFE8B /* gnuplot_i.hpp */,
 				B9A483A41B28CCC1005FFE8B /* uni_header.h */,
 			);
 			path = "BEC-monopoles";
@@ -167,7 +162,6 @@
 				B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */,
 				B98249C41B17A441003B0DC6 /* main.cpp in Sources */,
 				B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */,
-				B9A483AC1B28D66A005FFE8B /* gnuplot_i.cc in Sources */,
 				B98249DB1B17A45E003B0DC6 /* paths.cpp in Sources */,
 				B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */,
 			);
