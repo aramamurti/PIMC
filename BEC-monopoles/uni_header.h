@@ -22,5 +22,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <tr1/memory>
+#include <fstream>
+
 
 #endif

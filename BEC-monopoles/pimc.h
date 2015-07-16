@@ -8,11 +8,12 @@
 
 #ifndef BEC_monopoles_pimc_h
 #define BEC_monopoles_pimc_h
+
 class pimc{
 public:
     pimc();
     ~pimc(){};
-    std::vector<double> run(int numSteps, paths* path);
+    std::vector<double> run(int numSteps, paths* path, std::ofstream &f);
 private:
     int numaccepts;
     int numacceptc;

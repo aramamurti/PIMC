@@ -24,11 +24,20 @@ int main(int argc, const char * argv[]) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
-    paths* path = new paths(world_rank);
-    std::cout << "Started process " << world_rank << std::endl;
+    std::stringstream sstm;
+    sstm << "out" << world_rank <<".txt";
+    std::string result = sstm.str();
+    std::ofstream f;
+    f.open(result.c_str());
+
+    paths* path = new paths(world_rank, f);
+    f << "Started process " << world_rank << std::endl;
     pimc sim;
-    std::vector<double> energy = sim.run(path->getParam()->getNumSteps(), path);
-    std::cout<< "Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<<"\n";
+    
+    
+    
+    std::vector<double> energy = sim.run(path->getParam()->getNumSteps(), path, f);
+    f << "Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<<"\n";
     
     delete path;
 

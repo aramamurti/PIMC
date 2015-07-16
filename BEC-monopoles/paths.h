@@ -19,7 +19,7 @@ public:
     typedef std::tr1::shared_ptr<LinkedList<std::vector<double>>> list_ptr;
 
     //constructor and destructor
-    paths(int procnum);
+    paths(int procnum, std::ofstream &f);
     ~paths();
     
     //methods

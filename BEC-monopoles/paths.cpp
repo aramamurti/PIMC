@@ -9,7 +9,7 @@
 #include "paths.h"
 
 
-paths::paths(int procnum)
+paths::paths(int procnum, std::ofstream &f)
 :multvec{1.0,1.0,1.0,1.0}//{1.0,20.0,100.0,400.0}
 {
     printed = false;
@@ -19,14 +19,13 @@ paths::paths(int procnum)
     //param->setT(0.5+procnum*0.5);
     multistep_dist = 8;
     
-    std::cout<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n\n";
+    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n\n";
     
     std::vector<std::vector<double>> offset(param->getNumParticles(), std::vector<double>(param->getndim(), 0.0));
     for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
         for(int ndim = 0; ndim < param->getndim(); ndim++){
             if(param->getBoxSize()!=-1){
                 offset[ptcl][ndim] = param->getBoxSize()*(ute->randnormed(1)-0.5);
-                std::cout<<offset[ptcl][ndim]<<std::endl;
             }
             else
                 offset[ptcl][ndim] = ute->randnormed(1)-0.5;
