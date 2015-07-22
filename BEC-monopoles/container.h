@@ -20,6 +20,7 @@ private:
     public:
         typedef std::tr1::shared_ptr<LinkNode> node_ptr;
         
+        int rownum;
         T data;
         T olddat;
         node_ptr leftNode;
@@ -38,7 +39,11 @@ private:
     std::vector<int> size;
     std::vector<node_ptr> head;
     std::vector<node_ptr> tail;
-    
+    std::vector<int> swapStartOrders;
+    std::vector<int> swapEndOrder;
+    std::vector<int> reswapStartOrders;
+    std::vector<int> reswapEndOrder;
+    int swapPos;
     
     
 public:
@@ -78,6 +83,8 @@ public:
     
     void pushBack(T t, int index = 0) {
         node_ptr linkNode(new LinkNode(t));
+        linkNode->rownum = index;
+        
         if(size.size() <= index){
             size.resize(index+1);
             head.resize(index+1);
@@ -129,7 +136,57 @@ public:
         }
     }
     
-    void swap(std::vector<int> i, std::vector<int> j, int pos, int dist = 0){
+    void setswap(std::vector<int> i, std::vector<int> j, int pos, int dist = 0){
+        swapPos = (pos+dist)%size[0];
+        swapStartOrders.resize(i.size());
+        swapEndOrder.resize(j.size());
+        
+        std::copy(i.begin(), i.end(), swapStartOrders.begin());
+        std::copy(j.begin(), j.end(), swapEndOrder.begin());
+        
+        
+        if(!i.empty()){
+            
+            int max = *std::max_element(i.begin(), i.end());
+            
+            std::vector<int> identity(max+1);
+            iota(identity.begin(),identity.end(),0);
+            
+            std::vector<int> invj(max+1);
+            iota(invj.begin(),invj.end(),0);
+            
+            for(std::vector<int>::iterator it = j.begin(); it != j.end(); it++)
+                invj[*it] = (i[it-j.begin()]);
+            
+            reswapStartOrders.resize(identity.size());
+            reswapEndOrder.resize(identity.size());
+            
+            std::copy(identity.begin(), identity.end(), reswapStartOrders.begin());
+            std::copy(invj.begin(), invj.end(), reswapEndOrder.begin());
+        }
+        else{
+            reswapStartOrders.resize(0);
+            reswapEndOrder.resize(0);
+        }
+        
+    }
+    void swap(bool reverse = false){
+        std::vector<int> i;
+        std::vector<int> j;
+        
+        if(reverse){
+            i.resize(reswapStartOrders.size());
+            j.resize(reswapEndOrder.size());
+            std::copy(reswapStartOrders.begin(), reswapStartOrders.end(), i.begin());
+            std::copy(reswapEndOrder.begin(), reswapEndOrder.end(), j.begin());
+            
+        }
+        else{
+            i.resize(swapStartOrders.size());
+            j.resize(swapEndOrder.size());
+            std::copy(swapStartOrders.begin(), swapStartOrders.end(), i.begin());
+            std::copy(swapEndOrder.begin(), swapEndOrder.end(), j.begin());
+        }
         
         if(!i.empty()) {
             int tempPos = 1;
@@ -139,21 +196,10 @@ public:
             for(int ptc = 0; ptc < size.size(); ptc ++)
                 temps.push_back(head[ptc]);
             
-            while(pos != 0 && tempPos != pos){
+            while(swapPos != 0 && tempPos != swapPos){
                 for(std::vector<int>::iterator it = i.begin(); it != i.end(); it++)
                     temps[*it] = temps[*it]->rightNode;
                 ++tempPos;
-            }
-            
-            if(dist != 0){
-                pos = dist;
-                tempPos = 0;
-                while(pos != 0 && tempPos != pos){
-                    for(std::vector<int>::iterator it = i.begin(); it != i.end(); it++)
-                        temps[*it] = temps[*it]->rightNode;
-                    ++tempPos;
-                }
-                
             }
             
             std::vector<node_ptr> temps2(j.size());
@@ -161,7 +207,7 @@ public:
                 *it = temps[j[it-temps2.begin()]]->rightNode;
             
             for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
-                if(pos != 0){
+                if(swapPos != 0){
                     temps[*it]->rightNode = temps2[it-i.begin()];
                     temps[*it]->rightNode->leftNode = temps[*it];
                 }
@@ -173,42 +219,38 @@ public:
         }
     }
     
-    void reverseswap(std::vector<int> i, std::vector<int> j, int pos, int dist = 0){
-        
-        if(!i.empty()){
-            std::vector<int> identity(i.back()+1);
-            iota(identity.begin(),identity.end(),0);
-            
-            std::vector<int> invj(i.back()+1);
-            iota(invj.begin(),invj.end(),0);
-            
-            for(std::vector<int>::iterator it = j.begin(); it != j.end(); it++)
-                invj[*it] = (i[it-j.begin()]);
-            
-            swap(identity,invj,pos,dist);
-        }
-        
-    }
-    
-    
     std::vector<double> getOne(int row, int slice){
         int tempPos = 0;
         node_ptr temp = head[row];
-        while(tempPos != slice){
-            temp = temp->rightNode;
-            ++tempPos;
+        
+        if((slice < size.size()|| circular) && slice>=0 ){
+            while(tempPos != slice){
+                temp = temp->rightNode;
+                ++tempPos;
+            }
+            return T(temp->data);
         }
-        return T(temp->data);
+        else if (slice < 0 && circular){
+            while(tempPos != slice){
+                temp = temp->leftNode;
+                --tempPos;
+            }
+            return T(temp->data);
+        }
+        else
+            return T(0);
     }
     
     void setOne(int row, int slice, T data){
         int tempPos = 0;
         node_ptr temp = head[row];
-        while(tempPos != slice){
-            temp = temp->rightNode;
-            ++tempPos;
+        if(slice < size.size() || circular){
+            while(tempPos != slice){
+                temp = temp->rightNode;
+                ++tempPos;
+            }
+            temp->data = data;
         }
-        temp->data = data;
     }
     
     std::vector<T> getPair(int row, int start, int dist){
@@ -217,6 +259,7 @@ public:
         if(dist!=0){
             int tempPos = 0;
             temp = head[row];
+
             while(tempPos != start){
                 temp = temp->rightNode;
                 ++tempPos;
@@ -241,7 +284,7 @@ public:
         std::vector<T> ret(0);
         ret.push_back(temp->data);
         ret.push_back(temp2->data);
-        return ret;        
+        return ret;
     }
     
     
@@ -271,7 +314,7 @@ public:
         if(circular){
             bool headprint = false;
             int numPrint = 0;
-            while (!headprint || numPrint < size[index]+3) {
+            while (!headprint || numPrint < size[index]) {
                 if(temp == head[index])
                     headprint = true;
                 T beep = temp->data;
@@ -293,17 +336,46 @@ public:
         std::cout << std::endl;
     }
     
+    void printLinkedListIndices(int index = 0){
+        node_ptr temp = head[index];
+        if(circular){
+            bool headprint = false;
+            int numPrint = 0;
+            while (!headprint || numPrint < size[index]) {
+                if(temp == head[index])
+                    headprint = true;
+                if(numPrint % size[index] == 0)
+                    std::cout << "||\t";
+                std::cout << temp->rownum << "\t";
+                temp = temp->rightNode;
+                numPrint++;
+            }
+            
+        }
+        else{
+            while (temp != NULL) {
+                std::cout << temp->rownum << "\t";
+                temp = temp->rightNode;
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    
+    
     void printLinkedList(int index, std::ofstream &f){
         node_ptr temp = head[index];
         if(circular){
             bool headprint = false;
             int numPrint = 0;
-            while (!headprint || numPrint < size[index]*2) {
+            while (!headprint || numPrint < size[index]+1) {
                 if(temp == head[index])
                     headprint = true;
                 T beep = temp->data;
-                for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
+                for(typename T::iterator it = beep.begin(); it != beep.end(); it++){
                     f << *it << ", ";
+                }
+                f << std::endl;
                 temp = temp->rightNode;
                 numPrint++;
             }
@@ -314,10 +386,11 @@ public:
                 T beep = temp->data;
                 for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
                     f << *it << ", ";
+                f<<std::endl;
                 temp = temp->rightNode;
             }
         }
-        f << std::endl;
+        f.close();
     }
     
     T returnLinkedList(int index){
@@ -342,7 +415,6 @@ public:
                 temp = temp->rightNode;
             }
         }
-        
         return p;
     }
     

@@ -32,13 +32,19 @@ int main(int argc, const char * argv[]) {
 
     paths* path = new paths(world_rank, f);
     f << "Started process " << world_rank << std::endl;
-    pimc sim;
+    pimc* sim = new pimc();
     
     
     
-    std::vector<double> energy = sim.run(path->getParam()->getNumSteps(), path, f);
-    f << "Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<<"\n";
+    std::vector<double> energy = sim->run(path->getParam()->getNumSteps(), path, f);
+    f << "Total Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<< std::endl;
+    f << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->getParam()->getNumParticles()<< std::endl;
+
+    f.close();
     
+    std::cout << path->numswap;
+    
+    delete sim;
     delete path;
 
     MPI_Finalize();

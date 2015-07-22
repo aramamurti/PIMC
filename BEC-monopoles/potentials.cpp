@@ -17,8 +17,26 @@ double potentials::harmonicPotential(std::vector<double> loc, double m, double w
 }
 
 double potentials::lj_int(double dist){
-    double eps = 10.2;
-    double sig = 2.28;
-    double potVal = 4*eps*(pow((sig/dist),12) - pow((sig/dist),6));
-    return potVal;
+    double eps = 10.9;
+    double sig = 2.64;
+    return 4*eps*(pow((sig/dist),12) - pow((sig/dist),6));
+}
+
+double potentials::hardSphere(double dist){
+    if(dist < 140E-12)
+        return 10E20;
+    else
+        return 0;
+}
+
+std::vector<double> potentials::grad_lj(std::vector<double> distVec, double dist){
+    double eps = 10.9;
+    double sig = 2.64;
+    double dV = 24*eps*pow(sig,6)*(pow(dist,6)-2*pow(sig,6))/pow(dist,14);
+    std::vector<double> gradV;
+    for(std::vector<double>::iterator it = distVec.begin(); it != distVec.end(); it++){
+        gradV.push_back(*it*dV);
+    }
+    
+    return gradV;
 }

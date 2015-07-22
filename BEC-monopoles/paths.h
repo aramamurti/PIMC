@@ -29,9 +29,11 @@ public:
     double kineticEnergy();
     double potentialEnergy();
     double energy();
+    double virialEnergy();
     double cv();
     void constPerms();
     double recompSingProb(int stslice);
+    void putInBox();
     
     //getter methods
     int getDist(){return multistep_dist;}
@@ -40,10 +42,9 @@ public:
     std::vector<std::vector<double>>* getProbList(){return &probList;}
     std::vector<std::vector<int>>* getPermList(){return &permList;}
     list_ptr getBeads(){return beads;}
+    int numswap;
 
     
-    bool printed;
-
 private:
     
 

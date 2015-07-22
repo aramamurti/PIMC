@@ -23,6 +23,7 @@
 #include <gsl/gsl_randist.h>
 #include <tr1/memory>
 #include <fstream>
+#include <boost/bind.hpp>
 
 
 #endif

@@ -257,12 +257,13 @@
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
-				OTHER_LDFLAGS = "-lm";
+				OTHER_LDFLAGS = "";
 				"OTHER_LDFLAGS[arch=*]" = (
 					"-lgslcblas",
 					"-lgsl",
 					"-lmpi",
 					"-lm",
+					"-lboost_system",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -278,12 +279,13 @@
 				);
 				LIBRARY_SEARCH_PATHS = "";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
-				OTHER_LDFLAGS = "-lm";
+				OTHER_LDFLAGS = "";
 				"OTHER_LDFLAGS[arch=*]" = (
-					"-lgsl",
 					"-lgslcblas",
+					"-lgsl",
 					"-lmpi",
 					"-lm",
+					"-lboost_system",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

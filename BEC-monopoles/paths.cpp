@@ -12,25 +12,71 @@
 paths::paths(int procnum, std::ofstream &f)
 :multvec{1.0,1.0,1.0,1.0}//{1.0,20.0,100.0,400.0}
 {
-    printed = false;
     
     ute = new utility(procnum);
     param = new parameters();
     //param->setT(0.5+procnum*0.5);
-    multistep_dist = 8;
+    multistep_dist = 16;
+    numswap = 0;
     
-    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n\n";
+    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
     
     std::vector<std::vector<double>> offset(param->getNumParticles(), std::vector<double>(param->getndim(), 0.0));
-    for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-        for(int ndim = 0; ndim < param->getndim(); ndim++){
-            if(param->getBoxSize()!=-1){
-                offset[ptcl][ndim] = param->getBoxSize()*(ute->randnormed(1)-0.5);
-            }
-            else
+    
+    if(param->getBoxSize() == -1){
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+            for(int ndim = 0; ndim < param->getndim(); ndim++){
                 offset[ptcl][ndim] = ute->randnormed(1)-0.5;
+            }
+        }
+        beads = list_ptr(new LinkedList<std::vector<double>>());
+        
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                beads->pushBack(offset[ptcl],ptcl);
+            }
+        }
+        
+    }
+    else{
+        offset.resize(0);
+        double spacing = param->getBoxSize()/(pow(param->getNumParticles(),1/3.));
+        int pps = (int)(pow(param->getNumParticles(),1/((double)param->getndim())));
+        for(int i = 0; i < pps; i++){
+            if(param->getndim() == 1){
+                std::vector<double> pos;
+                pos.push_back(i*spacing);
+                offset.push_back(pos);
+            }
+            else{
+                for(int j = 0; j < pps; j++){
+                    if(param->getndim() == 1){
+                        std::vector<double> pos;
+                        pos.push_back(i*spacing);
+                        pos.push_back(j*spacing);
+                        offset.push_back(pos);
+                    }
+                    else{
+                        for(int k = 0; k < pps; k++){
+                            std::vector<double> pos;
+                            pos.push_back(i*spacing);
+                            pos.push_back(j*spacing);
+                            pos.push_back(k*spacing);
+                            offset.push_back(pos);
+                        }
+                    }
+                }
+            }
+        }
+        beads = list_ptr(new LinkedList<std::vector<double>>());
+        
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                beads->pushBack(offset[ptcl],ptcl);
+            }
         }
     }
+    
     
     beads = list_ptr(new LinkedList<std::vector<double>>());
     
@@ -43,7 +89,7 @@ paths::paths(int procnum, std::ofstream &f)
     probList.resize(param->getNumTimeSlices());
     
     beads->makeCircular();
-        
+    
     pot = new potentials();
     
     constPerms();
@@ -64,7 +110,7 @@ paths::paths(int procnum, std::ofstream &f)
             k = param->getNumParticles();
         else
             k = maxPtcls;
-    
+        
         
         std::vector<std::vector<int>> initPermList(0);
         iota(d.begin(),d.end(),0);
@@ -123,20 +169,21 @@ paths::paths(int procnum, std::ofstream &f)
         for(int i = 0; i < permList.size(); i++){
             std::vector<int> oneperm = permList[i];
             int chdptcl = 0;
-            beads->swap(identity,oneperm, slice, multistep_dist);
-            
+            beads->setswap(identity,oneperm, slice, multistep_dist);
+            beads->swap();
             double newAction = 0.0;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 newAction += kineticAction(slice,multistep_dist);
             }
-
+            
             double multfac = 1.0;
             if(chdptcl != 0)
                 multfac = multvec[chdptcl-1];
             permTot += exp(-(newAction - oldAction));
             problist.push_back(exp(-(newAction - oldAction)));
-
-            beads->reverseswap(identity,oneperm,slice,multistep_dist);
+            
+            beads->swap(true);
+            
         }
         
         probList[slice]=problist;
@@ -152,12 +199,21 @@ paths::paths(int procnum, std::ofstream &f)
             for(int i = 0; i < param->getNumParticles(); i++){
                 if(i != ptcl){
                     std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
-                    vVal += pot->lj_int(sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0)));
+                    double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                    vVal += pot->lj_int(dist);
                 }
             }
-
+        if(param->getPots()[2])
+            for(int i = 0; i < param->getNumParticles(); i++){
+                if(i != ptcl){
+                    std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                    double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                    vVal += pot->hardSphere(dist);
+                }
+            }
+        
         return vVal;
-
+        
     }
     
     double paths::potentialAction(int slice){
@@ -172,17 +228,35 @@ paths::paths(int procnum, std::ofstream &f)
         double kin = 0;
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
             std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, dist);
-            std::vector<double> distVec = ute->dist(pair, -1);
-            kin += 1/(4*param->getlam()*param->gettau()*dist)*inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+            std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
+            double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+            kin += 1/(4*param->getlam()*param->gettau()*dist)*ipdist;
         }
         return kin;
     }
+    
+    /******************************************************
+     Thermo Energy
+     ******************************************************/
     
     double paths::potentialEnergy(){
         double PE = 0.0;
         for(int slice = 0; slice<param->getNumTimeSlices();slice++){
             for(int ptcl = 0; ptcl<param->getNumParticles(); ptcl++){
-                PE += vext(slice, ptcl);
+                if(param->getPots()[0])
+                    PE += pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
+                if(param->getPots()[1])
+                    for(int i = ptcl+1; i < param->getNumParticles(); i++){
+                        std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                        double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                        PE += pot->lj_int(dist);
+                    }
+                if(param->getPots()[2])
+                    for(int i = ptcl+1; i < param->getNumParticles(); i++){
+                        std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                        double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                        PE += pot->hardSphere(dist);
+                    }
             }
         }
         PE = PE/param->getNumTimeSlices();
@@ -195,24 +269,95 @@ paths::paths(int procnum, std::ofstream &f)
         for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, 1);
-                std::vector<double> distVec = ute->dist(pair, -1);
+                std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
                 double dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
                 tot -= norm*dist;
             }
         }
         
         double KE = 0.5*param->getndim()*param->getNumParticles()/param->gettau() +tot/param->getNumTimeSlices();
+        
         return KE;
     }
     
     
     double paths::energy(){
         double energy = kineticEnergy()+potentialEnergy();
-        
-        //std::cout<<kineticEnergy()<<std::endl;
         return energy;
     }
     
+    /*******************************************
+     Virial Energy
+     ********************************************/
+    
+    double paths::virialEnergy(){
+        int virialWindow = param->getNumTimeSlices();
+        
+        double t1 = 3 *param->getndim() / (2*param->gettau()*virialWindow);
+        
+        double t2fac = 1 / (4 * param->getlam() * param->getNumTimeSlices() * virialWindow * pow(param->gettau(),2));
+        double t2 = 0;
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                std::vector<double> v1 = ute->vecsub(beads->getOne(ptcl, slice+virialWindow),beads->getOne(ptcl, slice));
+                std::vector<double> v2 = ute->vecsub(beads->getOne(ptcl, slice+virialWindow-1),beads->getOne(ptcl, slice+virialWindow));
+                t2 += inner_product(v1.begin(), v1.end(), v2.begin(), 0.0);
+            }
+        }
+        t2*=t2fac;
+        
+        double t3fac = 1/(2*param->getNumTimeSlices());
+        double t3 = 0;
+        
+        std::vector<std::vector<std::vector<double>>> rc;
+        
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            std::vector<std::vector<double>> rcslice;
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                std::vector<double> vsum(param->getndim(), 0.0);
+                for(int gamma =0; gamma < virialWindow; gamma++){
+                    ute->vecadd(vsum, ute->vecadd(beads->getOne(ptcl, slice - gamma), beads->getOne(ptcl, slice + gamma)));
+                }
+                for(std::vector<double>::iterator it = vsum.begin(); it != vsum.end(); it++){
+                    *it *= 1/(2.*virialWindow);
+                }
+                rcslice.push_back(vsum);
+            }
+            rc.push_back(rcslice);
+        }
+        
+        if(param->getPots()[1])
+            for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+                for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                    std::vector<double> gradSum(param->getndim(), 0.0);
+                    for(int i = 0; i < param->getNumParticles(); i++){
+                        if(i != ptcl){
+                            std::vector<double> distvec =ute->dist(beads->getPair(i, ptcl, 0), param->getBoxSize());
+                            double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                            gradSum = ute->vecadd(gradSum, pot->grad_lj(distvec, dist));
+                        }
+                    }
+                    std::vector<double> rcmr = ute->vecsub(beads->getOne(ptcl, slice), rc[slice][ptcl]);
+                    t3+= std::inner_product(rcmr.begin(), rcmr.end(), gradSum.begin(), 0.0);
+                }
+            }
+        
+        t3*= t3fac;
+        
+        double t4 = potentialEnergy();
+        
+        double energy = t1 + t2 + t3 + t4;
+        return energy;
+    }
+    
+    
+    void paths::putInBox(){
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++)
+            for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+                beads->setOne(ptcl, slice, ute->location(beads->getOne(ptcl, slice), param->getBoxSize()));
+            }
+        
+    }
     
     
     

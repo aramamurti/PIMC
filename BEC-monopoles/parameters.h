@@ -28,31 +28,33 @@ private:
     int equil;
     double boxsize;
     bool pbc;
-    bool pots[2];
+    bool pots[3];
 
     
 public:
     parameters(){
-        ndim = 1;
+        ndim = 3;
         kb = 1.0;
-        T = 0.2;
-        lam = 0.5;//pow(hbar,2)/(2*m);
+        T = 2;
+        lam = 6.0596;//pow(hbar,2)/(2*m);
         
         boson = true;
         
-        numParticles = 2;
+        numParticles = 27;
         numTimeSlices = 80;
-        numSteps = 100000;
-        skip = 100;
-        equil = 10000;
+        numSteps = 10000;
+        skip = 1;
+        equil = 500;
+        
         pots[0] = false;
         pots[1] = true;
+        pots[2] = false;
         
         tau = 1/(T*numTimeSlices);
         
         pbc = true;
         if(pbc)
-            boxsize = 9.7;
+            boxsize = 10.7358;
         else
             boxsize = -1;
 

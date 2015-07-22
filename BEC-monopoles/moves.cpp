@@ -37,6 +37,7 @@ bool moves::comMove(paths* path, int ptcl){
     }
     
     if(path->getUte()->randnormed(1)<exp(-(newAct - oldAct))){
+        path->putInBox();
         return true;
     }
     else{
@@ -70,17 +71,16 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     
     if(path->getParam()->getboson()){
         chosenPerm = pickPermutation(path, start);
-        //std::cout << start << "\t" << start+m<< std::endl;;
         
         for(std::vector<int>::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
                 origpart.push_back(*it);
                 permpart.push_back(chosenPerm[*it]);
-                //std::cout << *it << "\t" << chosenPerm[*it]<< std::endl;;
             }
     }
     
-    path->getBeads()->swap(origpart, permpart, start, m);
+    path->getBeads()->setswap(origpart, permpart, start, m);
+    path->getBeads()->swap();
     
     if(permpart.size() == 0)
         stagingMove(path, ptcl, start, m);
@@ -97,9 +97,8 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     double potDiff = newPotAct-oldPotAct;
     
     if(exp(-potDiff) < path->getUte()->randnormed(1)){
-        //std::cout<<"rejected"<<std::endl;
         
-        path->getBeads()->reverseswap(origpart, permpart, start, m);
+        path->getBeads()->swap(true);
         path->getBeads()->resetOld();
         return false;
     }
@@ -107,19 +106,20 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
     double permTot1 = path->recompSingProb(start);
     
     if((permTot0/permTot1) < path->getUte()->randnormed(1)){
-        path->getBeads()->reverseswap(origpart, permpart, start, m);
+        path->getBeads()->swap(true);
         path->getBeads()->resetOld();
         return false;
     }
+    
     return true;
 }
 
 
 void moves::stagingMove(paths *path, int ptcl, int start, int m){
-    int end = (start + m)%path->getParam()->getNumTimeSlices();
-
+    int end = (start + m);
+    
     for(int a = 1; a < m; a++){
-        int slice = (start + a)%path->getParam()->getNumTimeSlices();
+        int slice = (start + a);
         int slicem1 = (slice - 1 + path->getParam()->getNumTimeSlices())%path->getParam()->getNumTimeSlices();
         double tau1 = (m-a)*path->getParam()->gettau();
         
@@ -134,17 +134,17 @@ void moves::stagingMove(paths *path, int ptcl, int start, int m){
     
 }
 
-void moves::bisectionMove(paths* path, int ptcl, int start, int m){
-    int end = (start + m)%path->getParam()->getNumTimeSlices();
-
+void moves::bisectionMove(paths* path, int ptcl, int start, int m){    
     if(m != 1 && m%2 == 0){
-        int slice = (start + m/2)%path->getParam()->getNumTimeSlices();
+        int end = start+m;
+        int slice = (start + m/2);
         double tau1 = (m/2)*path->getParam()->gettau();
         std::vector<double> move(0);
+        std::vector<std::vector<double>> bds = path->getBeads()->getPair(ptcl, start, m);
+        std::vector<double> aved = path->getUte()->avedist(bds,path->getParam()->getBoxSize());
+        double width = sqrt(path->getParam()->getlam()*tau1);
         for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++){
-            double avex = (path->getBeads()->getOne(ptcl, start)[ndim]+path->getBeads()->getOne(ptcl, end)[ndim])/(2);
-            double width = sqrt(path->getParam()->getlam()*tau1);
-            move.push_back(avex + path->getUte()->randgaussian(width));
+            move.push_back(aved[ndim] + path->getUte()->randgaussian(width));
         }
         path->getBeads()->setOne(ptcl, slice, move);
         bisectionMove(path, ptcl, start, m/2);
@@ -161,6 +161,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     double oldPotAct = 0.0;
     
+    
     path->getBeads()->setOld();
     
     for(int a = 0; a < m+1; a++){
@@ -176,17 +177,16 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     if(path->getParam()->getboson()){
         chosenPerm = pickPermutation(path, start);
-        //std::cout << start << "\t" << start+m<< std::endl;;
         
         for(std::vector<int>::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
                 origpart.push_back(*it);
                 permpart.push_back(chosenPerm[*it]);
-                //std::cout << *it << "\t" << chosenPerm[*it]<< std::endl;;
             }
     }
     
-    path->getBeads()->swap(origpart, permpart, start, m);
+    path->getBeads()->setswap(origpart, permpart, start, m);
+    path->getBeads()->swap();
     
     
     if(permpart.size() == 0)
@@ -202,22 +202,28 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     }
     
     double potDiff = newPotAct-oldPotAct;
+    double rn = path->getUte()->randnormed(1);
     
-    if(exp(-potDiff) < path->getUte()->randnormed(1)){
-        //std::cout<<"rejected"<<std::endl;
+    
+    if(exp(-potDiff) < rn){
         
-        path->getBeads()->reverseswap(origpart, permpart, start, m);
+        path->getBeads()->swap(true);
         path->getBeads()->resetOld();
+        
         return false;
     }
     
     double permTot1 = path->recompSingProb(start);
-    
+    path->getBeads()->setswap(origpart, permpart, start, m);
     if((permTot0/permTot1) < path->getUte()->randnormed(1)){
-        path->getBeads()->reverseswap(origpart, permpart, start, m);
+        path->getBeads()->swap(true);
         path->getBeads()->resetOld();
         return false;
     }
+    if(permpart.size() > 0)
+        path->numswap++;
+    
+    path->putInBox();
     return true;
 }
 

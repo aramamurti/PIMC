@@ -18,6 +18,8 @@ public:
     double harmonicPotential(std::vector<double> loc, double m, double w);
     double free(){return 0;}
     double lj_int(double dist);
+    double hardSphere(double dist);
+    std::vector<double> grad_lj(std::vector<double> distVec, double dist);
 };
 
 

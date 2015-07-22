@@ -25,7 +25,7 @@ utility::utility(int procnum){
     r = gsl_rng_alloc (T);
     
     unsigned long int seed;
-    seed = time(NULL)*procnum;
+    seed = time(NULL)*(procnum+1);
     gsl_rng_set(r,seed);
 
 }
@@ -64,12 +64,32 @@ double utility::vecstd(std::vector<double> v){
     return stdev;
 }
 
+std::vector<double> utility::vecsub(std::vector<double> a, std::vector<double> b){
+    std::vector<double> result;
+    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](double l, double r)
+    {
+        return r-l;
+    });
+    
+    return result;
+}
+
+std::vector<double> utility::vecadd(std::vector<double> a, std::vector<double> b){
+    std::vector<double> result;
+    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](double l, double r)
+                   {
+                       return r+l;
+                   });
+    
+    return result;
+}
+
 std::vector<double> utility::location(std::vector<double> bead, double boxsize){
     int ndim = (int)bead.size();
     std::vector<double> loc;
     for(int i = 0; i < ndim; i++){
         if(boxsize != -1)
-            loc.push_back(pbc(bead[i]+boxsize/2,boxsize)-boxsize/2);
+            loc.push_back(pbc(bead[i],boxsize));
         else
             loc.push_back(bead[i]);
     }
@@ -87,6 +107,14 @@ std::vector<double> utility::dist(std::vector<std::vector<double>> beads, double
         dist.push_back(dimdist);
     }
     return dist;
+}
+
+std::vector<double> utility::avedist(std::vector<std::vector<double>> beads, double boxsize){
+    std::vector<double> dstc = dist(beads, boxsize);
+    for(std::vector<double>::iterator it = dstc.begin(); it!= dstc.end(); it++){
+        *it = *it/2 + beads[0][it-dstc.begin()];
+    }
+    return dstc;
 }
 
 double utility::pbc(double a, double b)
