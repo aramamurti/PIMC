@@ -25,18 +25,24 @@ int main(int argc, const char * argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
     std::stringstream sstm;
-    sstm << "out" << world_rank <<".txt";
+    sstm << "overview" << world_rank <<".txt";
     std::string result = sstm.str();
     std::ofstream f;
     f.open(result.c_str());
+    
+    std::stringstream sstm2;
+    sstm2 << "data" << world_rank <<".csv";
+    std::string result2 = sstm.str();
+    std::ofstream f2;
+    f2.open(result.c_str());
 
     paths* path = new paths(world_rank, f);
-    f << "Started process " << world_rank << std::endl;
+    std::cout << "Started process " << world_rank << std::endl;
     pimc* sim = new pimc();
     
     
     
-    std::vector<double> energy = sim->run(path->getParam()->getNumSteps(), path, f);
+    std::vector<double> energy = sim->run(path->getParam()->getNumSteps(), path, f2);
     f << "Total Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<< std::endl;
     f << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->getParam()->getNumParticles()<< std::endl;
 

@@ -35,16 +35,16 @@ public:
     parameters(){
         ndim = 3;
         kb = 1.0;
-        T = 1.0;
+        T = 3.0;
         lam = 6.0596;//pow(hbar,2)/(2*m);
         
         boson = true;
         
-        numParticles = 8;
-        numTimeSlices = 80;
-        numSteps = 10000;
-        skip = 1;
-        equil = 100;
+        numParticles = 27;
+        numTimeSlices = 40;
+        numSteps = 1000000;
+        skip = 100;
+        equil = 0;
         
         pots[0] = false;
         pots[1] = true;
@@ -54,7 +54,7 @@ public:
         
         pbc = true;
         if(pbc)
-            boxsize = 7.15;
+            boxsize = 10.72;
         else
             boxsize = -1;
 

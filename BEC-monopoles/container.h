@@ -256,36 +256,45 @@ public:
     std::vector<T> getPair(int row, int start, int dist){
         node_ptr temp;
         node_ptr temp2;
-        if(dist!=0){
-            int tempPos = 0;
-            temp = head[row];
-
-            while(tempPos != start){
-                temp = temp->rightNode;
-                ++tempPos;
-            }
-            temp2 = temp;
-            tempPos = 0;
-            while(tempPos != dist){
-                temp2 = temp2->rightNode;
-                ++tempPos;
-            }
+        int tempPos = 0;
+        temp = head[row];
+        
+        while(tempPos != start){
+            temp = temp->rightNode;
+            ++tempPos;
         }
-        else{
-            int tempPos = 0;
-            temp = head[row];
-            temp2 = head[start];
-            while(tempPos != start){
-                temp = temp->rightNode;
-                temp2 = temp2->rightNode;
-                ++tempPos;
-            }
+        temp2 = temp;
+        tempPos = 0;
+        while(tempPos != dist){
+            temp2 = temp2->rightNode;
+            ++tempPos;
         }
         std::vector<T> ret(0);
         ret.push_back(temp->data);
         ret.push_back(temp2->data);
         return ret;
     }
+    
+    std::vector<T> getPairSS(int row1, int row2, int slice){
+        node_ptr temp;
+        node_ptr temp2;
+        int tempPos = 0;
+        temp = head[row1];
+        temp2 = head[row2];
+
+        while(tempPos != slice){
+            temp = temp->rightNode;
+            temp2 = temp2->rightNode;
+            ++tempPos;
+        }
+        
+        std::vector<T> ret(0);
+        ret.push_back(temp->data);
+        ret.push_back(temp2->data);
+        return ret;
+        
+    }
+    
     
     
     void makeCircular(bool circ = true){

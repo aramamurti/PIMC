@@ -16,10 +16,10 @@ paths::paths(int procnum, std::ofstream &f)
     ute = new utility(procnum);
     param = new parameters();
     //param->setT(0.5+procnum*0.5);
-    multistep_dist = 16;
+    multistep_dist = 8;
     numswap = 0;
     
-    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
+    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
     
     std::vector<std::vector<double>> offset(param->getNumParticles(), std::vector<double>(param->getndim(), 0.0));
     
@@ -198,7 +198,7 @@ paths::paths(int procnum, std::ofstream &f)
         if(param->getPots()[1])
             for(int i = 0; i < param->getNumParticles(); i++){
                 if(i != ptcl){
-                    std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                    std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
                     double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                     vVal += pot->lj_int(dist);
                 }
@@ -206,7 +206,7 @@ paths::paths(int procnum, std::ofstream &f)
         if(param->getPots()[2])
             for(int i = 0; i < param->getNumParticles(); i++){
                 if(i != ptcl){
-                    std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                    std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
                     double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                     vVal += pot->hardSphere(dist);
                 }
@@ -247,13 +247,13 @@ paths::paths(int procnum, std::ofstream &f)
                     PE += pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
                 if(param->getPots()[1])
                     for(int i = ptcl+1; i < param->getNumParticles(); i++){
-                        std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                        std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         PE += pot->lj_int(dist);
                     }
                 if(param->getPots()[2])
                     for(int i = ptcl+1; i < param->getNumParticles(); i++){
-                        std::vector<double> distvec =ute->dist(beads->getPair(ptcl, i, 0), param->getBoxSize());
+                        std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         PE += pot->hardSphere(dist);
                     }
@@ -366,7 +366,7 @@ paths::paths(int procnum, std::ofstream &f)
                     std::vector<double> gradSum(param->getndim(), 0.0);
                     for(int i = 0; i < param->getNumParticles(); i++){
                         if(i != ptcl){
-                            std::vector<double> distvec =ute->dist(beads->getPair(i, ptcl, 0), param->getBoxSize());
+                            std::vector<double> distvec =ute->dist(beads->getPairSS(i, ptcl, slice), param->getBoxSize());
                             double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                             gradSum = ute->vecadd(gradSum, pot->grad_lj(distvec, dist));
                         }

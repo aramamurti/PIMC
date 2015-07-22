@@ -111,6 +111,7 @@ bool moves::stagingMoveHelper(paths* path, int ptcl){
         return false;
     }
     
+    path->putInBox();
     return true;
 }
 
