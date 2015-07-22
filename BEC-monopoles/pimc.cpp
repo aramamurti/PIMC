@@ -35,7 +35,7 @@ std::vector<double> pimc::run(int numSteps, paths* path, std::ofstream &f){
     p3.open("p3.csv");
     p4.open("p4.csv");*/
     
-    f << "Step No." << "\t\t" << "Energy/atom" << "\t\t" << "KE/atom" << "\t\t" << "PE/atom" << std::endl;
+    f << "Step No." << "\t\t" << "Energy/atom" << "\t\t" << "KE/atom" << "\t\t" << "PE/atom" <<"\t\t Virial energy/atom"<< std::endl;
 
     
     for(int step = 0; step < numSteps; step++){
@@ -60,7 +60,7 @@ std::vector<double> pimc::run(int numSteps, paths* path, std::ofstream &f){
                 p4.close();
             }*/
 
-            f << step << "\t\t" << en/path->getParam()->getNumParticles() << "\t\t" << path->kineticEnergy()/path->getParam()->getNumParticles() << "\t\t" << path->potentialEnergy()/path->getParam()->getNumParticles() << std::endl;
+            f << step << "\t\t" << en/path->getParam()->getNumParticles() << "\t\t" << path->kineticEnergy()/path->getParam()->getNumParticles() << "\t\t" << path->potentialEnergy()/path->getParam()->getNumParticles() << "\t\t" << path->virialEnergy()/path->getParam()->getNumParticles() << std::endl;
             energytr.push_back(en);
         }
     }

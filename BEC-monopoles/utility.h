@@ -23,7 +23,6 @@ public:
     double randgaussian(double width);
     double vecavg(std::vector<double> vec);
     double vecstd(std::vector<double> v);
-    std::vector<double> vecsub(std::vector<double> a, std::vector<double> b);
     std::vector<double> vecadd(std::vector<double> a, std::vector<double> b);
 
 

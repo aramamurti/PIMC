@@ -299,8 +299,30 @@ paths::paths(int procnum, std::ofstream &f)
         double t2 = 0;
         for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-                std::vector<double> v1 = ute->vecsub(beads->getOne(ptcl, slice+virialWindow),beads->getOne(ptcl, slice));
-                std::vector<double> v2 = ute->vecsub(beads->getOne(ptcl, slice+virialWindow-1),beads->getOne(ptcl, slice+virialWindow));
+                std::vector<double> iloc = beads->getOne(ptcl, slice);
+                std::vector<std::vector<double>> p1;
+                std::vector<std::vector<double>> p2;
+                p1.push_back(iloc);
+                p1.push_back(beads->getOne(ptcl, slice + virialWindow));
+                
+                p2.push_back(iloc);
+                p2.push_back(beads->getOne(ptcl, slice + virialWindow-1));
+                
+                std::vector<double> gloc1 = ute->vecadd(iloc, ute->dist(p1, param->getBoxSize()));
+                std::vector<double> gloc2 = ute->vecadd(iloc, ute->dist(p2, param->getBoxSize()));
+                
+                std::vector<std::vector<double>> p3;
+                std::vector<std::vector<double>> p4;
+                
+                p3.push_back(iloc);
+                p3.push_back(gloc1);
+                
+                p4.push_back(gloc1);
+                p4.push_back(gloc2);
+                
+                
+                std::vector<double> v1 = ute->dist(p3,param->getBoxSize());
+                std::vector<double> v2 = ute->dist(p4,param->getBoxSize());
                 t2 += inner_product(v1.begin(), v1.end(), v2.begin(), 0.0);
             }
         }
@@ -315,8 +337,20 @@ paths::paths(int procnum, std::ofstream &f)
             std::vector<std::vector<double>> rcslice;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 std::vector<double> vsum(param->getndim(), 0.0);
+                std::vector<double> iloc = beads->getOne(ptcl, slice);
                 for(int gamma =0; gamma < virialWindow; gamma++){
-                    ute->vecadd(vsum, ute->vecadd(beads->getOne(ptcl, slice - gamma), beads->getOne(ptcl, slice + gamma)));
+                    std::vector<std::vector<double>> p1;
+                    std::vector<std::vector<double>> p2;
+                    p1.push_back(iloc);
+                    p1.push_back(beads->getOne(ptcl, slice - gamma));
+                    
+                    p2.push_back(iloc);
+                    p2.push_back(beads->getOne(ptcl, slice + gamma));
+                    
+                    std::vector<double> gloc1 = ute->vecadd(iloc, ute->dist(p1, param->getBoxSize()));
+                    std::vector<double> gloc2 = ute->vecadd(iloc, ute->dist(p2, param->getBoxSize()));
+
+                    ute->vecadd(vsum, ute->vecadd(gloc1, gloc2));
                 }
                 for(std::vector<double>::iterator it = vsum.begin(); it != vsum.end(); it++){
                     *it *= 1/(2.*virialWindow);
@@ -337,7 +371,10 @@ paths::paths(int procnum, std::ofstream &f)
                             gradSum = ute->vecadd(gradSum, pot->grad_lj(distvec, dist));
                         }
                     }
-                    std::vector<double> rcmr = ute->vecsub(beads->getOne(ptcl, slice), rc[slice][ptcl]);
+                    std::vector<std::vector<double>> p1;
+                    p1.push_back(beads->getOne(ptcl, slice));
+                    p1.push_back(rc[slice][ptcl]);
+                    std::vector<double> rcmr = ute->dist(p1,param->getBoxSize());
                     t3+= std::inner_product(rcmr.begin(), rcmr.end(), gradSum.begin(), 0.0);
                 }
             }

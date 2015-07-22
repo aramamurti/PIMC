@@ -64,16 +64,6 @@ double utility::vecstd(std::vector<double> v){
     return stdev;
 }
 
-std::vector<double> utility::vecsub(std::vector<double> a, std::vector<double> b){
-    std::vector<double> result;
-    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](double l, double r)
-    {
-        return r-l;
-    });
-    
-    return result;
-}
-
 std::vector<double> utility::vecadd(std::vector<double> a, std::vector<double> b){
     std::vector<double> result;
     std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](double l, double r)
