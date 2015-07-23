@@ -25,6 +25,7 @@ private:
         T olddat;
         node_ptr leftNode;
         node_ptr rightNode;
+        node_ptr oldRightNode;
         LinkNode(T e) {
             this->data = e;
             leftNode = node_ptr();
@@ -41,8 +42,12 @@ private:
     std::vector<node_ptr> tail;
     std::vector<int> swapStartOrders;
     std::vector<int> swapEndOrder;
-    std::vector<int> reswapStartOrders;
-    std::vector<int> reswapEndOrder;
+    
+    std::vector<int> pso;
+    std::vector<int> peo;
+    std::vector<int> rso;
+    
+    std::vector<int> reswapStartOrder;
     int swapPos;
     
     
@@ -137,86 +142,106 @@ public:
     }
     
     void setswap(std::vector<int> i, std::vector<int> j, int pos, int dist = 0){
-        swapPos = (pos+dist)%size[0];
+        swapPos = (pos+dist);
         swapStartOrders.resize(i.size());
         swapEndOrder.resize(j.size());
         
         std::copy(i.begin(), i.end(), swapStartOrders.begin());
         std::copy(j.begin(), j.end(), swapEndOrder.begin());
         
-        
-        if(!i.empty()){
-            
-            int max = *std::max_element(i.begin(), i.end());
-            
-            std::vector<int> identity(max+1);
-            iota(identity.begin(),identity.end(),0);
-            
-            std::vector<int> invj(max+1);
-            iota(invj.begin(),invj.end(),0);
-            
-            for(std::vector<int>::iterator it = j.begin(); it != j.end(); it++)
-                invj[*it] = (i[it-j.begin()]);
-            
-            reswapStartOrders.resize(identity.size());
-            reswapEndOrder.resize(identity.size());
-            
-            std::copy(identity.begin(), identity.end(), reswapStartOrders.begin());
-            std::copy(invj.begin(), invj.end(), reswapEndOrder.begin());
-        }
-        else{
-            reswapStartOrders.resize(0);
-            reswapEndOrder.resize(0);
-        }
-        
+        if(swapPos > size[0])
+            reswapStartOrder = glc_per(i);
+        else
+            reswapStartOrder = i;
     }
     void swap(bool reverse = false){
         std::vector<int> i;
         std::vector<int> j;
+        i.resize(swapStartOrders.size());
+        j.resize(swapEndOrder.size());
+        std::copy(swapStartOrders.begin(), swapStartOrders.end(), i.begin());
+        std::copy(swapEndOrder.begin(), swapEndOrder.end(), j.begin());
         
-        if(reverse){
-            i.resize(reswapStartOrders.size());
-            j.resize(reswapEndOrder.size());
-            std::copy(reswapStartOrders.begin(), reswapStartOrders.end(), i.begin());
-            std::copy(reswapEndOrder.begin(), reswapEndOrder.end(), j.begin());
+        if(!reverse){
             
+            if(!i.empty()) {
+                int tempPos = 1;
+                
+                
+                std::vector<node_ptr> temps;
+                
+                for(int ptc = 0; ptc < size.size(); ptc ++)
+                    temps.push_back(head[ptc]);
+                
+                while(swapPos != 0 && tempPos != swapPos){
+                    for(std::vector<int>::iterator it = i.begin(); it != i.end(); it++)
+                        temps[*it] = temps[*it]->rightNode;
+                    ++tempPos;
+                }
+                
+                std::vector<node_ptr> temps2(j.size());
+                for(typename std::vector<node_ptr>::iterator it = temps2.begin(); it != temps2.end(); it++)
+                    *it = temps[j[it-temps2.begin()]]->rightNode;
+                
+                for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
+                    if(swapPos != 0){
+                        temps[*it]->oldRightNode = temps[*it]->rightNode;
+                        temps[*it]->rightNode = temps2[it-i.begin()];
+                        temps[*it]->rightNode->leftNode = temps[*it];
+                    }
+                }
+            }
         }
         else{
-            i.resize(swapStartOrders.size());
-            j.resize(swapEndOrder.size());
-            std::copy(swapStartOrders.begin(), swapStartOrders.end(), i.begin());
-            std::copy(swapEndOrder.begin(), swapEndOrder.end(), j.begin());
+            if(!i.empty()) {
+                int pos = swapPos;
+                if(swapPos > size[0]){
+                    i = reswapStartOrder;
+                    pos = pos%size[0];
+                }
+                int tempPos = 1;
+                
+                std::vector<node_ptr> temps;
+                
+                for(int ptc = 0; ptc < size.size(); ptc ++)
+                    temps.push_back(head[ptc]);
+                
+                while(pos != 0 && tempPos != pos){
+                    for(std::vector<int>::iterator it = i.begin(); it != i.end(); it++)
+                        temps[*it] = temps[*it]->rightNode;
+                    ++tempPos;
+                }
+                
+                for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
+                    if(swapPos != 0){
+                        temps[*it]->rightNode = temps[*it]->oldRightNode;
+                        temps[*it]->rightNode->leftNode = temps[*it];
+                    }
+                }
+            }
+        }
+    }
+    
+    std::vector<int> glc_per(std::vector<int> lc){
+        int tempPos = 1;
+        
+        std::vector<node_ptr> temps;
+        
+        for(int ptc = 0; ptc < size.size(); ptc ++)
+            temps.push_back(head[ptc]);
+        
+        while(tempPos != size[0]){
+            for(std::vector<int>::iterator it = lc.begin(); it != lc.end(); it++)
+                temps[*it] = temps[*it]->rightNode;
+            ++tempPos;
         }
         
-        if(!i.empty()) {
-            int tempPos = 1;
-            
-            std::vector<node_ptr> temps;
-            
-            for(int ptc = 0; ptc < size.size(); ptc ++)
-                temps.push_back(head[ptc]);
-            
-            while(swapPos != 0 && tempPos != swapPos){
-                for(std::vector<int>::iterator it = i.begin(); it != i.end(); it++)
-                    temps[*it] = temps[*it]->rightNode;
-                ++tempPos;
-            }
-            
-            std::vector<node_ptr> temps2(j.size());
-            for(typename std::vector<node_ptr>::iterator it = temps2.begin(); it != temps2.end(); it++)
-                *it = temps[j[it-temps2.begin()]]->rightNode;
-            
-            for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
-                if(swapPos != 0){
-                    temps[*it]->rightNode = temps2[it-i.begin()];
-                    temps[*it]->rightNode->leftNode = temps[*it];
-                }
-                else if(circular){
-                    temps[*it] = temps2[it-i.begin()]->leftNode;
-                    temps[*it]->rightNode = temps2[it-i.begin()];
-                }
-            }
+        std::vector<int> nlc;
+        for(std::vector<int>::iterator it = lc.begin(); it != lc.end(); it++){
+            nlc.push_back(temps[*it]->rightNode->rownum);
         }
+        
+        return nlc;
     }
     
     std::vector<double> getOne(int row, int slice){
@@ -281,7 +306,7 @@ public:
         int tempPos = 0;
         temp = head[row1];
         temp2 = head[row2];
-
+        
         while(tempPos != slice){
             temp = temp->rightNode;
             temp2 = temp2->rightNode;
@@ -445,6 +470,22 @@ public:
         return p;
     }
     
+    std::vector<int> getRSO(){
+        return rso;
+    }
+    
+    void setPrevSwap(){
+        pso = swapStartOrders;
+        peo = swapEndOrder;
+        rso = reswapStartOrder;
+    }
+    
+    void resetSwap(){
+        swapStartOrders = pso;
+        swapEndOrder = peo;
+        reswapStartOrder = rso;
+    }
 };
+
 
 #endif

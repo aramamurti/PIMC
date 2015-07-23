@@ -44,7 +44,7 @@ public:
         numTimeSlices = 40;
         numSteps = 100000;
         skip = 100;
-        equil = 30000;
+        equil = 0;
         
         pots[0] = false;
         pots[1] = true;
@@ -68,7 +68,7 @@ public:
     int getndim(){return ndim;}
     double getT(){return T;}
     double getkb(){return kb;}
-    bool getboson(){return boson;}
+    bool isboson(){return boson;}
     double gettau(){return tau;}
     double getlam(){return lam;}
     int getNumSteps(){return numSteps;}

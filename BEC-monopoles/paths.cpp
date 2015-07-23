@@ -10,13 +10,14 @@
 
 
 paths::paths(int procnum, std::ofstream &f)
-:multvec{1.0,1.0,1.0,1.0}//{1.0,20.0,100.0,400.0}
-{
+:multvec{1.0,20.0,100.0,400.0}{
     
     ute = new utility(procnum);
     param = new parameters();
     param->setT(1.0+procnum*0.15);
     multistep_dist = 8;
+    laststart = 0;
+    lastend = 0;
     numswap = 0;
     
     f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
@@ -92,7 +93,9 @@ paths::paths(int procnum, std::ofstream &f)
     
     pot = new potentials();
     
-    constPerms();
+    if(param->isboson()){
+        constPerms(procnum);
+    }
     }
     
     paths::~paths(){
@@ -103,7 +106,7 @@ paths::paths(int procnum, std::ofstream &f)
     }
     
     
-    void paths::constPerms(){
+    void paths::constPerms(int procnum){
         std::vector<int> d(param->getNumParticles());
         int k, maxPtcls = 3;
         if(param->getNumParticles() <= maxPtcls)
@@ -152,10 +155,41 @@ paths::paths(int procnum, std::ofstream &f)
             sort(cp.begin(),cp.end());
             permPart.push_back(cp);
         }
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl ++){
+            std::vector<int> locs;
+            
+            for(int n = 0; n < permPart.size(); ++n)
+            {
+                auto i = find(permPart[n].begin(), permPart[n].end(), ptcl);
+                if(permPart[n].end() != i)
+                    locs.push_back(n);
+            }
+            permPartLoc.push_back(locs);
+        }
+        
+        std::vector<int> ptcls(param->getNumParticles());
+        iota(ptcls.begin(),ptcls.end(),0);
+        
+        
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            std::cout << procnum << ": Permutation table: slice " << slice <<std::endl;
+            probList[slice].resize(permList.size());
+            recompSingProb(ptcls, slice);
+        }
     }
     
     
-    double paths::recompSingProb(int slice){
+    double paths::recompSingProb(std::vector<int> ptcls, int slice){
+        std::vector<int> permsToRecomp;
+        for(std::vector<int>::iterator it = ptcls.begin(); it != ptcls.end(); it++){
+            permsToRecomp.insert(permsToRecomp.end(), permPartLoc[*it].begin(), permPartLoc[*it].end());
+        }
+        std::vector<int>::iterator it;
+        std::sort(permsToRecomp.begin(), permsToRecomp.end());
+        it = std::unique (permsToRecomp.begin(), permsToRecomp.end());
+        permsToRecomp.erase(it, permsToRecomp.end());
+        
+        
         double permTot = 0.0;
         std::vector<int> identity(param->getNumParticles());
         iota(identity.begin(),identity.end(),0);
@@ -166,11 +200,17 @@ paths::paths(int procnum, std::ofstream &f)
             oldAction += kineticAction(slice,multistep_dist);
         }
         
-        for(int i = 0; i < permList.size(); i++){
+        probList[slice][0] = 1;
+        
+        for(int j = 0; j < permsToRecomp.size(); j++){
+            int i = permsToRecomp[j];
             std::vector<int> oneperm = permList[i];
             int chdptcl = 0;
             beads->setswap(identity,oneperm, slice, multistep_dist);
             beads->swap();
+            
+            chdptcl = (int)permPart[i].size();
+            
             double newAction = 0.0;
             for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
                 newAction += kineticAction(slice,multistep_dist);
@@ -179,14 +219,16 @@ paths::paths(int procnum, std::ofstream &f)
             double multfac = 1.0;
             if(chdptcl != 0)
                 multfac = multvec[chdptcl-1];
-            permTot += exp(-(newAction - oldAction));
-            problist.push_back(exp(-(newAction - oldAction)));
+            
+            double kFac = multfac * exp(-(newAction - oldAction));
+            probList[slice][i] = kFac;
             
             beads->swap(true);
-            
         }
         
-        probList[slice]=problist;
+        for(std::vector<double>::iterator it = probList[slice].begin(); it != probList[slice].end(); it++)
+            permTot += *it;
+        
         return permTot;
     }
     
@@ -349,7 +391,7 @@ paths::paths(int procnum, std::ofstream &f)
                     
                     std::vector<double> gloc1 = ute->vecadd(iloc, ute->dist(p1, param->getBoxSize()));
                     std::vector<double> gloc2 = ute->vecadd(iloc, ute->dist(p2, param->getBoxSize()));
-
+                    
                     ute->vecadd(vsum, ute->vecadd(gloc1, gloc2));
                 }
                 for(std::vector<double>::iterator it = vsum.begin(); it != vsum.end(); it++){

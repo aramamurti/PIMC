@@ -32,8 +32,8 @@ public:
     std::vector<int> getCycles();
     double virialEnergy();
     double cv();
-    void constPerms();
-    double recompSingProb(int stslice);
+    void constPerms(int procnum);
+    double recompSingProb(std::vector<int> ptcls, int stslice);
     void putInBox();
     
     //getter methods
@@ -43,6 +43,12 @@ public:
     std::vector<std::vector<double>>* getProbList(){return &probList;}
     std::vector<std::vector<int>>* getPermList(){return &permList;}
     list_ptr getBeads(){return beads;}
+    std::vector<int> getLastChgd(){return lastChdParticles;}
+    std::vector<int> getlastLocs(){std::vector<int> locs; locs.push_back(laststart); locs.push_back(lastend); return locs;}
+    void setlastChgd(std::vector<int> lc){lastChdParticles = lc;}
+    void slstep(int s, int e){laststart = s; lastend = e;}
+    
+    
     int numswap;
 
     
@@ -54,7 +60,13 @@ private:
     list_ptr beads;
     std::vector<std::vector<int>> permList;
     std::vector<std::vector<int>> permPart;
+    std::vector<std::vector<int>> permPartLoc;
     std::vector<std::vector<double>> probList;
+    
+    std::vector<int> lastChdParticles;
+    int laststart;
+    int lastend;
+    
     utility* ute;
     int multistep_dist;
     double multvec[4];

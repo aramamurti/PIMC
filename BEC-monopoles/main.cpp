@@ -42,8 +42,9 @@ int main(int argc, const char * argv[]) {
     std::ofstream f3;
     f3.open(result3.c_str());
 
+    std::cout << world_rank << ": Setting up paths and permutation table..." << std::endl;
     paths* path = new paths(world_rank, f);
-    std::cout << "Started process " << world_rank << std::endl;
+    std::cout << world_rank << ": Started  MC process ..." << std::endl;
     pimc* sim = new pimc();
     
     
