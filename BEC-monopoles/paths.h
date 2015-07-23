@@ -29,6 +29,7 @@ public:
     double kineticEnergy();
     double potentialEnergy();
     double energy();
+    std::vector<int> getCycles();
     double virialEnergy();
     double cv();
     void constPerms();

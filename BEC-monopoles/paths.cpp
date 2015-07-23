@@ -15,7 +15,7 @@ paths::paths(int procnum, std::ofstream &f)
     
     ute = new utility(procnum);
     param = new parameters();
-    //param->setT(0.5+procnum*0.5);
+    param->setT(1.0+procnum*0.15);
     multistep_dist = 8;
     numswap = 0;
     
@@ -387,6 +387,10 @@ paths::paths(int procnum, std::ofstream &f)
         return energy;
     }
     
+    std::vector<int> paths::getCycles(){
+        std::vector<int> cycles = beads->getCycles();
+        return cycles;
+    }
     
     void paths::putInBox(){
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++)

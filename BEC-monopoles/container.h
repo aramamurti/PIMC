@@ -295,6 +295,23 @@ public:
         
     }
     
+    std::vector<int> getCycles(){
+        std::vector<int> cyclenum(size.size(),0);
+        for(int row = 0; row < size.size(); row++){
+            node_ptr temp = head[row]->rightNode;
+            int tempPos = 1;
+            while(temp != head[row]){
+                temp = temp->rightNode;
+                ++tempPos;
+            }
+            int cycNum = tempPos/size[row];
+            
+            cyclenum[cycNum-1]++;
+        }
+        
+        return cyclenum;
+    }
+    
     
     
     void makeCircular(bool circ = true){
@@ -316,6 +333,7 @@ public:
             circular = false;
         }
     }
+    
     
     
     void printLinkedList(int index = 0){
