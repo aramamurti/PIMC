@@ -48,6 +48,8 @@ public:
     void setlastChgd(std::vector<int> lc){lastChdParticles = lc;}
     void slstep(int s, int e){laststart = s; lastend = e;}
     
+    int getPNum(){return pnum;}
+    
     
     int numswap;
 
@@ -70,6 +72,7 @@ private:
     utility* ute;
     int multistep_dist;
     double multvec[4];
+    int pnum;
 
 
 };

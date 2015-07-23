@@ -19,6 +19,7 @@ paths::paths(int procnum, std::ofstream &f)
     laststart = 0;
     lastend = 0;
     numswap = 0;
+    pnum = procnum;
     
     f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
     

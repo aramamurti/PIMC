@@ -43,8 +43,8 @@ public:
         numParticles = 27;
         numTimeSlices = 40;
         numSteps = 100000;
-        skip = 100;
-        equil = 0;
+        skip = 50;
+        equil = 30000;
         
         pots[0] = false;
         pots[1] = true;
