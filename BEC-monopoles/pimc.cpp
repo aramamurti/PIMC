@@ -33,7 +33,7 @@ void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, 
             numacceptc += 1;
         if(mvs.bisectionMoveHelper(path, ptcl))
             numacceptb += 1;
-        if(step % path->getParam()->getSkip() && step < path->getParam()->getEquil()){
+        if(step % 100 == 0 && step < path->getParam()->getEquil()){
             std::cout << path->getPNum() << ": " << step << ", " <<path->energy() << std::endl;
         }
         if(step % path->getParam()->getSkip() == 0 && step >= path->getParam()->getEquil()){

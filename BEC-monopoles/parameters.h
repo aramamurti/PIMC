@@ -42,9 +42,9 @@ public:
         
         numParticles = 27;
         numTimeSlices = 40;
-        numSteps = 100000;
-        skip = 50;
-        equil = 30000;
+        numSteps = 500000;
+        skip = 25;
+        equil = 200000;
         
         pots[0] = false;
         pots[1] = true;
@@ -63,6 +63,10 @@ public:
     
     void setT(double newT){
         T = newT;
+        tau = 1/(T*numTimeSlices);
+    }
+    void setNumTS(double newTS){
+        numTimeSlices = newTS;
         tau = 1/(T*numTimeSlices);
     }
     int getndim(){return ndim;}

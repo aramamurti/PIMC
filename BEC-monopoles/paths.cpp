@@ -15,13 +15,14 @@ paths::paths(int procnum, std::ofstream &f)
     ute = new utility(procnum);
     param = new parameters();
     param->setT(1.0+procnum*0.15);
+    param->setNumTS((int)(100-20*param->getT()));
     multistep_dist = 8;
     laststart = 0;
     lastend = 0;
     numswap = 0;
     pnum = procnum;
     
-    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() <<"\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
+    f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() << "\nNumber of Time Slices   =\t" << param->getNumTimeSlices()<< "\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
     
     std::vector<std::vector<double>> offset(param->getNumParticles(), std::vector<double>(param->getndim(), 0.0));
     
