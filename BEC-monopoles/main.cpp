@@ -41,6 +41,13 @@ int main(int argc, const char * argv[]) {
     std::string result3 = sstm3.str();
     std::ofstream f3;
     f3.open(result3.c_str());
+    
+    std::stringstream sstm4;
+    sstm4 << "windingdata" << world_rank <<".csv";
+    std::string result4 = sstm4.str();
+    std::ofstream f4;
+    f4.open(result4.c_str());
+    
 
     std::cout << world_rank << ": Setting up paths and permutation table..." << std::endl;
     paths* path = new paths(world_rank, f);
@@ -50,7 +57,7 @@ int main(int argc, const char * argv[]) {
     
     std::vector<double> energy(0);
     std::vector< std::vector<int>> cycles;
-    sim->run(path->getParam()->getNumSteps(), path, f2, f3, energy, cycles);
+    sim->run(path->getParam()->getNumSteps(), path, f2, f3, f4, energy, cycles);
     
     f << "Total Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<< std::endl;
     f << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->getParam()->getNumParticles()<< "\n" <<std::endl;

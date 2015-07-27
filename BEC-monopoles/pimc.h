@@ -13,7 +13,7 @@ class pimc{
 public:
     pimc();
     ~pimc(){};
-    void run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::vector<double> &energytr, std::vector<std::vector<int>> &cycleList);
+    void run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::ofstream &f3, std::vector<double> &energytr, std::vector<std::vector<int>> &cycleList);
 private:
     int numaccepts;
     int numacceptc;

@@ -239,7 +239,7 @@ paths::paths(int procnum, std::ofstream &f)
         double vVal = 0;
         if(param->getPots()[0])
             vVal += pot->harmonicPotential(beads->getOne(ptcl, slice), 1.0, 1.0);
-        if(param->getPots()[1])
+        if(param->getPots()[1]){
             for(int i = 0; i < param->getNumParticles(); i++){
                 if(i != ptcl){
                     std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
@@ -247,7 +247,9 @@ paths::paths(int procnum, std::ofstream &f)
                     vVal += pot->lj_int(dist);
                 }
             }
-        if(param->getPots()[2])
+            vVal = 0.5*vVal;
+        }
+        if(param->getPots()[2]){
             for(int i = 0; i < param->getNumParticles(); i++){
                 if(i != ptcl){
                     std::vector<double> distvec =ute->dist(beads->getPairSS(ptcl, i, slice), param->getBoxSize());
@@ -255,7 +257,8 @@ paths::paths(int procnum, std::ofstream &f)
                     vVal += pot->hardSphere(dist);
                 }
             }
-        
+            vVal = 0.5*vVal;
+        }
         return vVal;
         
     }
@@ -434,6 +437,22 @@ paths::paths(int procnum, std::ofstream &f)
     std::vector<int> paths::getCycles(){
         std::vector<int> cycles = beads->getCycles();
         return cycles;
+    }
+    
+    std::vector<int> paths::getWindingNumber(){
+        std::vector<double> dvectot(param->getndim(),0.0);
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+            for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+                std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, 1);
+                std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
+                dvectot = ute->vecadd(dvectot, distVec);
+            }
+        }
+        std::vector<int> wnum(param->getndim(),0);
+        for(std::vector<double>::iterator it = dvectot.begin(); it != dvectot.end(); it++){
+            wnum[it-dvectot.begin()] = (int)round(*it/param->getBoxSize());
+        }
+        return wnum;
     }
     
     void paths::putInBox(){

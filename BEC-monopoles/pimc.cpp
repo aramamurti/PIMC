@@ -20,7 +20,7 @@ pimc::pimc(){
     numacceptb = 0;
 }
 
-void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::vector<double> &energytr, std::vector<std::vector<int>> &cycleList){
+void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::ofstream &f3, std::vector<double> &energytr, std::vector<std::vector<int>> &cycleList){
     
     moves mvs;
         
@@ -46,6 +46,16 @@ void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, 
                     f2 << ", ";
             }
             f2 << std::endl;
+            
+            std::vector<int> wnum = path->getWindingNumber();
+            for(std::vector<int>::iterator it = wnum.begin(); it != wnum.end(); it++){
+                f3 << *it;
+                if(wnum.size() - (it-wnum.begin()) != 1)
+                    f3 << ", ";
+            }
+            f3 << std::endl;
+
+            std::cout << std::endl;
             energytr.push_back(en);
             cycleList.push_back(cycles);
         }

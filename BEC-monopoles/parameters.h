@@ -40,11 +40,11 @@ public:
         
         boson = true;
         
-        numParticles = 27;
-        numTimeSlices = 40;
-        numSteps = 500000;
-        skip = 25;
-        equil = 200000;
+        numParticles = 8;
+        numTimeSlices = 80;
+        numSteps = 110000;
+        skip = 20;
+        equil = 10000;
         
         pots[0] = false;
         pots[1] = true;

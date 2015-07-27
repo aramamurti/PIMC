@@ -30,6 +30,7 @@ public:
     double potentialEnergy();
     double energy();
     std::vector<int> getCycles();
+    std::vector<int> getWindingNumber();
     double virialEnergy();
     double cv();
     void constPerms(int procnum);
