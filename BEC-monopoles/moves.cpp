@@ -14,12 +14,13 @@ bool moves::comMove(paths* path, int ptcl){
     double delta;
     if(path->getParam()->getBoxSize() == -1)
         delta = 0.5;
-    else
-        delta = path->getParam()->getBoxSize()/10.0;
+    else{
+        delta = sqrt(path->getParam()->getlam()*path->getParam()->gettau());
+    }
     
     std::vector<double> shift(path->getParam()->getndim());
     for(std::vector<double>::iterator it = shift.begin(); it != shift.end(); it++ )
-        *it = delta *(path->getUte()->randnormed(2)-1);
+        *it = path->getUte()->randgaussian(delta);
     
     path->getBeads()->setOld();
     
@@ -142,7 +143,7 @@ void moves::stagingMove(paths *path, int ptcl, int start, int m){
 }
 ******************************************************/
 
-void moves::bisectionMove(paths* path, int ptcl, int start, int m){    
+inline void moves::bisectionMove(paths* path, int ptcl, int start, int m){
     if(m != 1 && m%2 == 0){
         int slice = (start + m/2);
         double tau1 = (m/2)*path->getParam()->gettau();
@@ -246,7 +247,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     return true;
 }
 
-std::vector<int> moves::pickPermutation(paths* path, int start){
+inline std::vector<int> moves::pickPermutation(paths* path, int start){
     std::vector<double> permWeight = (*path->getProbList())[start];
     std::vector<double>::iterator it2;
     

@@ -28,7 +28,7 @@ private:
     int equil;
     double boxsize;
     bool pbc;
-    bool pots[3];
+    bool pots[4];
 
     
 public:
@@ -40,15 +40,16 @@ public:
         
         boson = true;
         
-        numParticles = 8;
+        numParticles = 16;
         numTimeSlices = 80;
-        numSteps = 110000;
-        skip = 20;
-        equil = 10000;
+        numSteps = 300000;
+        skip = 2;
+        equil = 100000;
         
         pots[0] = false;
-        pots[1] = true;
+        pots[1] = false;
         pots[2] = false;
+        pots[3] = true;
         
         tau = 1/(T*numTimeSlices);
         

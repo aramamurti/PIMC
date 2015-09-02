@@ -29,14 +29,14 @@ double potentials::hardSphere(double dist){
         return 0;
 }
 
-std::vector<double> potentials::grad_lj(std::vector<double> distVec, double dist){
-    double eps = 10.22;
-    double sig = 2.556;
-    double dV = 24*eps*pow(sig,6)*(pow(dist,6)-2*pow(sig,6))/pow(dist,14);
-    std::vector<double> gradV;
-    for(std::vector<double>::iterator it = distVec.begin(); it != distVec.end(); it++){
-        gradV.push_back(*it*dV);
-    }
-    
-    return gradV;
+double potentials::aziz_int(double dist){
+    double val = 10.8*(544850.4 * exp(-4.50018*dist)-(9424.94/pow(dist,10)+2556.63/pow(dist,8)+937.38/pow(dist,6)) *aziz_pcws(dist));
+    return val;
+}
+
+inline double potentials::aziz_pcws(double dist){
+    if(dist >= 3.68335)
+        return 1;
+    else
+        return exp(-pow((3.68335/dist-1),2));
 }
