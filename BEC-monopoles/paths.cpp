@@ -8,10 +8,13 @@
 
 #include "paths.h"
 
-
+/****
+ Constructor: sets up paths and parameters for each particle and constructs all objects necessary for the PIMC simulation steps.
+ *****/
 paths::paths(int procnum, std::ofstream &f)
-:multvec{1.0,20.0,100.0, 400.0}{
+:multvec{1.0,20.0,100.0, 400.0}{ // Multiplication factor for the swap probabilities
     
+    //Declare all objects and variables, set all parameters that need to be modified from default (in parameters.h)
     ute = new utility(procnum);
     param = new parameters();
     param->setT(1.5+procnum*0.1);
@@ -21,22 +24,20 @@ paths::paths(int procnum, std::ofstream &f)
     lastend = 0;
     numswap = 0;
     pnum = procnum;
+    pot = new potentials();
+
     
+    //Output to screen/file the parameters of the simulation
     f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() << "\nNumber of Time Slices   =\t" << param->getNumTimeSlices()<< "\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
     
+    
+    //Set up the initial distribution of particles.
     std::vector<std::vector<double>> offset(param->getNumParticles(), std::vector<double>(param->getndim(), 0.0));
     
     if(param->getBoxSize() == -1){
         for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
             for(int ndim = 0; ndim < param->getndim(); ndim++){
                 offset[ptcl][ndim] = ute->randnormed(1)-0.5;
-            }
-        }
-        beads = list_ptr(new LinkedList<std::vector<double>>());
-        
-        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
-            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-                beads->pushBack(offset[ptcl],ptcl);
             }
         }
         
@@ -71,15 +72,8 @@ paths::paths(int procnum, std::ofstream &f)
                 }
             }
         }
-        beads = list_ptr(new LinkedList<std::vector<double>>());
-        
-        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
-            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
-                beads->pushBack(offset[ptcl],ptcl);
-            }
-        }
+       
     }
-    
     
     beads = list_ptr(new LinkedList<std::vector<double>>());
     
@@ -89,17 +83,19 @@ paths::paths(int procnum, std::ofstream &f)
         }
     }
     
+    //Set up the probability table
     probList.resize(param->getNumTimeSlices());
     
+    //Make the beads a periodic chain
     beads->makeCircular();
     
-    pot = new potentials();
-    
+    //If the particles are bosons, construct the permutation table
     if(param->isboson()){
         constPerms(procnum);
     }
     }
     
+    //Deconstructor
     paths::~paths(){
         delete pot;
         delete ute;
@@ -108,6 +104,7 @@ paths::paths(int procnum, std::ofstream &f)
     }
     
     
+    //Construct permutation table
     void paths::constPerms(int procnum){
         std::vector<int> d(param->getNumParticles());
         int k, maxPtcls = 2;
@@ -234,6 +231,9 @@ paths::paths(int procnum, std::ofstream &f)
         return permTot;
     }
     
+    /********************
+     External potential
+     ******************/
     inline double paths::vext(int slice, int ptcl){
         
         double vVal = 0;
