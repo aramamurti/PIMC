@@ -26,12 +26,15 @@ public:
     double vext(int slice, int ptcl);
     double potentialAction(int slice);
     double kineticAction(int slice, int dist);
+    double relativisticKineticAction(int slice, int dist);
     double kineticEnergy();
+    double relativisticKineticEnergy();
     double potentialEnergy();
     double energy();
     std::vector<int> getCycles();
     std::vector<int> getWindingNumber();
     double virialEnergy();
+    double relenergy();
     double cv();
     void constPerms(int procnum);
     double recompSingProb(std::vector<int> ptcls, int stslice);

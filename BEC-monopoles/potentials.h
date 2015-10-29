@@ -21,6 +21,8 @@ public:
     double hardSphere(double dist);
     double aziz_int(double dist);
     double aziz_pcws(double dist);
+    double real_coulomb(double dist, int chgi, int chgj);
+    double reci_coulomb(double dist, int chgi, int chgj);
 
 };
 

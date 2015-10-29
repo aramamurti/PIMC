@@ -33,8 +33,10 @@ void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, 
             numacceptc += 1;
         if(mvs.bisectionMoveHelper(path, ptcl))
             numacceptb += 1;
-        if(step % 100 == 0 && step < path->getParam()->getEquil()){
+        if(step == 500 && step < path->getParam()->getEquil()){
             std::cout << path->getPNum() << ": " << step << ", " <<path->energy() << std::endl;
+            path->getBeads()->printListToFile(step);
+
         }
         if(step % path->getParam()->getSkip() == 0 && step >= path->getParam()->getEquil()){
             double en = path->energy();
@@ -54,8 +56,7 @@ void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, 
                     f3 << ", ";
             }
             f3 << std::endl;
-
-            std::cout << std::endl;
+            
             energytr.push_back(en);
             cycleList.push_back(cycles);
         }

@@ -24,6 +24,7 @@
 #include <tr1/memory>
 #include <fstream>
 #include <boost/bind.hpp>
+#include <boost/math/special_functions/bessel.hpp>
 
 
 #endif

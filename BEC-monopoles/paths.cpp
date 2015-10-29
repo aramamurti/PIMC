@@ -17,15 +17,15 @@ paths::paths(int procnum, std::ofstream &f)
     //Declare all objects and variables, set all parameters that need to be modified from default (in parameters.h)
     ute = new utility(procnum);
     param = new parameters();
-    param->setT(1.5+procnum*0.1);
-    param->setNumTS((int)(100-20*param->getT()));
+    param->setT(0.2+procnum*0.1);
+    param->setNumTS((int)(40-20*param->getT()));
     multistep_dist = 8;
     laststart = 0;
     lastend = 0;
     numswap = 0;
     pnum = procnum;
     pot = new potentials();
-
+    
     
     //Output to screen/file the parameters of the simulation
     f<< "Simulation Parameters:\nN      = \t" << param->getNumParticles() << "\nNumber of Time Slices   =\t" << param->getNumTimeSlices()<< "\nndim      = \t" << param->getndim() <<"\nBox Size      = \t" << param->getBoxSize() <<"\ntau    = \t" << param->gettau() << "\n" << "lambda =\t" << param->getlam() <<"\nT      = \t" << param->getT() << "\n" << std::endl;
@@ -72,7 +72,7 @@ paths::paths(int procnum, std::ofstream &f)
                 }
             }
         }
-       
+        
     }
     
     beads = list_ptr(new LinkedList<std::vector<double>>());
@@ -269,7 +269,7 @@ paths::paths(int procnum, std::ofstream &f)
             }
             vVal = 0.5*vVal;
         }
-
+        
         return vVal;
         
     }
@@ -289,6 +289,17 @@ paths::paths(int procnum, std::ofstream &f)
             std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
             double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
             kin += 1/(4*param->getlam()*param->gettau()*dist)*ipdist;
+        }
+        return kin;
+    }
+    
+    double paths::relativisticKineticAction(int slice, int dist){
+        double kin = 0;
+        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+            std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, dist);
+            std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
+            double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+            kin += log(pow(1/sqrt(pow(dist*param->gettau(),2)+ipdist),(param->getndim()+1)/2.)*boost::math::cyl_bessel_k((param->getndim()+1)/2., 1/(2*param->getlam())*sqrt(pow(dist*param->gettau(),2)+ipdist))/pow((2*dist*param->gettau()),(param->getndim()-1/2.)));
         }
         return kin;
     }
@@ -338,14 +349,36 @@ paths::paths(int procnum, std::ofstream &f)
                 tot -= norm*dist;
             }
         }
-        
         double KE = 0.5*param->getndim()*param->getNumParticles()/param->gettau() +tot/param->getNumTimeSlices();
         
         return KE;
     }
     
+    double paths::relativisticKineticEnergy(){
+        double tot = 0.0;
+        double m = 1/(2*param->getlam());
+        for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++){
+                std::vector<std::vector<double>> pair = beads->getPair(ptcl, slice, 1);
+                std::vector<double> distVec = ute->dist(pair, param->getBoxSize());
+                double distsq = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
+                tot += 1/(sqrt(distsq +pow(param->gettau(),2)))*boost::math::cyl_bessel_k((3+param->getndim())/2., m*sqrt(distsq +pow(param->gettau(),2)))/(boost::math::cyl_bessel_k((1+param->getndim())/2., m*sqrt(distsq +pow(param->gettau(),2))));
+            }
+        }
+        
+        double KE = -1/param->gettau() + m*param->gettau()*tot/param->getNumTimeSlices();
+        return KE;
+        
+    }
+    
+    
     double paths::energy(){
         double energy = kineticEnergy()+potentialEnergy();
+        return energy;
+    }
+    
+    double paths::relenergy(){
+        double energy = relativisticKineticEnergy()+potentialEnergy();
         return energy;
     }
     
@@ -371,10 +404,11 @@ paths::paths(int procnum, std::ofstream &f)
     }
     
     void paths::putInBox(){
-        for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++)
-            for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
-                beads->setOne(ptcl, slice, ute->location(beads->getOne(ptcl, slice), param->getBoxSize()));
-            }
+        if(param->getBoxSize() != -1)
+            for(int ptcl = 0; ptcl < param->getNumParticles(); ptcl++)
+                for(int slice = 0; slice < param->getNumTimeSlices(); slice++){
+                    beads->setOne(ptcl, slice, ute->location(beads->getOne(ptcl, slice), param->getBoxSize()));
+                }
         
     }
     

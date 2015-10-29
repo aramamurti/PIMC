@@ -9,6 +9,8 @@
 #ifndef BEC_monopoles_beadContainer_h
 #define BEC_monopoles_beadContainer_h
 #include "uni_header.h"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 template<class T>
 
@@ -21,6 +23,7 @@ private:
         typedef std::tr1::shared_ptr<LinkNode> node_ptr;
         
         int rownum;
+        int colnum;
         T data;
         T olddat;
         node_ptr leftNode;
@@ -59,17 +62,86 @@ public:
         tail.resize(0);
     }
     
-    LinkedList(const LinkedList &ll)
+    LinkedList(std::string infile)
     {
-        node_ptr temp = node_ptr();
-        std::vector<int> oldsize(ll.size);
-        for(std::vector<int>::iterator it = oldsize.begin(); it != oldsize.end(); it++){
-            temp = ll.head[it-oldsize.begin()];
-            for(int i = 0; i < *it; i++){
-                pushBack(temp->data,it-oldsize.begin());
-                temp = temp->rightNode;
+        size.resize(0);
+        head.resize(0);
+        tail.resize(0);
+        
+        std::ifstream in(infile.c_str());
+        std::string s;
+        size_t numbreaks = 0;
+        size_t numline = 0;
+        std::vector<std::vector<std::vector<double> > > dataset;
+        while(!in.eof()){
+            std::getline(in,s);
+            if(s.length()!= 0){
+                std::string delimiter = "), ";
+                size_t pos = 0;
+                std::string token;
+                
+                while ((pos = s.find(delimiter)) != std::string::npos) {
+                    token = s.substr(s.find("(")+1, pos-1);
+                    s.erase(0, pos+delimiter.length());
+                    if(numbreaks == 0){
+                        size_t n = std::count(token.begin(),token.end(),',')+1;
+                        std::vector<double> data(n);
+                        std::vector<std::string> ent;
+                        boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
+                        for(std::vector<std::string>::iterator it = ent.begin(); it!=ent.end(); it++){
+                            data[it-ent.begin()]= std::atof((*it).c_str());
+                        }
+                        if(dataset.size() < numline+1)
+                            dataset.resize(numline+1);
+                        dataset[numline].push_back(data);
+                    }
+                    if(numbreaks == 1){
+                        std::vector<std::string> ent;
+                        boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
+                        std::vector<std::vector<double> > dset2 = dataset[numline];
+                        std::vector<double> nodedat= dset2[std::atoi(ent[1].c_str())];
+                        pushBack(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
+                    }
+                }
+                token = s.substr(1,s.length()-2);
+                if(numbreaks == 0){
+                    size_t n = std::count(token.begin(),token.end(),',')+1;
+                    std::vector<double> data(n);
+                    std::vector<std::string> ent;
+                    boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
+                    for(std::vector<std::string>::iterator it = ent.begin(); it!=ent.end(); it++){
+                        data[it-ent.begin()]= std::atof((*it).c_str());
+                    }
+                    if(dataset.size() < numline+1)
+                        dataset.resize(numline+1);
+                    dataset[numline].push_back(data);
+                }
+                if(numbreaks == 1){
+                    std::vector<std::string> ent;
+                    boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
+                    std::vector<std::vector<double> > dset2 = dataset[numline];
+                    std::vector<double> nodedat= dset2[std::atoi(ent[1].c_str())];
+                    pushBack(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
+                }
+                
+                if(numbreaks == 2){
+                    std::vector<std::string> ent;
+                    boost::split(ent, s, boost::is_any_of("("), boost::token_compress_on);
+                    std::string ss = ent.back();
+                    ss = ss.substr(0,s.length()-2);
+                    boost::split(ent, ss, boost::is_any_of(", "), boost::token_compress_on);
+                    tail[numline]->rightNode = head[std::atoi(ent[0].c_str())];
+                    tail[numline]->rightNode->leftNode = tail[numline];
+                }
+                numline++;
             }
+            else{
+                numbreaks++;
+                numline=0;
+            }
+            
         }
+        circular = true;
     }
     
     ~LinkedList() {
@@ -86,9 +158,12 @@ public:
         }
     }
     
-    void pushBack(T t, int index = 0) {
+    void pushBack(T t, int index = 0, int rownum = -1, int colnum = -1) {
         node_ptr linkNode(new LinkNode(t));
-        linkNode->rownum = index;
+        if(rownum == -1)
+            linkNode->rownum = index;
+        else
+            linkNode->rownum = rownum;
         
         if(size.size() <= index){
             size.resize(index+1);
@@ -97,6 +172,11 @@ public:
         }
         
         ++size[index];
+        if(colnum == -1)
+            linkNode->colnum = size[index]-1;
+        else
+            linkNode->colnum = colnum;
+        
         if (size[index] == 1) {
             head[index] = tail[index] = linkNode;
             return;
@@ -154,6 +234,7 @@ public:
         else
             reswapStartOrder = i;
     }
+    
     void swap(bool reverse = false){
         std::vector<int> i;
         std::vector<int> j;
@@ -361,75 +442,28 @@ public:
     
     
     
-    void printLinkedList(int index = 0){
+    void printList(int index = 0){
         node_ptr temp = head[index];
         if(circular){
             bool headprint = false;
             int numPrint = 0;
             while (!headprint || numPrint < size[index]) {
-                if(temp == head[index])
-                    headprint = true;
-                T beep = temp->data;
-                for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
-                    std::cout << *it << "\t";
-                temp = temp->rightNode;
-                numPrint++;
-            }
-            
-        }
-        else{
-            while (temp != NULL) {
-                T beep = temp->data;
-                for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
-                    std::cout << *it << "\t";
-                temp = temp->rightNode;
-            }
-        }
-        std::cout << std::endl;
-    }
-    
-    void printLinkedListIndices(int index = 0){
-        node_ptr temp = head[index];
-        if(circular){
-            bool headprint = false;
-            int numPrint = 0;
-            while (!headprint || numPrint < size[index]) {
-                if(temp == head[index])
-                    headprint = true;
-                if(numPrint % size[index] == 0)
-                    std::cout << "||\t";
-                std::cout << temp->rownum << "\t";
-                temp = temp->rightNode;
-                numPrint++;
-            }
-            
-        }
-        else{
-            while (temp != NULL) {
-                std::cout << temp->rownum << "\t";
-                temp = temp->rightNode;
-            }
-        }
-        std::cout << std::endl;
-    }
-    
-    
-    
-    void printLinkedList(int index, std::ofstream &f){
-        node_ptr temp = head[index];
-        if(circular){
-            bool headprint = false;
-            int numPrint = 0;
-            while (!headprint || numPrint < size[index]+1) {
                 if(temp == head[index])
                     headprint = true;
                 T beep = temp->data;
                 for(typename T::iterator it = beep.begin(); it != beep.end(); it++){
-                    f << *it << ", ";
+                    if(it == beep.begin())
+                        std::cout<<"(";
+                    std::cout << *it;
+                    if(it != beep.end()-1)
+                        std::cout <<", ";
+                    
                 }
-                f << std::endl;
+                std::cout <<")";
                 temp = temp->rightNode;
                 numPrint++;
+                if(numPrint < size[index])
+                    std::cout<< ", ";
             }
             
         }
@@ -437,38 +471,84 @@ public:
             while (temp != NULL) {
                 T beep = temp->data;
                 for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
-                    f << *it << ", ";
-                f<<std::endl;
+                    std::cout << *it << ", ";
                 temp = temp->rightNode;
             }
         }
-        f.close();
+        std::cout << std::endl;
     }
     
-    T returnLinkedList(int index){
+    void printListIndices(int index = 0){
         node_ptr temp = head[index];
-        T p;
         if(circular){
             bool headprint = false;
             int numPrint = 0;
-            while (!headprint || numPrint < size[index]*2) {
+            while (!headprint || numPrint < size[index]) {
                 if(temp == head[index])
                     headprint = true;
-                T data = temp->data;
-                p.push_back(data[0]);
+                std::cout << "("<<temp->rownum<<", "<<temp->colnum<<")";
                 temp = temp->rightNode;
                 numPrint++;
+                if(numPrint < size[index])
+                    std::cout<< ", ";
             }
+            
         }
         else{
             while (temp != NULL) {
-                T data = temp->data;
-                p.push_back(data[0]);
+                std::cout << "("<<temp->rownum<<", "<<temp->colnum<<"), " << ", ";
                 temp = temp->rightNode;
             }
         }
-        return p;
+        std::cout << std::endl;
     }
+    
+    void printListNextIndices(int index = 0){
+        node_ptr temp = head[index];
+        if(circular){
+            bool headprint = false;
+            int numPrint = 0;
+            while (!headprint || numPrint < size[index]) {
+                if(temp == head[index])
+                    headprint = true;
+                std::cout << "("<<temp->rightNode->rownum<<", "<<temp->rightNode->colnum<<")";
+                temp = temp->rightNode;
+                numPrint++;
+                if(numPrint < size[index])
+                    std::cout<< ", ";
+            }
+            
+        }
+        else{
+            while (temp != NULL) {
+                std::cout << "("<<temp->rightNode->rownum<<", "<<temp->rightNode->colnum<<"), " << ", ";
+                temp = temp->rightNode;
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    void printListToFile(int step){
+        int numrows = size.size();
+        
+        std::stringstream sstm;
+        sstm << "config_step_" << step <<".txt";
+        std::string result = sstm.str();
+
+        std::ofstream out(result.c_str());
+        std::streambuf *coutbuf = std::cout.rdbuf();
+        std::cout.rdbuf(out.rdbuf());
+        for(int j = 0; j < numrows; j++)
+            printList(j);
+        std::cout << "\n";
+        for(int j = 0; j < numrows; j++)
+            printListIndices(j);
+        std::cout << "\n";
+        for(int j = 0; j < numrows; j++)
+            printListNextIndices(j);
+        std::cout.rdbuf(coutbuf);
+    }
+    
     
     std::vector<int> getRSO(){
         return rso;

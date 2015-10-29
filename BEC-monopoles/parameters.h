@@ -33,27 +33,27 @@ private:
     
 public:
     parameters(){
-        ndim = 3;
+        ndim = 1;
         kb = 1.0;
         T = 1.0;
-        lam = 6.0596;//pow(hbar,2)/(2*m);
+        lam = 0.5;//pow(hbar,2)/(2*m);
         
         boson = true;
         
-        numParticles = 16;
-        numTimeSlices = 80;
-        numSteps = 300000;
-        skip = 2;
-        equil = 100000;
+        numParticles = 3;
+        numTimeSlices = 10;
+        numSteps = 10000;
+        skip = 10;
+        equil = 1000;
         
-        pots[0] = false;
+        pots[0] = true;
         pots[1] = false;
         pots[2] = false;
-        pots[3] = true;
+        pots[3] = false;
         
         tau = 1/(T*numTimeSlices);
         
-        pbc = true;
+        pbc = false;
         if(pbc)
             boxsize = pow(numParticles/10.,1/3.)*7.7099;
         else
