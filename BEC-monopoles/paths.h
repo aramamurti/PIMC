@@ -16,47 +16,38 @@
 
 class paths{
 public:
-    typedef std::tr1::shared_ptr<LinkedList<std::vector<double>>> list_ptr;
+    typedef std::tr1::shared_ptr<LinkedList<vectorf>> list_ptr;
 
     //constructor and destructor
     paths(int procnum, std::ofstream &f);
     ~paths();
     
     //methods
-    double vext(int slice, int ptcl);
-    double potentialAction(int slice);
-    double kineticAction(int slice, int dist);
-    double relativisticKineticAction(int slice, int dist);
-    double kineticEnergy();
-    double relativisticKineticEnergy();
-    double potentialEnergy();
-    double energy();
-    std::vector<int> getCycles();
-    std::vector<int> getWindingNumber();
-    double virialEnergy();
-    double relenergy();
-    double cv();
-    void constPerms(int procnum);
-    double recompSingProb(std::vector<int> ptcls, int stslice);
+    float vext(int slice, int ptcl);
+    float potentialAction(int slice);
+    float kineticAction(int slice, int dist);
+    float kineticEnergy();
+    float potentialEnergy();
+    float energy();
+    vectori getCycles();
+    vectori getWindingNumber();
+    void setup_beads();
+    void constr_perms(int procnum);
+    float slice_perm_prob(vectori ptcls, int stslice);
     void putInBox();
     
     //getter methods
     int getDist(){return multistep_dist;}
     utility* getUte(){return ute;}
     parameters* getParam(){return param;}
-    std::vector<std::vector<double>>* getProbList(){return &probList;}
-    std::vector<std::vector<int>>* getPermList(){return &permList;}
+    vectorff* getProbList(){return &probList;}
+    vectorii* getPermList(){return &permList;}
     list_ptr getBeads(){return beads;}
-    std::vector<int> getLastChgd(){return lastChdParticles;}
-    std::vector<int> getlastLocs(){std::vector<int> locs; locs.push_back(laststart); locs.push_back(lastend); return locs;}
-    void setlastChgd(std::vector<int> lc){lastChdParticles = lc;}
-    void slstep(int s, int e){laststart = s; lastend = e;}
-    
+    vectori getLastChgd(){return lastChdParticles;}
+    vectori getlastLocs(){std::vector<int> locs; locs.push_back(last_start); locs.push_back(last_end); return locs;}
+    void setlastChgd(vectori lc){lastChdParticles = lc;}
+    void slstep(int s, int e){last_start = s; last_end = e;}
     int getPNum(){return pnum;}
-    
-    
-    int numswap;
-
     
 private:
     
@@ -64,18 +55,20 @@ private:
     parameters* param;
     potentials* pot;
     list_ptr beads;
-    std::vector<std::vector<int>> permList;
-    std::vector<std::vector<int>> permPart;
-    std::vector<std::vector<int>> permPartLoc;
-    std::vector<std::vector<double>> probList;
+    vectorii permList;
+    vectorii permPart;
+    vectorii permPartLoc;
+    vectorff probList;
     
-    std::vector<int> lastChdParticles;
-    int laststart;
-    int lastend;
+    vectori chgList;
+    
+    vectori lastChdParticles;
+    int last_start;
+    int last_end;
     
     utility* ute;
     int multistep_dist;
-    double multvec[4];
+    float multvec[4];
     int pnum;
 
 

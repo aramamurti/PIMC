@@ -25,6 +25,16 @@
 #include <fstream>
 #include <boost/bind.hpp>
 #include <boost/math/special_functions/bessel.hpp>
+#include <cmath>
+
+
+typedef std::vector<float> vectorf;
+typedef std::vector<std::vector<float> > vectorff;
+typedef std::vector<std::vector<int> > vectorii;
+
+
+typedef std::vector<int> vectori;
+
 
 
 #endif

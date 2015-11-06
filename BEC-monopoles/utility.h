@@ -18,20 +18,20 @@ public:
     utility(int procnum);
     ~utility();
     std::string currentDateTime();
-    double randnormed(int max);
+    float randnormed(int max);
     int randint(int max);
-    double randgaussian(double width);
-    double vecavg(std::vector<double> vec);
-    double vecstd(std::vector<double> v);
-    std::vector<double> vecadd(std::vector<double> a, std::vector<double> b);
+    float randgaussian(float width);
+    float vecavg(std::vector<float> vec);
+    float vecstd(std::vector<float> v);
+    std::vector<float> vecadd(std::vector<float> a, std::vector<float> b);
 
 
-    double pbc(double a, double b);
+    float pbc(float a, float b);
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
-    std::vector<double> location(std::vector<double> bead, double boxsize);
-    std::vector<double> dist(std::vector<std::vector<double>> beads, double boxsize);
-    std::vector<double> avedist(std::vector<std::vector<double>> beads, double boxsize);
+    std::vector<float> location(std::vector<float> bead, float boxsize);
+    std::vector<float> dist(std::vector<std::vector<float>> beads, float boxsize);
+    std::vector<float> avedist(std::vector<std::vector<float>> beads, float boxsize);
     
 private:
     const gsl_rng_type * T;

@@ -14,21 +14,23 @@
 class parameters{
     
 private:
-    double tau;
-    double T;
-    double kb;
-    double lambda;
+    float tau;
+    float T;
+    float kb;
+    float lambda;
     int ndim;
-    double lam;
+    float lam;
     int numTimeSlices;
     int numParticles;
     bool boson;
     int numSteps;
     int skip;
     int equil;
-    double boxsize;
+    float boxsize;
     bool pbc;
-    bool pots[4];
+    bool pots[5];
+    int numcharges;
+    bool charged;
 
     
 public:
@@ -38,9 +40,12 @@ public:
         T = 1.0;
         lam = 0.5;//pow(hbar,2)/(2*m);
         
-        boson = true;
+        numcharges = 2;
+        charged = true;
         
-        numParticles = 3;
+        boson = false;
+        
+        numParticles = 6;
         numTimeSlices = 10;
         numSteps = 10000;
         skip = 10;
@@ -50,6 +55,7 @@ public:
         pots[1] = false;
         pots[2] = false;
         pots[3] = false;
+        pots[4] = false;
         
         tau = 1/(T*numTimeSlices);
         
@@ -62,26 +68,29 @@ public:
     }
     ~parameters(){}
     
-    void setT(double newT){
+    void setT(float newT){
         T = newT;
         tau = 1/(T*numTimeSlices);
     }
-    void setNumTS(double newTS){
+    void setNumTS(float newTS){
         numTimeSlices = newTS;
         tau = 1/(T*numTimeSlices);
     }
+    
     int getndim(){return ndim;}
-    double getT(){return T;}
-    double getkb(){return kb;}
+    float getT(){return T;}
+    float getkb(){return kb;}
     bool isboson(){return boson;}
-    double gettau(){return tau;}
-    double getlam(){return lam;}
+    bool ischarged(){return charged;}
+    int getNumCharges(){return numcharges;}
+    float gettau(){return tau;}
+    float getlam(){return lam;}
     int getNumSteps(){return numSteps;}
     int getSkip(){return skip;}
     int getEquil(){return equil;}
     int getNumTimeSlices(){return numTimeSlices;}
     int getNumParticles(){return numParticles;}
-    double getBoxSize(){return boxsize;}
+    float getBoxSize(){return boxsize;}
     bool* getPots(){return pots;}
 };
 

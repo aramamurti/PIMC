@@ -56,34 +56,36 @@ int main(int argc, const char * argv[]) {
     pimc* sim = new pimc();
     
     
-    std::vector<double> energy(0);
-    std::vector< std::vector<int>> cycles;
+    vectorf energy(0);
+    vectorii cycles;
+    
+    
     sim->run(path->getParam()->getNumSteps(), path, f2, f3, f4, energy, cycles);
     
     f1 << "Total Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<< std::endl;
     f1 << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->getParam()->getNumParticles()<< "\n" <<std::endl;
     
     int sum = 0;
-    for(std::vector<std::vector<int>>::iterator it = cycles.begin(); it != cycles.end(); it++){
-        std::vector<int> stepcyc = *it;
+    for(vectorii::iterator it = cycles.begin(); it != cycles.end(); it++){
+        vectori stepcyc = *it;
         sum += std::accumulate(stepcyc.begin(), stepcyc.end(), 0);
     }
     
-    std::vector<int> cyclesum(cycles[0].size(),0);
-    for(std::vector<std::vector<int>>::iterator it = cycles.begin(); it != cycles.end(); it++){
-        std::vector<int> stepcyc = *it;
-        for(std::vector<int>::iterator it2 = stepcyc.begin(); it2 != stepcyc.end(); it2++){
+    vectori cyclesum(cycles[0].size(),0);
+    for(vectorii::iterator it = cycles.begin(); it != cycles.end(); it++){
+        vectori stepcyc = *it;
+        for(vectori::iterator it2 = stepcyc.begin(); it2 != stepcyc.end(); it2++){
             cyclesum[it2-stepcyc.begin()] += *it2;
         }
     }
     
-    std::vector<double> cyclepercent;
-    for(std::vector<int>::iterator it = cyclesum.begin(); it != cyclesum.end(); it++){
+    vectorf cyclepercent;
+    for(vectori::iterator it = cyclesum.begin(); it != cyclesum.end(); it++){
         cyclepercent.push_back(((double)*it)/sum);
     }
     
     f1 << "Permutation fraction" << std::endl;
-    for(std::vector<double>::iterator it = cyclepercent.begin(); it != cyclepercent.end(); it++){
+    for(vectorf::iterator it = cyclepercent.begin(); it != cyclepercent.end(); it++){
         f1 << it-cyclepercent.begin()+1 <<":\t" << *it <<std::endl;
     }
 

@@ -20,7 +20,7 @@ pimc::pimc(){
     numacceptb = 0;
 }
 
-void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::ofstream &f3, std::vector<double> &energytr, std::vector<std::vector<int>> &cycleList){
+void pimc::run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::ofstream &f3, vectorf &energytr, vectorii &cycleList){
     
     moves mvs;
         
