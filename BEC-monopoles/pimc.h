@@ -9,11 +9,11 @@
 #ifndef BEC_monopoles_pimc_h
 #define BEC_monopoles_pimc_h
 
-class pimc{
+class Pimc{
 public:
-    pimc();
-    ~pimc(){};
-    void run(int numSteps, paths* path, std::ofstream &f1, std::ofstream &f2, std::ofstream &f3, vectorf &energytr, vectorii &cycleList);
+    Pimc();
+    ~Pimc(){};
+    void run(int end_step, Path* path, std::ofstream &f1,std::ofstream &f2,std::ofstream &f3, vectorf &energytr, vectorii &cycleList);
 private:
     int numaccepts;
     int numacceptc;

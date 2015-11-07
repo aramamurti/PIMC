@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		B98249C41B17A441003B0DC6 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249C31B17A441003B0DC6 /* main.cpp */; };
 		B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249CE1B17A45E003B0DC6 /* moves.cpp */; };
-		B98249DB1B17A45E003B0DC6 /* paths.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D01B17A45E003B0DC6 /* paths.cpp */; };
+		B98249DB1B17A45E003B0DC6 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D01B17A45E003B0DC6 /* path.cpp */; };
 		B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D21B17A45E003B0DC6 /* pimc.cpp */; };
 		B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D41B17A45E003B0DC6 /* potentials.cpp */; };
 		B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D61B17A45E003B0DC6 /* utility.cpp */; };
@@ -35,8 +35,8 @@
 		B98249C31B17A441003B0DC6 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		B98249CE1B17A45E003B0DC6 /* moves.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = moves.cpp; sourceTree = "<group>"; };
 		B98249CF1B17A45E003B0DC6 /* moves.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = moves.h; sourceTree = "<group>"; };
-		B98249D01B17A45E003B0DC6 /* paths.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = paths.cpp; sourceTree = "<group>"; };
-		B98249D11B17A45E003B0DC6 /* paths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = paths.h; sourceTree = "<group>"; };
+		B98249D01B17A45E003B0DC6 /* path.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = path.cpp; sourceTree = "<group>"; };
+		B98249D11B17A45E003B0DC6 /* path.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = path.h; sourceTree = "<group>"; };
 		B98249D21B17A45E003B0DC6 /* pimc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pimc.cpp; sourceTree = "<group>"; };
 		B98249D41B17A45E003B0DC6 /* potentials.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = potentials.cpp; sourceTree = "<group>"; };
 		B98249D51B17A45E003B0DC6 /* potentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = potentials.h; sourceTree = "<group>"; };
@@ -88,8 +88,8 @@
 				B98249E01B18CACB003B0DC6 /* parameters.h */,
 				B98249D21B17A45E003B0DC6 /* pimc.cpp */,
 				B9B041F01B25F95A0005E355 /* pimc.h */,
-				B98249D01B17A45E003B0DC6 /* paths.cpp */,
-				B98249D11B17A45E003B0DC6 /* paths.h */,
+				B98249D01B17A45E003B0DC6 /* path.cpp */,
+				B98249D11B17A45E003B0DC6 /* path.h */,
 				B98249CE1B17A45E003B0DC6 /* moves.cpp */,
 				B98249CF1B17A45E003B0DC6 /* moves.h */,
 				B98249D41B17A45E003B0DC6 /* potentials.cpp */,
@@ -162,7 +162,7 @@
 				B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */,
 				B98249C41B17A441003B0DC6 /* main.cpp in Sources */,
 				B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */,
-				B98249DB1B17A45E003B0DC6 /* paths.cpp in Sources */,
+				B98249DB1B17A45E003B0DC6 /* path.cpp in Sources */,
 				B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

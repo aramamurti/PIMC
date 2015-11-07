@@ -19,7 +19,7 @@ class LinkedList {
 private:
     
     class LinkNode {
-    typedef std::tr1::shared_ptr<LinkNode> node_ptr;
+        typedef std::tr1::shared_ptr<LinkNode> node_ptr;
     
     public:
         
@@ -403,7 +403,7 @@ public:
         
     }
     
-    std::vector<int> getCycles(){
+    std::vector<int> get_cycles(){
         std::vector<int> cyclenum(size.size(),0);
         for(int row = 0; row < size.size(); row++){
             node_ptr temp = head[row]->rightNode;

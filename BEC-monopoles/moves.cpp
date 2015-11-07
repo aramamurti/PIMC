@@ -10,101 +10,101 @@
 
 
 
-bool moves::comMove(paths* path, int ptcl){
+bool moves::comMove(Path* path, int ptcl){
     float delta;
-    if(path->getParam()->getBoxSize() == -1)
+    if(path->get_parameters()->get_box_size() == -1)
         delta = 0.5;
     else{
-        delta = sqrt(path->getParam()->getlam()*path->getParam()->gettau());
+        delta = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
     }
     
-    vectorf shift(path->getParam()->getndim());
+    vectorf shift(path->get_parameters()->get_ndim());
     for(vectorf::iterator it = shift.begin(); it != shift.end(); it++ )
         *it = path->getUte()->randgaussian(delta);
     
-    path->getBeads()->setOld();
+    path->get_beads()->setOld();
     
     float oldAct = 0.0;
-    for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
+    for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
         oldAct += path->potentialAction(slice);
     }
     
     
-    path->getBeads()->shiftAll(ptcl, shift);
+    path->get_beads()->shiftAll(ptcl, shift);
     
     float newAct = 0.0;
-    for(int slice = 0; slice < path->getParam()->getNumTimeSlices(); slice++){
+    for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
         newAct += path->potentialAction(slice);
     }
     
     if(path->getUte()->randnormed(1)<exp(-(newAct - oldAct))){
-        path->putInBox();
-        std::vector<int> lc = path->getLastChgd();
+        path->put_in_box();
+        std::vector<int> lc = path->get_last_changed();
         lc.push_back(ptcl);
-        path->setlastChgd(lc);
+        path->set_last_changed(lc);
         return true;
     }
     else{
-        path->getBeads()->resetOld();
+        path->get_beads()->resetOld();
         return false;
     }
 }
 
 
-inline void moves::bisectionMove(paths* path, int ptcl, int start, int m){
+inline void moves::bisectionMove(Path* path, int ptcl, int start, int m){
     if(m != 1 && m%2 == 0){
         int slice = (start + m/2);
-        float tau1 = (m/2)*path->getParam()->gettau();
+        float tau1 = (m/2)*path->get_parameters()->get_tau();
         vectorf move(0);
-        vectorff bds = path->getBeads()->getPair(ptcl, start, m);
-        vectorf aved = path->getUte()->avedist(bds,path->getParam()->getBoxSize());
-        float width = sqrt(path->getParam()->getlam()*tau1);
-        for(int ndim = 0; ndim < path->getParam()->getndim(); ndim++){
+        vectorff bds = path->get_beads()->getPair(ptcl, start, m);
+        vectorf aved = path->getUte()->avedist(bds,path->get_parameters()->get_box_size());
+        float width = sqrt(path->get_parameters()->get_lambda()*tau1);
+        for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             move.push_back(aved[ndim] + path->getUte()->randgaussian(width));
         }
-        path->getBeads()->setOne(ptcl, slice, move);
+        path->get_beads()->setOne(ptcl, slice, move);
         bisectionMove(path, ptcl, start, m/2);
         bisectionMove(path, ptcl, slice, m/2);
     }
 }
 
-bool moves::bisectionMoveHelper(paths* path, int ptcl){
+bool moves::bisectionMoveHelper(Path* path, int ptcl){
     int m = path->getDist();
     
-    int start = path->getUte()->randint(path->getParam()->getNumTimeSlices());
+    int start = path->getUte()->randint(path->get_parameters()->get_num_timeslices());
     
-    int ls = path->getlastLocs()[0];
-    int le = path->getlastLocs()[1];
+    int ls = path->get_last_locs()[0];
+    int le = path->get_last_locs()[1];
     
     std::vector<int> lc;
     
-    if(le > path->getParam()->getNumTimeSlices() && start < le% path->getParam()->getNumTimeSlices())
-        lc = path->getBeads()->getRSO();
+    if(le > path->get_parameters()->get_num_timeslices() && start < le% path->get_parameters()->get_num_timeslices())
+        lc = path->get_beads()->getRSO();
     else
-        lc = path->getLastChgd();
+        lc = path->get_last_changed();
     
-    if(path->getParam()->isboson())
-        if((start+m > ls &&start+m <=le) || ((start >=ls) && (start <=le))|| (le > path->getParam()->getNumTimeSlices() && start < le % path->getParam()->getNumTimeSlices()))
-            path->recompSingProb(lc, start);
+    if(path->get_parameters()->is_boson())
+        if((start+m > ls &&start+m <=le) || ((start >=ls) && (start <=le))|| (le > path->get_parameters()->get_num_timeslices() && start < le % path->get_parameters()->get_num_timeslices()))
+            path->slice_perm_prob(lc, start);
     
     float oldPotAct = 0.0;
     
     
-    path->getBeads()->setOld();
+    path->get_beads()->setOld();
     
     
     for(int a = 0; a < m+1; a++){
-        int slice = (start + a)%path->getParam()->getNumTimeSlices();
+        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
         oldPotAct += path->potentialAction(slice);
     }
     
-    std::vector<int> identity(path->getParam()->getNumParticles());
+    std::vector<int> identity(path->get_parameters()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     std::vector<int> chosenPerm = identity;
     std::vector<int> origpart(0);
     std::vector<int> permpart(0);
     
-    if(path->getParam()->isboson()){
+    if(path->get_parameters()->is_boson()){
         chosenPerm = pickPermutation(path, start);
         
         for(std::vector<int>::iterator it = identity.begin(); it != identity.end(); it++)
@@ -114,8 +114,8 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
             }
     }
     
-    path->getBeads()->setswap(origpart, permpart, start, m);
-    path->getBeads()->swap();
+    path->get_beads()->setswap(origpart, permpart, start, m);
+    path->get_beads()->swap();
     
     if(permpart.size() == 0){
         bisectionMove(path, ptcl, start, m);
@@ -127,7 +127,7 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     float newPotAct = 0.0;
     for(int a = 0; a < m+1; a++ ){
-        int slice = (start + a)%path->getParam()->getNumTimeSlices();
+        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
         newPotAct += path->potentialAction(slice);
     }
     
@@ -137,23 +137,23 @@ bool moves::bisectionMoveHelper(paths* path, int ptcl){
     
     if(exp(-potDiff) < rn){
         
-        path->getBeads()->swap(true);
-        path->getBeads()->resetOld();
-        path->getBeads()->resetSwap();
+        path->get_beads()->swap(true);
+        path->get_beads()->resetOld();
+        path->get_beads()->resetSwap();
         
         return false;
         
     }
         
-    path->setlastChgd(permpart);
-    path->slstep(start, start+m);
-    path->getBeads()->setPrevSwap();
-    path->putInBox();
+    path->set_last_changed(permpart);
+    path->set_last_step(start, start+m);
+    path->get_beads()->setPrevSwap();
+    path->put_in_box();
     return true;
 }
 
-inline std::vector<int> moves::pickPermutation(paths* path, int start){
-    vectorf permWeight = (*path->getProbList())[start];
+inline vectori moves::pickPermutation(Path* path, int start){
+    vectorf permWeight = (*path->get_prob_list())[start];
     vectorf::iterator it2;
     
     float sum = 0.0;
@@ -171,7 +171,7 @@ inline std::vector<int> moves::pickPermutation(paths* path, int start){
         }
     }
     
-    std::vector<int> chosenPerm = (*path->getPermList())[choice];
+    std::vector<int> chosenPerm = (*path->get_perm_list())[choice];
     
     return chosenPerm;
 }

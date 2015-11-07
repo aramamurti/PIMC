@@ -38,7 +38,7 @@ public:
     float aziz_int(float dist);
     float aziz_pcws(float dist);
     float real_coulomb(float dist, int chgi, int chgj);
-    float reci_coulomb(std::vector<float> kx, int sfac, float boxsize, int chgi, int chgj);
+    float reci_coulomb(std::vector<float> kx, int sfac, float box_size, int chgi, int chgj);
 
 private:
     int numatoms;

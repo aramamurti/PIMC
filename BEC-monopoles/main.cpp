@@ -10,7 +10,7 @@
 /***********************/
  
 #include "uni_header.h"
-#include "paths.h"
+#include "path.h"
 #include "mpi.h"
 #include "pimc.h"
 
@@ -36,34 +36,10 @@ void setup_outfiles(int world_rank, std::ofstream& f1, std::ofstream& f2,std::of
     f4.open(result4.c_str());
 }
 
-int main(int argc, const char * argv[]) {
-    
-
-    
-    MPI_Init(NULL, NULL);
-    
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    
-    
-    std::ofstream f1,f2,f3,f4;
-    
-    setup_outfiles(world_rank, f1, f2, f3,f4);
-
-    std::cout << world_rank << ": Setting up paths and permutation table..." << std::endl;
-    paths* path = new paths(world_rank, f1);
-    std::cout << world_rank << ": Started  MC process ..." << std::endl;
-    pimc* sim = new pimc();
-    
-    
-    vectorf energy(0);
-    vectorii cycles;
-    
-    
-    sim->run(path->getParam()->getNumSteps(), path, f2, f3, f4, energy, cycles);
+void write_outfiles(std::ofstream &f1, Path* path, vectorf energy, vectorii cycles){
     
     f1 << "Total Energy = " <<path->getUte()->vecavg(energy) << " +/- "<< path->getUte()->vecstd(energy)/sqrt(energy.size())<< std::endl;
-    f1 << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->getParam()->getNumParticles()<< "\n" <<std::endl;
+    f1 << "Energy/atom= " <<path->getUte()->vecavg(energy)/path->get_parameters()->get_num_particles()<< "\n" <<std::endl;
     
     int sum = 0;
     for(vectorii::iterator it = cycles.begin(); it != cycles.end(); it++){
@@ -88,9 +64,31 @@ int main(int argc, const char * argv[]) {
     for(vectorf::iterator it = cyclepercent.begin(); it != cyclepercent.end(); it++){
         f1 << it-cyclepercent.begin()+1 <<":\t" << *it <<std::endl;
     }
-
+    
     f1.close();
-        
+}
+
+int main(int argc, const char * argv[]) {
+    
+    MPI_Init(NULL, NULL);
+    
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    
+    
+    std::ofstream f1,f2,f3,f4;
+    
+    setup_outfiles(world_rank, f1, f2, f3,f4);
+
+    Path* path = new Path(world_rank, f1);
+    Pimc* sim = new Pimc();
+    
+    vectorf energy(0);
+    vectorii cycles;
+    
+    sim->run(path->get_parameters()->get_end_step(), path, f2,f3,f4, energy, cycles);
+    write_outfiles(f1,path,energy,cycles);
+    
     delete sim;
     delete path;
 

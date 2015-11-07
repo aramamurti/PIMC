@@ -14,13 +14,13 @@
 #include "parameters.h"
 #include "container.h"
 
-class paths{
+class Path{
 public:
     typedef std::tr1::shared_ptr<LinkedList<vectorf>> list_ptr;
 
     //constructor and destructor
-    paths(int procnum, std::ofstream &f);
-    ~paths();
+    Path(int procnum, std::ofstream &f);
+    ~Path();
     
     //methods
     float vext(int slice, int ptcl);
@@ -29,30 +29,30 @@ public:
     float kineticEnergy();
     float potentialEnergy();
     float energy();
-    vectori getCycles();
-    vectori getWindingNumber();
+    vectori get_cycles();
+    vectori get_winding_number();
     void setup_beads();
     void constr_perms(int procnum);
     float slice_perm_prob(vectori ptcls, int stslice);
-    void putInBox();
+    void put_in_box();
     
-    //getter methods
+    //get_Ter methods
     int getDist(){return multistep_dist;}
     utility* getUte(){return ute;}
-    parameters* getParam(){return param;}
-    vectorff* getProbList(){return &probList;}
-    vectorii* getPermList(){return &permList;}
-    list_ptr getBeads(){return beads;}
-    vectori getLastChgd(){return lastChdParticles;}
-    vectori getlastLocs(){std::vector<int> locs; locs.push_back(last_start); locs.push_back(last_end); return locs;}
-    void setlastChgd(vectori lc){lastChdParticles = lc;}
-    void slstep(int s, int e){last_start = s; last_end = e;}
+    Parameters* get_parameters(){return params;}
+    vectorff* get_prob_list(){return &probList;}
+    vectorii* get_perm_list(){return &permList;}
+    list_ptr get_beads(){return beads;}
+    vectori get_last_changed(){return lastChdParticles;}
+    vectori get_last_locs(){std::vector<int> locs; locs.push_back(last_start); locs.push_back(last_end); return locs;}
+    void set_last_changed(vectori lc){lastChdParticles = lc;}
+    void set_last_step(int s, int e){last_start = s; last_end = e;}
     int getPNum(){return pnum;}
     
 private:
     
 
-    parameters* param;
+    Parameters* params;
     potentials* pot;
     list_ptr beads;
     vectorii permList;

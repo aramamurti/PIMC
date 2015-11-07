@@ -46,8 +46,8 @@ inline float potentials::real_coulomb(float dist, int chgi, int chgj){
     return real;
 }
 
-inline float potentials::reci_coulomb(std::vector<float> kx, int sfac, float boxsize, int chgi, int chgj){
-    float kfac = 2* M_PI / boxsize;
+inline float potentials::reci_coulomb(std::vector<float> kx, int sfac, float box_size, int chgi, int chgj){
+    float kfac = 2* M_PI / box_size;
     float efac = 1;
     float k2 = 0;
     for(std::vector<float>::iterator it = kx.begin(); it != kx.end(); it++){

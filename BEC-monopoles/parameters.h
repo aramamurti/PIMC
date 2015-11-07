@@ -11,7 +11,7 @@
 
 #include "uni_header.h"
 
-class parameters{
+class Parameters{
     
 private:
     float tau;
@@ -19,79 +19,78 @@ private:
     float kb;
     float lambda;
     int ndim;
-    float lam;
-    int numTimeSlices;
-    int numParticles;
+    int timeslices;
+    int particles;
     bool boson;
-    int numSteps;
+    int end_step;
     int skip;
-    int equil;
-    float boxsize;
+    int equilibration;
+    float box_size;
     bool pbc;
-    bool pots[5];
-    int numcharges;
+    bool potentials[5];
+    int charges;
     bool charged;
 
     
 public:
-    parameters(){
+    Parameters(){
         ndim = 1;
         kb = 1.0;
         T = 1.0;
-        lam = 0.5;//pow(hbar,2)/(2*m);
+        lambda = 0.5;//pow(hbar,2)/(2*m);
         
-        numcharges = 2;
+        charges = 1;
         charged = true;
         
         boson = false;
         
-        numParticles = 6;
-        numTimeSlices = 10;
-        numSteps = 10000;
+        particles = 4;
+        timeslices = 10;
+        end_step = 10000;
         skip = 10;
-        equil = 1000;
+        equilibration = 1000;
         
-        pots[0] = true;
-        pots[1] = false;
-        pots[2] = false;
-        pots[3] = false;
-        pots[4] = false;
+        potentials[0] = true;
+        potentials[1] = false;
+        potentials[2] = false;
+        potentials[3] = false;
+        potentials[4] = false;
         
-        tau = 1/(T*numTimeSlices);
+        tau = 1/(T*timeslices);
         
         pbc = false;
         if(pbc)
-            boxsize = pow(numParticles/10.,1/3.)*7.7099;
+            box_size = pow(particles/10.,1/3.)*7.7099;
         else
-            boxsize = -1;
+            box_size = -1;
 
     }
-    ~parameters(){}
+    ~Parameters(){}
     
-    void setT(float newT){
+    void set_T(float newT){
         T = newT;
-        tau = 1/(T*numTimeSlices);
+        tau = 1/(T*timeslices);
     }
-    void setNumTS(float newTS){
-        numTimeSlices = newTS;
-        tau = 1/(T*numTimeSlices);
+    void set_timeslices(float newTS){
+        timeslices = newTS;
+        tau = 1/(T*timeslices);
     }
     
-    int getndim(){return ndim;}
-    float getT(){return T;}
-    float getkb(){return kb;}
-    bool isboson(){return boson;}
-    bool ischarged(){return charged;}
-    int getNumCharges(){return numcharges;}
-    float gettau(){return tau;}
-    float getlam(){return lam;}
-    int getNumSteps(){return numSteps;}
-    int getSkip(){return skip;}
-    int getEquil(){return equil;}
-    int getNumTimeSlices(){return numTimeSlices;}
-    int getNumParticles(){return numParticles;}
-    float getBoxSize(){return boxsize;}
-    bool* getPots(){return pots;}
+    int get_ndim(){return ndim;}
+    float get_T(){return T;}
+    float get_kb(){return kb;}
+    bool is_boson(){return boson;}
+    bool is_charged(){return charged;}
+    int get_num_chgs(){return charges;}
+    float get_tau(){return tau;}
+    float get_lambda(){return lambda;}
+    int get_end_step(){return end_step;}
+    int get_skip(){return skip;}
+    int get_equilibration(){return equilibration;}
+    int get_num_timeslices(){return timeslices;}
+    int get_num_particles(){return particles;}
+    float get_box_size(){return box_size;}
+    bool* get_potentials(){return potentials;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */

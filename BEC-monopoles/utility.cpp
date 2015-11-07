@@ -74,33 +74,33 @@ std::vector<float> utility::vecadd(std::vector<float> a, std::vector<float> b){
     return result;
 }
 
-std::vector<float> utility::location(std::vector<float> bead, float boxsize){
+std::vector<float> utility::location(std::vector<float> bead, float box_size){
     int ndim = (int)bead.size();
     std::vector<float> loc;
     for(int i = 0; i < ndim; i++){
-        if(boxsize != -1)
-            loc.push_back(pbc(bead[i],boxsize));
+        if(box_size != -1)
+            loc.push_back(pbc(bead[i],box_size));
         else
             loc.push_back(bead[i]);
     }
     return loc;
 }
-std::vector<float> utility::dist(std::vector<std::vector<float>> beads, float boxsize){
+std::vector<float> utility::dist(std::vector<std::vector<float>> beads, float box_size){
     int ndim = (int)beads[0].size();
     std::vector<float> dist;
-    std::vector<float> bead1 = location(beads[0],boxsize);
-    std::vector<float> bead2 = location(beads[1],boxsize);
+    std::vector<float> bead1 = location(beads[0],box_size);
+    std::vector<float> bead2 = location(beads[1],box_size);
     for(int i = 0; i < ndim; i++){
         float dimdist = bead2[i]-bead1[i];
-        if(boxsize != -1)
-            dimdist = pbc(dimdist+boxsize/2, boxsize)-boxsize/2;
+        if(box_size != -1)
+            dimdist = pbc(dimdist+box_size/2, box_size)-box_size/2;
         dist.push_back(dimdist);
     }
     return dist;
 }
 
-std::vector<float> utility::avedist(std::vector<std::vector<float>> beads, float boxsize){
-    std::vector<float> dstc = dist(beads, boxsize);
+std::vector<float> utility::avedist(std::vector<std::vector<float>> beads, float box_size){
+    std::vector<float> dstc = dist(beads, box_size);
     for(std::vector<float>::iterator it = dstc.begin(); it!= dstc.end(); it++){
         *it = *it/2 + beads[0][it-dstc.begin()];
     }
