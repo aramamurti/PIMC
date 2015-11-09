@@ -15,6 +15,7 @@
 		B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D61B17A45E003B0DC6 /* utility.cpp */; };
 		B98249E41B18EA28003B0DC6 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */; };
 		B98249E51B18EA28003B0DC6 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */; };
+		B9D607CA1BEE82C5008DC784 /* tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9D607C81BEE82C5008DC784 /* tables.cpp */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,6 +49,8 @@
 		B9A483A41B28CCC1005FFE8B /* uni_header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
 		B9B041F01B25F95A0005E355 /* pimc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
 		B9C40F801B26364A007A41BD /* container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = container.h; sourceTree = "<group>"; };
+		B9D607C81BEE82C5008DC784 /* tables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tables.cpp; sourceTree = "<group>"; };
+		B9D607C91BEE82C5008DC784 /* tables.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = tables.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +95,8 @@
 				B98249D11B17A45E003B0DC6 /* path.h */,
 				B98249CE1B17A45E003B0DC6 /* moves.cpp */,
 				B98249CF1B17A45E003B0DC6 /* moves.h */,
+				B9D607C81BEE82C5008DC784 /* tables.cpp */,
+				B9D607C91BEE82C5008DC784 /* tables.hpp */,
 				B98249D41B17A45E003B0DC6 /* potentials.cpp */,
 				B98249D51B17A45E003B0DC6 /* potentials.h */,
 				B9C40F801B26364A007A41BD /* container.h */,
@@ -159,6 +164,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */,
+				B9D607CA1BEE82C5008DC784 /* tables.cpp in Sources */,
 				B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */,
 				B98249C41B17A441003B0DC6 /* main.cpp in Sources */,
 				B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */,

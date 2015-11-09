@@ -22,7 +22,7 @@ bool moves::comMove(Path* path, int ptcl){
     for(vectorf::iterator it = shift.begin(); it != shift.end(); it++ )
         *it = path->getUte()->randgaussian(delta);
     
-    path->get_beads()->setOld();
+    path->get_beads()->set_old_data();
     
     float oldAct = 0.0;
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
@@ -30,7 +30,7 @@ bool moves::comMove(Path* path, int ptcl){
     }
     
     
-    path->get_beads()->shiftAll(ptcl, shift);
+    path->get_beads()->shift_all(ptcl, shift);
     
     float newAct = 0.0;
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
@@ -45,7 +45,7 @@ bool moves::comMove(Path* path, int ptcl){
         return true;
     }
     else{
-        path->get_beads()->resetOld();
+        path->get_beads()->revert_old_data();
         return false;
     }
 }
@@ -56,13 +56,13 @@ inline void moves::bisectionMove(Path* path, int ptcl, int start, int m){
         int slice = (start + m/2);
         float tau1 = (m/2)*path->get_parameters()->get_tau();
         vectorf move(0);
-        vectorff bds = path->get_beads()->getPair(ptcl, start, m);
+        vectorff bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
         vectorf aved = path->getUte()->avedist(bds,path->get_parameters()->get_box_size());
         float width = sqrt(path->get_parameters()->get_lambda()*tau1);
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             move.push_back(aved[ndim] + path->getUte()->randgaussian(width));
         }
-        path->get_beads()->setOne(ptcl, slice, move);
+        path->get_beads()->set_bead_data(ptcl, slice, move);
         bisectionMove(path, ptcl, start, m/2);
         bisectionMove(path, ptcl, slice, m/2);
     }
@@ -79,7 +79,7 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     std::vector<int> lc;
     
     if(le > path->get_parameters()->get_num_timeslices() && start < le% path->get_parameters()->get_num_timeslices())
-        lc = path->get_beads()->getRSO();
+        lc = path->get_beads()->get_rep_swap_order();
     else
         lc = path->get_last_changed();
     
@@ -90,7 +90,7 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     float oldPotAct = 0.0;
     
     
-    path->get_beads()->setOld();
+    path->get_beads()->set_old_data();
     
     
     for(int a = 0; a < m+1; a++){
@@ -102,7 +102,7 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     iota(identity.begin(),identity.end(),0);
     std::vector<int> chosenPerm = identity;
     std::vector<int> origpart(0);
-    std::vector<int> permpart(0);
+    std::vector<int> permed_parts(0);
     
     if(path->get_parameters()->is_boson()){
         chosenPerm = pickPermutation(path, start);
@@ -110,16 +110,18 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
         for(std::vector<int>::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
                 origpart.push_back(*it);
-                permpart.push_back(chosenPerm[*it]);
+                permed_parts.push_back(chosenPerm[*it]);
             }
+        
+        
     }
     
-    path->get_beads()->setswap(origpart, permpart, start, m);
-    path->get_beads()->swap();
+    path->get_beads()->set_permutation(origpart, permed_parts, start, m);
+    path->get_beads()->permute();
     
-    if(permpart.size() == 0){
+    if(permed_parts.size() == 0){
         bisectionMove(path, ptcl, start, m);
-        permpart.push_back(ptcl);
+        permed_parts.push_back(ptcl);
     }
     else
         for(std::vector<int>::iterator ptcl = origpart.begin(); ptcl !=origpart.end(); ptcl++)
@@ -137,17 +139,17 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     
     if(exp(-potDiff) < rn){
         
-        path->get_beads()->swap(true);
-        path->get_beads()->resetOld();
-        path->get_beads()->resetSwap();
+        path->get_beads()->permute(true);
+        path->get_beads()->revert_old_data();
+        path->get_beads()->reset_permute();
         
         return false;
         
     }
         
-    path->set_last_changed(permpart);
+    path->set_last_changed(permed_parts);
     path->set_last_step(start, start+m);
-    path->get_beads()->setPrevSwap();
+    path->get_beads()->set_prev_perm();
     path->put_in_box();
     return true;
 }

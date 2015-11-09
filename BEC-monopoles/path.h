@@ -16,7 +16,7 @@
 
 class Path{
 public:
-    typedef std::tr1::shared_ptr<LinkedList<vectorf>> list_ptr;
+    typedef boost::shared_ptr<PathList<vectorf>> list_ptr;
 
     //constructor and destructor
     Path(int procnum, std::ofstream &f);
@@ -38,14 +38,14 @@ public:
     
     //get_Ter methods
     int getDist(){return multistep_dist;}
-    utility* getUte(){return ute;}
+    utility* getUte(){return util;}
     Parameters* get_parameters(){return params;}
-    vectorff* get_prob_list(){return &probList;}
-    vectorii* get_perm_list(){return &permList;}
+    vectorff* get_prob_list(){return &prob_list;}
+    vectorii* get_perm_list(){return &perm_list;}
     list_ptr get_beads(){return beads;}
-    vectori get_last_changed(){return lastChdParticles;}
+    vectori get_last_changed(){return last_chd_parts;}
     vectori get_last_locs(){std::vector<int> locs; locs.push_back(last_start); locs.push_back(last_end); return locs;}
-    void set_last_changed(vectori lc){lastChdParticles = lc;}
+    void set_last_changed(vectori lc){last_chd_parts = lc;}
     void set_last_step(int s, int e){last_start = s; last_end = e;}
     int getPNum(){return pnum;}
     
@@ -55,18 +55,18 @@ private:
     Parameters* params;
     potentials* pot;
     list_ptr beads;
-    vectorii permList;
-    vectorii permPart;
-    vectorii permPartLoc;
-    vectorff probList;
+    vectorii perm_list;
+    vectorii permed_parts;
+    vectorii perm_part_loc;
+    vectorff prob_list;
     
-    vectori chgList;
+    vectori charge_list;
     
-    vectori lastChdParticles;
+    vectori last_chd_parts;
     int last_start;
     int last_end;
     
-    utility* ute;
+    utility* util;
     int multistep_dist;
     float multvec[4];
     int pnum;

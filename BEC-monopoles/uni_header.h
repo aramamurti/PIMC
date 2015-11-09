@@ -26,6 +26,11 @@
 #include <boost/bind.hpp>
 #include <boost/math/special_functions/bessel.hpp>
 #include <cmath>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/shared_ptr.hpp>
+
+
 
 
 typedef std::vector<float> vectorf;

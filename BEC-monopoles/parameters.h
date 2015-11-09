@@ -42,7 +42,7 @@ public:
         charges = 1;
         charged = true;
         
-        boson = false;
+        boson = true;
         
         particles = 4;
         timeslices = 10;
