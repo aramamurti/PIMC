@@ -11,7 +11,7 @@
 /****
  Constructor: sets up paths and parameters for each particle and constructs all objects necessary for the PIMC simulation steps.
  *****/
-Path::Path(int procnum, std::ofstream &f)
+Path::Path(int procnum, IO &writer)
 :multvec{1.0,20.0,100.0, 400.0}{ // Multiplication factor for the permute probabilities
     
     //Declare all objects and variables, set all parameters that need to be modified from default (in parameters.h)
@@ -20,7 +20,7 @@ Path::Path(int procnum, std::ofstream &f)
 //    params->set_T(0.2+procnum*0.1);
 //    params->set_timeslices((int)(40-20*params->get_T()));
     
-    
+    writer.write_parameters(params);
     multistep_dist = 8;
     last_start = 0;
     last_end = 0;
@@ -28,8 +28,6 @@ Path::Path(int procnum, std::ofstream &f)
     pot = new potentials(params->get_num_particles(), pow(params->get_box_size(),3));
     
     
-    //Output to screen/file the parameters of the simulation
-    f<< "Simulation Parameters:\nN      = \t" << params->get_num_particles() << "\nNumber of Time Slices   =\t" << params->get_num_timeslices()<< "\nndim      = \t" << params->get_ndim() <<"\nBox Size      = \t" << params->get_box_size() <<"\ntau    = \t" << params->get_tau() << "\n" << "lambda =\t" << params->get_lambda() <<"\nT      = \t" << params->get_T() << "\n" << std::endl;
     
     
 

@@ -9,11 +9,17 @@
 #ifndef BEC_monopoles_pimc_h
 #define BEC_monopoles_pimc_h
 
+#include "moves.h"
+#include "paths.h"
+#include "uni_header.h"
+#include <unistd.h>
+#include "IO.hpp"
+
 class Pimc{
 public:
     Pimc();
     ~Pimc(){};
-    void run(int end_step, Path* path, std::ofstream &f1,std::ofstream &f2,std::ofstream &f3, vectorf &energytr, vectorii &cycleList);
+    std::vector<int> run(int end_step, Path* path, IO &writer, vectorf &energytr, vectorii &cycleList);
 private:
     int numaccepts;
     int numacceptc;

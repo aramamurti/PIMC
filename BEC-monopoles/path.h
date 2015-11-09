@@ -13,13 +13,15 @@
 #include "utility.h"
 #include "parameters.h"
 #include "container.h"
+#include "IO.hpp"
+
 
 class Path{
 public:
     typedef boost::shared_ptr<PathList<vectorf>> list_ptr;
 
     //constructor and destructor
-    Path(int procnum, std::ofstream &f);
+    Path(int procnum, IO &writer);
     ~Path();
     
     //methods

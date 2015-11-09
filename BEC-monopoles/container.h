@@ -10,15 +10,6 @@
 #define BEC_monopoles_beadContainer_h
 #include "uni_header.h"
 
-//
-//  main.cpp
-//  tester
-//
-//  Created by Adith Ramamurti on 6/11/15.
-//  Copyright (c) 2015 Adith Ramamurti. All rights reserved.
-//
-
-
 template<class T>
 
 class PathList {
@@ -28,8 +19,8 @@ private:
     public:
         typedef boost::shared_ptr<Node> node_ptr;
         
-        int rownum;
-        int colnum;
+        int row_number;
+        int column_number;
         T data;
         T olddat;
         node_ptr leftNode;
@@ -169,12 +160,12 @@ public:
         }
     }
     
-    void pushBack(T t, int index = 0, int rownum = -1, int colnum = -1) {
+    void pushBack(T t, int index = 0, int row_number = -1, int column_number = -1) {
         node_ptr Node(new class Node(t));
-        if(rownum == -1)
-            Node->rownum = index;
+        if(row_number == -1)
+            Node->row_number = index;
         else
-            Node->rownum = rownum;
+            Node->row_number = row_number;
         
         if(size.size() <= index){
             size.resize(index+1);
@@ -186,10 +177,10 @@ public:
         list_map.resize(size.size());
         list_map[index].resize(size[index]);
         
-        if(colnum == -1)
-            Node->colnum = size[index]-1;
+        if(column_number == -1)
+            Node->column_number = size[index]-1;
         else
-            Node->colnum = colnum;
+            Node->column_number = column_number;
         
         if (size[index] == 1) {
             head[index] = tail[index] = Node;
@@ -334,8 +325,8 @@ public:
         std::vector<int> nlc;
         std::vector<int> nend;
         for(std::vector<int>::iterator it = lc.begin(); it != lc.end(); it++){
-            nlc.push_back(temps[*it]->rightNode->rownum);
-            nend.push_back(temps[end[it-lc.begin()]]->rightNode->rownum);
+            nlc.push_back(temps[*it]->rightNode->row_number);
+            nend.push_back(temps[end[it-lc.begin()]]->rightNode->row_number);
         }
         
         std::vector<std::vector<int> > reperms;
@@ -351,7 +342,7 @@ public:
         }
         else if(circular){
             slice = slice%size[row];
-            row = list_map[row][size[row]-1]->rightNode->rownum;
+            row = list_map[row][size[row]-1]->rightNode->row_number;
             return list_map[row][slice]->data;
         }
         else
@@ -364,7 +355,7 @@ public:
         }
         else if(circular){
             slice = slice%size[row];
-            row = list_map[row][size[row]-1]->rightNode->rownum;
+            row = list_map[row][size[row]-1]->rightNode->row_number;
             list_map[row][slice]->data = data;
         }
     }
@@ -376,12 +367,12 @@ public:
         
         if(start >= size[row] && end >= size[row] && circular){
             start = start%size[row];
-            row = list_map[row][size[row]-1]->rightNode->rownum;
+            row = list_map[row][size[row]-1]->rightNode->row_number;
         }
 
         if(end >= size[row] && circular){
             end = end%size[row];
-            row2 = list_map[row2][size[row]-1]->rightNode->rownum;
+            row2 = list_map[row2][size[row]-1]->rightNode->row_number;
         }
         
         std::vector<T> ret(0);
@@ -394,8 +385,8 @@ public:
         
         if(slice >= size[row1] && circular){
             slice = slice%size[row1];
-            row1 = list_map[row1][size[row1]-1]->rightNode->rownum;
-            row2 = list_map[row2][size[row2]-1]->rightNode->rownum;
+            row1 = list_map[row1][size[row1]-1]->rightNode->row_number;
+            row2 = list_map[row2][size[row2]-1]->rightNode->row_number;
         }
         std::vector<T> ret(0);
         ret.push_back(list_map[row1][slice]->data);
@@ -511,7 +502,7 @@ public:
             while (!headprint || numPrint < size[index]) {
                 if(temp == head[index])
                     headprint = true;
-                std::cout << "("<<temp->rownum<<", "<<temp->colnum<<")";
+                std::cout << "("<<temp->row_number<<", "<<temp->column_number<<")";
                 temp = temp->rightNode;
                 numPrint++;
                 if(numPrint < size[index])
@@ -521,7 +512,7 @@ public:
         }
         else{
             while (temp != NULL) {
-                std::cout << "("<<temp->rownum<<", "<<temp->colnum<<"), " << ", ";
+                std::cout << "("<<temp->row_number<<", "<<temp->column_number<<"), " << ", ";
                 temp = temp->rightNode;
             }
         }
@@ -536,7 +527,7 @@ public:
             while (!headprint || numPrint < size[index]) {
                 if(temp == head[index])
                     headprint = true;
-                std::cout << "("<<temp->rightNode->rownum<<", "<<temp->rightNode->colnum<<")";
+                std::cout << "("<<temp->rightNode->row_number<<", "<<temp->rightNode->column_number<<")";
                 temp = temp->rightNode;
                 numPrint++;
                 if(numPrint < size[index])
@@ -546,7 +537,7 @@ public:
         }
         else{
             while (temp != NULL) {
-                std::cout << "("<<temp->rightNode->rownum<<", "<<temp->rightNode->colnum<<"), " << ", ";
+                std::cout << "("<<temp->rightNode->row_number<<", "<<temp->rightNode->column_number<<"), " << ", ";
                 temp = temp->rightNode;
             }
         }
