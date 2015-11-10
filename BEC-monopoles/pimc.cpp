@@ -1,5 +1,5 @@
 //
-//  pimc.cpp
+//  PIMC.cpp
 //  PIMC
 //
 //  Created by Adith Ramamurti on 5/20/15.
@@ -9,34 +9,32 @@
 #include "pimc.h"
 
 
-Pimc::Pimc(){
-    numacceptc = 0;
-    numaccepts = 0;
-    numacceptb = 0;
-}
+PIMC::PIMC(){}
 
-std::vector<int> Pimc::run(int end_step, Path* path, IO &writer, vectorf &energytr, vectorii &cycleList){
+iVector PIMC::run(int end_step, boost::shared_ptr<Path> path, IO &writer, fVector &energytr, iiVector &cycleList){
     
+    iVector accept;
     
-    moves mvs;
-        
-    std::vector<int> accept;
+    std::vector<bool> move_list;
+    move_list.push_back(true);
+    move_list.push_back(false);
+    move_list.push_back(true);
+    
+    set_up_moves(path, move_list);
     
     for(int step = 0; step < end_step; step++){
         int ptcl = (int) path->get_util()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
-        if(mvs.comMove(path, ptcl))
-            numacceptc += 1;
-        if(mvs.bisectionMoveHelper(path, ptcl))
-            numacceptb += 1;
+
+        moves[0].attempt(ptcl);
+        moves[1].attempt(ptcl);
         
-        if(step == 500 && step < path->get_parameters()->get_equilibration()){
+        if(step % 100 == 0 && step < path->get_parameters()->get_equilibration()){
             std::cout << path->getPNum() << ": " << step << ", " <<path->energy() << std::endl;
-            path->get_beads()->print_list_file(step);
         }
         
         if(step % path->get_parameters()->get_skip() == 0 && step >= path->get_parameters()->get_equilibration()){
             double en = path->energy();
-            std::vector<int> cycles = path->get_cycles();
+            iVector cycles = path->get_cycles();
             
             energytr.push_back(en);
             cycleList.push_back(cycles);
@@ -45,8 +43,29 @@ std::vector<int> Pimc::run(int end_step, Path* path, IO &writer, vectorf &energy
         }
     }
     
-    accept.push_back(numacceptc);
-    accept.push_back(numacceptb);
+    for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
+        accept.push_back((*it).get_num_accepts());
+    }
     return accept;
     
+}
+
+void PIMC::set_up_moves(boost::shared_ptr<Path> path, std::vector<bool> move_list){
+    int i = 0;
+    
+    for(std::vector<bool>::iterator it = move_list.begin(); it != move_list.end(); it++){
+        if(*it)
+            switch(i){
+                case 0:
+                    moves.push_back(new Center_of_Mass(path));
+                    break;
+                case 1:
+                    moves.push_back(new Bisection(path));
+                    break;
+                case 2:
+                    moves.push_back(new Perm_Bisection(path));
+                    break;
+            }
+        i++;
+    }
 }

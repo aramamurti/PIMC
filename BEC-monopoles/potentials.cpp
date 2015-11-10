@@ -8,7 +8,7 @@
 
 #include "potentials.h"
 
-float potentials::harmonicPotential(std::vector<float> loc, float m, float w){
+float potentials::harmonicPotential(fVector loc, float m, float w){
     float potVal = 0.0;
     for(int i = 0; i < loc.size(); i++){
         potVal += 0.5*m*pow(w,2)*pow(loc[i],2);
@@ -46,11 +46,11 @@ inline float potentials::real_coulomb(float dist, int chgi, int chgj){
     return real;
 }
 
-inline float potentials::reci_coulomb(std::vector<float> kx, int sfac, float box_size, int chgi, int chgj){
+inline float potentials::reci_coulomb(fVector kx, int sfac, float box_size, int chgi, int chgj){
     float kfac = 2* M_PI / box_size;
     float efac = 1;
     float k2 = 0;
-    for(std::vector<float>::iterator it = kx.begin(); it != kx.end(); it++){
+    for(fVector::iterator it = kx.begin(); it != kx.end(); it++){
         efac = efac * cos(kfac * *it);
         k2 += pow(kfac * *it,2);
     }

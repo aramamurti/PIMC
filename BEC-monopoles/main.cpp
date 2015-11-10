@@ -25,18 +25,15 @@ int main(int argc, const char * argv[]) {
     
     IO writer(world_rank);
 
-    Path* path = new Path(world_rank, writer);
-    Pimc* sim = new Pimc();
+    boost::shared_ptr<Path> path(new Path(world_rank, writer));
+    boost::shared_ptr<PIMC> sim(new PIMC());
     
-    vectorf energy(0);
-    vectorii cycles;
+    fVector energy(0);
+    iiVector cycles;
     
-    vectori accept = sim->run(path->get_parameters()->get_end_step(), path, writer, energy, cycles);
+    iVector accept = sim->run(path->get_parameters()->get_end_step(), path, writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
     writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_parameters()->get_num_particles(),cycles, accept);
-    
-    delete sim;
-    delete path;
 
     writer.close();
     

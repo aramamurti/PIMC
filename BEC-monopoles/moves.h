@@ -11,49 +11,94 @@
 
 #include "path.h"
 
-
-class moves{
-
-public:
-    moves(){};
-    ~moves(){};
-    
-    bool comMove(Path* path, int ptcl);
-    bool bisectionMoveHelper(Path* path, int ptcl);
-    void bisectionMove(Path* path, int ptcl, int start, int m);
-    vectori pickPermutation(Path* path, int start);
-    
-    
-};
-
 class Move_Base{
     
 public:
-    Move_Base(){};
+    Move_Base();
+    Move_Base(boost::shared_ptr<Path> path);
     ~Move_Base(){};
+    virtual Move_Base* clone() const = 0;
+    
+    void attempt();
+    virtual void attempt(int ptcl) = 0;
+    
+    bool check_move();
+    void accept();
+    void reject();
+    
+    int get_num_accepts(){return num_accepts;}
+    int get_num_attempts(){return num_attempts;}
+
+    
+    
+protected:
+    boost::shared_ptr<Path> path;
+    int num_attempts;
+    int num_accepts;
+    
+    float old_action;
+    float new_action;
+
 };
 
 class Center_of_Mass: public Move_Base{
     
 public:
-    Center_of_Mass(){};
+    Center_of_Mass(boost::shared_ptr<Path> path);
     ~Center_of_Mass(){};
     
+    Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
+    
+    void attempt(int ptcl);
+    void accept(int ptcl);
+    
+private:
+    float delta;
+    fVector shift;
     
 };
 
 class Bisection: public Move_Base{
     
 public:
-    Bisection(){};
+    Bisection(boost::shared_ptr<Path> path);
     ~Bisection(){};
+    
+    Bisection* clone() const{return new Bisection(*this);}
+    
+    void attempt(int ptcl);
+    void accept(int ptcl);
+    void reject();
+    void level_move(int ptcl, int start, int m);
+    
+protected:
+    int multistep_dist;
+    int start;
+    int end;
+    
+};
+
+class Perm_Bisection: public Bisection{
+public:
+    Perm_Bisection(boost::shared_ptr<Path> path);
+    ~Perm_Bisection(){};
+    
+    Perm_Bisection* clone() const{return new Perm_Bisection(*this);}
+    
+    void attempt(int ptcl);
+    void accept();
+    void reject();
+    iVector pick_perm(int start);
+    
+private:
+    iVector permed_parts;
     
 };
 
 class Insert: public Move_Base{
     
 public:
-    Insert(){};
+    Insert(boost::shared_ptr<Path> path) : Move_Base(path) {};
     ~Insert(){};
     
 };
@@ -61,7 +106,7 @@ public:
 class Remove: public Move_Base{
     
 public:
-    Remove(){};
+    Remove(boost::shared_ptr<Path> path) : Move_Base(path) {};
     ~Remove(){};
     
 };
@@ -69,14 +114,14 @@ public:
 class Open: public Move_Base{
     
 public:
-    Open(){};
+    Open(boost::shared_ptr<Path> path) : Move_Base(path) {};
     ~Open(){};
 };
 
 class Close: public Move_Base{
     
 public:
-    Close(){};
+    Close(boost::shared_ptr<Path> path) : Move_Base(path) {};
     ~Close(){};
 };
 

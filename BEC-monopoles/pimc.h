@@ -1,13 +1,13 @@
 //
-//  pimc.h
+//  PIMC.h
 //  BEC-monopoles
 //
 //  Created by Adith Ramamurti on 6/8/15.
 //  Copyright (c) 2015 Adith Ramamurti. All rights reserved.
 //
 
-#ifndef BEC_monopoles_pimc_h
-#define BEC_monopoles_pimc_h
+#ifndef BEC_monopoles_PIMC_h
+#define BEC_monopoles_PIMC_h
 
 #include "moves.h"
 #include "paths.h"
@@ -15,15 +15,15 @@
 #include <unistd.h>
 #include "IO.hpp"
 
-class Pimc{
+class PIMC{
 public:
-    Pimc();
-    ~Pimc(){};
-    std::vector<int> run(int end_step, Path* path, IO &writer, vectorf &energytr, vectorii &cycleList);
+    PIMC();
+    ~PIMC(){};
+    iVector run(int end_step, boost::shared_ptr<Path> path, IO &writer, fVector &energytr, iiVector &cycleList);
+    void set_up_moves(boost::shared_ptr<Path> path, std::vector<bool> move_list);
+    
 private:
-    int numaccepts;
-    int numacceptc;
-    int numacceptb;
+    boost::ptr_vector<Move_Base> moves;
 };
 
 

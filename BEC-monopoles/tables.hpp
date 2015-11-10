@@ -13,14 +13,40 @@
 #include "uni_header.h"
 
 class TableBase{
+public:
+    TableBase();
+    ~TableBase();
+    void set_up_table();
+    
+private:
     
 };
 
-class PermuTable: public TableBase{
+class PermTable: public TableBase{
+public:
+    PermTable();
+    ~PermTable();
+    void set_up_perms();
+    void recalc_perms();
+    iiVector get_perm_list();
+    ffVector get_perm_prob();
+    
+private:
+    
+    
     
 };
 
 class NNTable: public TableBase{
+public:
+    NNTable();
+    ~NNTable();
+    void set_up_nn();
+    void update_table();
+    void add_bead();
+    void rem_bead();
+    
+private:
     
 };
 

@@ -31,14 +31,14 @@ public:
     int getnmax(){return nmax;}
     int getkmax(){return kmax;}
     
-    float harmonicPotential(std::vector<float> loc, float m, float w);
+    float harmonicPotential(fVector loc, float m, float w);
     float free(){return 0;}
     float lj_int(float dist);
     float hardSphere(float dist);
     float aziz_int(float dist);
     float aziz_pcws(float dist);
     float real_coulomb(float dist, int chgi, int chgj);
-    float reci_coulomb(std::vector<float> kx, int sfac, float box_size, int chgi, int chgj);
+    float reci_coulomb(fVector kx, int sfac, float box_size, int chgi, int chgj);
 
 private:
     int numatoms;

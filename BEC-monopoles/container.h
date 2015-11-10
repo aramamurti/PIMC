@@ -45,19 +45,19 @@ private:
 
     bool circular = false;
     
-    std::vector<int> size;
+    iVector size;
     std::vector<node_ptr> head;
     std::vector<node_ptr> tail;
     
-    std::vector<int> permute_start_orders;
-    std::vector<int> permute_end_order;
-    std::vector<int> repermute_start_order;
-    std::vector<int> repermute_end_order;
+    iVector permute_start_orders;
+    iVector permute_end_order;
+    iVector repermute_start_order;
+    iVector repermute_end_order;
 
-    std::vector<int> pso;
-    std::vector<int> peo;
-    std::vector<int> rso;
-    std::vector<int> reo;
+    iVector pso;
+    iVector peo;
+    iVector rso;
+    iVector reo;
     
     int permute_position;
     
@@ -83,7 +83,7 @@ public:
         std::string s;
         size_t numbreaks = 0;
         size_t numline = 0;
-        std::vector<std::vector<std::vector<float> > > dataset;
+        std::vector<ffVector > dataset;
         while(!in.eof()){
             std::getline(in,s);
             if(s.length()!= 0){
@@ -96,7 +96,7 @@ public:
                     s.erase(0, pos+delimiter.length());
                     if(numbreaks == 0){
                         size_t n = std::count(token.begin(),token.end(),',')+1;
-                        std::vector<float> data(n);
+                        fVector data(n);
                         std::vector<std::string> ent;
                         boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
                         for(std::vector<std::string>::iterator it = ent.begin(); it!=ent.end(); it++){
@@ -109,15 +109,15 @@ public:
                     if(numbreaks == 1){
                         std::vector<std::string> ent;
                         boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
-                        std::vector<std::vector<float> > dset2 = dataset[numline];
-                        std::vector<float> nodedat= dset2[std::atoi(ent[1].c_str())];
+                        ffVector dset2 = dataset[numline];
+                        fVector nodedat= dset2[std::atoi(ent[1].c_str())];
                         push_back(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
                     }
                 }
                 token = s.substr(1,s.length()-2);
                 if(numbreaks == 0){
                     size_t n = std::count(token.begin(),token.end(),',')+1;
-                    std::vector<float> data(n);
+                    fVector data(n);
                     std::vector<std::string> ent;
                     boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
                     for(std::vector<std::string>::iterator it = ent.begin(); it!=ent.end(); it++){
@@ -130,8 +130,8 @@ public:
                 if(numbreaks == 1){
                     std::vector<std::string> ent;
                     boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
-                    std::vector<std::vector<float> > dset2 = dataset[numline];
-                    std::vector<float> nodedat= dset2[std::atoi(ent[1].c_str())];
+                    ffVector dset2 = dataset[numline];
+                    fVector nodedat= dset2[std::atoi(ent[1].c_str())];
                     push_back(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
                 }
                 
@@ -238,7 +238,7 @@ public:
         }
     }
     
-    void set_permutation(std::vector<int> i, std::vector<int> j, int pos, int dist = 0){
+    void set_permutation(iVector i, iVector j, int pos, int dist = 0){
         permute_position = (pos+dist);
         permute_start_orders.resize(i.size());
         permute_end_order.resize(j.size());
@@ -247,7 +247,7 @@ public:
         std::copy(j.begin(), j.end(), permute_end_order.begin());
         
         if(permute_position > size[0]){
-            std::vector<std::vector<int> > perms = circular_perm(i,j);
+            iiVector perms = circular_perm(i,j);
             repermute_start_order = perms[0];
             repermute_end_order = perms[1];
         }
@@ -258,8 +258,8 @@ public:
     }
     
     void permute(bool reverse = false){
-        std::vector<int> i;
-        std::vector<int> j;
+        iVector i;
+        iVector j;
         i.resize(permute_start_orders.size());
         j.resize(permute_end_order.size());
         std::copy(permute_start_orders.begin(), permute_start_orders.end(), i.begin());
@@ -288,7 +288,7 @@ public:
                 for(typename std::vector<node_ptr>::iterator it = temps2.begin(); it != temps2.end(); it++)
                     *it = temps[j[it-temps2.begin()]]->right_node;
                 
-                for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
+                for(typename iVector::iterator it = i.begin(); it != i.end(); it++){
                     if(permute_position != 0){
                         temps[*it]->old_right_node = temps[*it]->right_node;
                         temps[*it]->right_node = temps2[it-i.begin()];
@@ -297,7 +297,7 @@ public:
                 }
                 
                 for(int curpos = pos; curpos < size[0]; curpos++){
-                    for(std::vector<int>::iterator it = i.begin(); it != i.end();it++){
+                    for(iVector::iterator it = i.begin(); it != i.end();it++){
                         list_map[*it][curpos] = old_list_map[j[it-i.begin()]][curpos];
                     }
                 }
@@ -317,7 +317,7 @@ public:
                 for(int ptc = 0; ptc < size.size(); ptc ++)
                     temps.push_back(list_map[ptc][pos-1]);
                 
-                for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
+                for(typename iVector::iterator it = i.begin(); it != i.end(); it++){
                     if(permute_position != 0){
                         temps[*it]->right_node = temps[*it]->old_right_node;
                         temps[*it]->right_node->left_node = temps[*it];
@@ -328,27 +328,27 @@ public:
         }
     }
     
-    std::vector<std::vector<int> > circular_perm(std::vector<int> lc, std::vector<int> end){
+    iiVector circular_perm(iVector lc, iVector end){
         
         std::vector<node_ptr> temps;
         
         for(int ptc = 0; ptc < size.size(); ptc ++)
             temps.push_back(list_map[ptc][size[ptc]-1]);
         
-        std::vector<int> nlc;
-        std::vector<int> nend;
-        for(std::vector<int>::iterator it = lc.begin(); it != lc.end(); it++){
+        iVector nlc;
+        iVector nend;
+        for(iVector::iterator it = lc.begin(); it != lc.end(); it++){
             nlc.push_back(temps[*it]->right_node->row_number);
             nend.push_back(temps[end[it-lc.begin()]]->right_node->row_number);
         }
         
-        std::vector<std::vector<int> > reperms;
+        iiVector reperms;
         reperms.push_back(nlc);
         reperms.push_back(nend);
         return reperms;
     }
     
-    std::vector<float> get_bead_data(int row, int slice){
+    fVector get_bead_data(int row, int slice){
         
         if(slice < size[row]){
             return list_map[row][slice]->data;
@@ -408,8 +408,8 @@ public:
         
     }
     
-    std::vector<int> get_cycles(){
-        std::vector<int> cyclenum(size.size(),0);
+    iVector get_cycles(){
+        iVector cyclenum(size.size(),0);
         for(int row = 0; row < size.size(); row++){
             node_ptr temp = head[row]->right_node;
             int tempPos = 1;
@@ -578,7 +578,7 @@ public:
     }
     
     
-    std::vector<int> get_rep_swap_order(){
+    iVector get_rep_swap_order(){
         return rso;
     }
     

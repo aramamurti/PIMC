@@ -21,17 +21,17 @@ public:
     float randnormed(int max);
     int randint(int max);
     float randgaussian(float width);
-    float vecavg(std::vector<float> vec);
-    float vecstd(std::vector<float> v);
-    std::vector<float> vecadd(std::vector<float> a, std::vector<float> b);
+    float vecavg(fVector vec);
+    float vecstd(fVector v);
+    fVector vecadd(fVector a, fVector b);
 
 
     float per_bound_cond(float a, float b);
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
-    std::vector<float> location(std::vector<float> bead, float box_size);
-    std::vector<float> dist(std::vector<std::vector<float> > beads, float box_size);
-    std::vector<float> avedist(std::vector<std::vector<float> > beads, float box_size);
+    fVector location(fVector bead, float box_size);
+    fVector dist(ffVector beads, float box_size);
+    fVector avedist(ffVector beads, float box_size);
     
 private:
     const gsl_rng_type * T;

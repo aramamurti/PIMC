@@ -21,7 +21,6 @@
 #include <cmath>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include <tr1/memory>
 #include <fstream>
 #include <boost/bind.hpp>
 #include <boost/math/special_functions/bessel.hpp>
@@ -29,16 +28,15 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/any.hpp>
 
 
 
-
-typedef std::vector<float> vectorf;
-typedef std::vector<std::vector<float> > vectorff;
-typedef std::vector<std::vector<int> > vectorii;
-
-
-typedef std::vector<int> vectori;
+typedef std::vector<int> iVector;
+typedef std::vector<float> fVector;
+typedef std::vector<std::vector<float> > ffVector;
+typedef std::vector<std::vector<int> > iiVector;
 
 
 

@@ -33,32 +33,32 @@ void IO::set_up_outfiles(int world_rank){
 
 }
 
-void IO::write_final(double energy, double energystd, int num_particles, vectorii cycles, vectori accept){
+void IO::write_final(double energy, double energystd, int num_particles, iiVector cycles, iVector accept){
     
     f1 << "Total Energy = " <<energy << " +/- "<< energystd<< std::endl;
     f1 << "Energy/atom= " <<energy/num_particles<< "\n" <<std::endl;
     
     int sum = 0;
-    for(vectorii::iterator it = cycles.begin(); it != cycles.end(); it++){
-        vectori stepcyc = *it;
+    for(iiVector::iterator it = cycles.begin(); it != cycles.end(); it++){
+        iVector stepcyc = *it;
         sum += std::accumulate(stepcyc.begin(), stepcyc.end(), 0);
     }
     
-    vectori cyclesum(cycles[0].size(),0);
-    for(vectorii::iterator it = cycles.begin(); it != cycles.end(); it++){
-        vectori stepcyc = *it;
-        for(vectori::iterator it2 = stepcyc.begin(); it2 != stepcyc.end(); it2++){
+    iVector cyclesum(cycles[0].size(),0);
+    for(iiVector::iterator it = cycles.begin(); it != cycles.end(); it++){
+        iVector stepcyc = *it;
+        for(iVector::iterator it2 = stepcyc.begin(); it2 != stepcyc.end(); it2++){
             cyclesum[it2-stepcyc.begin()] += *it2;
         }
     }
     
-    vectorf cyclepercent;
-    for(vectori::iterator it = cyclesum.begin(); it != cyclesum.end(); it++){
+    fVector cyclepercent;
+    for(iVector::iterator it = cyclesum.begin(); it != cyclesum.end(); it++){
         cyclepercent.push_back(((double)*it)/sum);
     }
     
     f1 << "Permutation fraction" << std::endl;
-    for(vectorf::iterator it = cyclepercent.begin(); it != cyclepercent.end(); it++){
+    for(fVector::iterator it = cyclepercent.begin(); it != cyclepercent.end(); it++){
         f1 << it-cyclepercent.begin()+1 <<":\t" << *it <<std::endl;
     }
     
@@ -66,16 +66,16 @@ void IO::write_final(double energy, double energystd, int num_particles, vectori
 }
 
 
-void IO::write_step_state(int step, double en, double ke, double pe, vectori cycles, int num_particles, vectori wnum){
+void IO::write_step_state(int step, double en, double ke, double pe, iVector cycles, int num_particles, iVector wnum){
     f2 << step << ", " << en/num_particles << ", " << ke/num_particles << ", " << pe/num_particles << std::endl;
-    for(std::vector<int>::iterator it = cycles.begin(); it != cycles.end(); it++){
+    for(iVector::iterator it = cycles.begin(); it != cycles.end(); it++){
         f3 << *it;
         if(cycles.size() - (it-cycles.begin()) != 1)
             f3 << ", ";
     }
     f3 << std::endl;
     
-    for(std::vector<int>::iterator it = wnum.begin(); it != wnum.end(); it++){
+    for(iVector::iterator it = wnum.begin(); it != wnum.end(); it++){
         f4 << *it;
         if(wnum.size() - (it-wnum.begin()) != 1)
             f4 << ", ";
@@ -83,7 +83,7 @@ void IO::write_step_state(int step, double en, double ke, double pe, vectori cyc
     f4 << std::endl;
 }
 
-void IO::write_parameters(Parameters* params){
+void IO::write_parameters(boost::shared_ptr<Parameters> params){
     f1 << "Simulation Parameters:\nN      = \t" << params->get_num_particles() << "\nNumber of Time Slices   =\t" << params->get_num_timeslices()<< "\nndim      = \t" << params->get_ndim() <<"\nBox Size      = \t" << params->get_box_size() <<"\ntau    = \t" << params->get_tau() << "\n" << "lambda =\t" << params->get_lambda() <<"\nT      = \t" << params->get_T() << "\n" << std::endl;
 
 }

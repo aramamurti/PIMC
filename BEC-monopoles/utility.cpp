@@ -46,7 +46,7 @@ float Utility::randgaussian(float width){
     return gsl_ran_gaussian_ziggurat(r, width);
 }
 
-float Utility::vecavg(std::vector<float> v)
+float Utility::vecavg(fVector v)
 {
     float sum = accumulate(v.begin(), v.end(), 0.0);
     float mean = sum / v.size();
@@ -54,9 +54,9 @@ float Utility::vecavg(std::vector<float> v)
     return mean;
 }
 
-float Utility::vecstd(std::vector<float> v){
+float Utility::vecstd(fVector v){
     float mean = vecavg(v);
-    std::vector<float> diff(v.size());
+    fVector diff(v.size());
     std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<float>(), mean));
     float sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
     float stdev = sqrt(sq_sum / v.size());
@@ -64,8 +64,8 @@ float Utility::vecstd(std::vector<float> v){
     return stdev;
 }
 
-std::vector<float> Utility::vecadd(std::vector<float> a, std::vector<float> b){
-    std::vector<float> result;
+fVector Utility::vecadd(fVector a, fVector b){
+    fVector result;
     std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](float l, float r)
                    {
                        return r+l;
@@ -74,9 +74,9 @@ std::vector<float> Utility::vecadd(std::vector<float> a, std::vector<float> b){
     return result;
 }
 
-std::vector<float> Utility::location(std::vector<float> bead, float box_size){
+fVector Utility::location(fVector bead, float box_size){
     int ndim = (int)bead.size();
-    std::vector<float> loc;
+    fVector loc;
     for(int i = 0; i < ndim; i++){
         if(box_size != -1)
             loc.push_back(per_bound_cond(bead[i],box_size));
@@ -85,11 +85,11 @@ std::vector<float> Utility::location(std::vector<float> bead, float box_size){
     }
     return loc;
 }
-std::vector<float> Utility::dist(std::vector<std::vector<float> > beads, float box_size){
+fVector Utility::dist(ffVector beads, float box_size){
     int ndim = (int)beads[0].size();
-    std::vector<float> dist;
-    std::vector<float> bead1 = location(beads[0],box_size);
-    std::vector<float> bead2 = location(beads[1],box_size);
+    fVector dist;
+    fVector bead1 = location(beads[0],box_size);
+    fVector bead2 = location(beads[1],box_size);
     for(int i = 0; i < ndim; i++){
         float dimdist = bead2[i]-bead1[i];
         if(box_size != -1)
@@ -99,9 +99,9 @@ std::vector<float> Utility::dist(std::vector<std::vector<float> > beads, float b
     return dist;
 }
 
-std::vector<float> Utility::avedist(std::vector<std::vector<float> > beads, float box_size){
-    std::vector<float> dstc = dist(beads, box_size);
-    for(std::vector<float>::iterator it = dstc.begin(); it!= dstc.end(); it++){
+fVector Utility::avedist(ffVector beads, float box_size){
+    fVector dstc = dist(beads, box_size);
+    for(fVector::iterator it = dstc.begin(); it!= dstc.end(); it++){
         *it = *it/2 + beads[0][it-dstc.begin()];
     }
     return dstc;
