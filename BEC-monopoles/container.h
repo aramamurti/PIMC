@@ -9,6 +9,7 @@
 #ifndef BEC_monopoles_beadContainer_h
 #define BEC_monopoles_beadContainer_h
 #include "uni_header.h"
+#include <boost/functional/hash.hpp>
 
 template<class T>
 
@@ -21,34 +22,42 @@ private:
         
         int row_number;
         int column_number;
+        unsigned int key;
+
         T data;
         T olddat;
-        node_ptr leftNode;
-        node_ptr rightNode;
-        node_ptr oldRightNode;
+        
+        node_ptr left_node;
+        node_ptr right_node;
+        node_ptr old_right_node;
+        
         Node(T e) {
             this->data = e;
-            leftNode = node_ptr();
-            rightNode = node_ptr();
+            left_node = node_ptr();
+            right_node = node_ptr();
         }
         ~Node() {
         }
     };
-    typedef boost::shared_ptr<Node> node_ptr;
     
+    typedef boost::shared_ptr<Node> node_ptr;
+    boost::hash<std::pair<int, int> > pair_hash;
+
     bool circular = false;
+    
     std::vector<int> size;
     std::vector<node_ptr> head;
     std::vector<node_ptr> tail;
+    
     std::vector<int> permute_start_orders;
     std::vector<int> permute_end_order;
-    
+    std::vector<int> repermute_start_order;
+    std::vector<int> repermute_end_order;
+
     std::vector<int> pso;
     std::vector<int> peo;
     std::vector<int> rso;
-    
-    std::vector<int> repermute_start_order;
-    std::vector<int> repermute_end_order;
+    std::vector<int> reo;
     
     int permute_position;
     
@@ -102,7 +111,7 @@ public:
                         boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
                         std::vector<std::vector<float> > dset2 = dataset[numline];
                         std::vector<float> nodedat= dset2[std::atoi(ent[1].c_str())];
-                        pushBack(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
+                        push_back(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
                     }
                 }
                 token = s.substr(1,s.length()-2);
@@ -123,7 +132,7 @@ public:
                     boost::split(ent, token, boost::is_any_of(", "), boost::token_compress_on);
                     std::vector<std::vector<float> > dset2 = dataset[numline];
                     std::vector<float> nodedat= dset2[std::atoi(ent[1].c_str())];
-                    pushBack(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
+                    push_back(nodedat, numline, std::atoi(ent[0].c_str()),std::atoi(ent[1].c_str()));
                 }
                 
                 if(numbreaks == 2){
@@ -132,8 +141,8 @@ public:
                     std::string ss = ent.back();
                     ss = ss.substr(0,s.length()-2);
                     boost::split(ent, ss, boost::is_any_of(", "), boost::token_compress_on);
-                    tail[numline]->rightNode = head[std::atoi(ent[0].c_str())];
-                    tail[numline]->rightNode->leftNode = tail[numline];
+                    tail[numline]->right_node = head[std::atoi(ent[0].c_str())];
+                    tail[numline]->right_node->left_node = tail[numline];
                 }
                 numline++;
             }
@@ -151,21 +160,21 @@ public:
         for(typename std::vector<node_ptr>::iterator it = head.begin(); it != head.end(); it++){
             node_ptr temp = *it;
             while (temp != NULL) {
-                node_ptr next(temp->rightNode);
-                temp->rightNode.reset();
-                temp->leftNode.reset();
+                node_ptr next(temp->right_node);
+                temp->right_node.reset();
+                temp->left_node.reset();
                 temp.reset();
                 temp = next;
             }
         }
     }
     
-    void pushBack(T t, int index = 0, int row_number = -1, int column_number = -1) {
-        node_ptr Node(new class Node(t));
+    void push_back(T t, int index = 0, int row_number = -1, int column_number = -1) {
+        node_ptr node(new Node(t));
         if(row_number == -1)
-            Node->row_number = index;
+            node->row_number = index;
         else
-            Node->row_number = row_number;
+            node->row_number = row_number;
         
         if(size.size() <= index){
             size.resize(index+1);
@@ -178,21 +187,25 @@ public:
         list_map[index].resize(size[index]);
         
         if(column_number == -1)
-            Node->column_number = size[index]-1;
+            node->column_number = size[index]-1;
         else
-            Node->column_number = column_number;
+            node->column_number = column_number;
+        
+        std::pair<int,int> rc(node->row_number, node->column_number);
+        node->key = pair_hash(rc);
+
         
         if (size[index] == 1) {
-            head[index] = tail[index] = Node;
-            list_map[index][size[index]-1] = Node;
+            head[index] = tail[index] = node;
+            list_map[index][size[index]-1] = node;
             return;
         }
-        Node->leftNode = tail[index];
-        tail[index]->rightNode = Node;
-        Node->leftNode = tail[index];
-        tail[index] = Node;
+        node->left_node = tail[index];
+        tail[index]->right_node = node;
+        node->left_node = tail[index];
+        tail[index] = node;
         
-        list_map[index][size[index]-1] = Node;
+        list_map[index][size[index]-1] = node;
     }
     
     void shift_all(int row, T shift){
@@ -200,12 +213,12 @@ public:
         for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
             *it += shift[it-temp->data.begin()];
         }
-        temp = temp->rightNode;
+        temp = temp->right_node;
         while(temp != head[row]){
             for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
                 *it += shift[it-temp->data.begin()];
             }
-            temp = temp->rightNode;
+            temp = temp->right_node;
         }
     }
     
@@ -273,13 +286,13 @@ public:
                 
                 std::vector<node_ptr> temps2(j.size());
                 for(typename std::vector<node_ptr>::iterator it = temps2.begin(); it != temps2.end(); it++)
-                    *it = temps[j[it-temps2.begin()]]->rightNode;
+                    *it = temps[j[it-temps2.begin()]]->right_node;
                 
                 for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
                     if(permute_position != 0){
-                        temps[*it]->oldRightNode = temps[*it]->rightNode;
-                        temps[*it]->rightNode = temps2[it-i.begin()];
-                        temps[*it]->rightNode->leftNode = temps[*it];
+                        temps[*it]->old_right_node = temps[*it]->right_node;
+                        temps[*it]->right_node = temps2[it-i.begin()];
+                        temps[*it]->right_node->left_node = temps[*it];
                     }
                 }
                 
@@ -306,8 +319,8 @@ public:
                 
                 for(typename std::vector<int>::iterator it = i.begin(); it != i.end(); it++){
                     if(permute_position != 0){
-                        temps[*it]->rightNode = temps[*it]->oldRightNode;
-                        temps[*it]->rightNode->leftNode = temps[*it];
+                        temps[*it]->right_node = temps[*it]->old_right_node;
+                        temps[*it]->right_node->left_node = temps[*it];
                     }
                 }
                 list_map = old_list_map;
@@ -325,8 +338,8 @@ public:
         std::vector<int> nlc;
         std::vector<int> nend;
         for(std::vector<int>::iterator it = lc.begin(); it != lc.end(); it++){
-            nlc.push_back(temps[*it]->rightNode->row_number);
-            nend.push_back(temps[end[it-lc.begin()]]->rightNode->row_number);
+            nlc.push_back(temps[*it]->right_node->row_number);
+            nend.push_back(temps[end[it-lc.begin()]]->right_node->row_number);
         }
         
         std::vector<std::vector<int> > reperms;
@@ -342,7 +355,7 @@ public:
         }
         else if(circular){
             slice = slice%size[row];
-            row = list_map[row][size[row]-1]->rightNode->row_number;
+            row = list_map[row][size[row]-1]->right_node->row_number;
             return list_map[row][slice]->data;
         }
         else
@@ -355,7 +368,7 @@ public:
         }
         else if(circular){
             slice = slice%size[row];
-            row = list_map[row][size[row]-1]->rightNode->row_number;
+            row = list_map[row][size[row]-1]->right_node->row_number;
             list_map[row][slice]->data = data;
         }
     }
@@ -367,12 +380,12 @@ public:
         
         if(start >= size[row] && end >= size[row] && circular){
             start = start%size[row];
-            row = list_map[row][size[row]-1]->rightNode->row_number;
+            row = list_map[row][size[row]-1]->right_node->row_number;
         }
 
         if(end >= size[row] && circular){
             end = end%size[row];
-            row2 = list_map[row2][size[row]-1]->rightNode->row_number;
+            row2 = list_map[row2][size[row]-1]->right_node->row_number;
         }
         
         std::vector<T> ret(0);
@@ -385,8 +398,8 @@ public:
         
         if(slice >= size[row1] && circular){
             slice = slice%size[row1];
-            row1 = list_map[row1][size[row1]-1]->rightNode->row_number;
-            row2 = list_map[row2][size[row2]-1]->rightNode->row_number;
+            row1 = list_map[row1][size[row1]-1]->right_node->row_number;
+            row2 = list_map[row2][size[row2]-1]->right_node->row_number;
         }
         std::vector<T> ret(0);
         ret.push_back(list_map[row1][slice]->data);
@@ -398,10 +411,10 @@ public:
     std::vector<int> get_cycles(){
         std::vector<int> cyclenum(size.size(),0);
         for(int row = 0; row < size.size(); row++){
-            node_ptr temp = head[row]->rightNode;
+            node_ptr temp = head[row]->right_node;
             int tempPos = 1;
             while(temp != head[row]){
-                temp = temp->rightNode;
+                temp = temp->right_node;
                 ++tempPos;
             }
             int cycNum = tempPos/size[row];
@@ -419,16 +432,16 @@ public:
         if(circ){
             for(typename std::vector<node_ptr>::iterator it = head.begin(); it != head.end(); it++){
                 node_ptr ln = *it;
-                ln->leftNode = tail[it-head.begin()];
-                tail[it-head.begin()]->rightNode = ln;
+                ln->left_node = tail[it-head.begin()];
+                tail[it-head.begin()]->right_node = ln;
             }
             circular = true;
         }
         else{
             for(typename std::vector<node_ptr>::iterator it = head.begin(); it != head.end(); it++){
                 node_ptr ln = *it;
-                ln->leftNode.reset();
-                tail[it-head.begin()]->rightNode.reset();
+                ln->left_node.reset();
+                tail[it-head.begin()]->right_node.reset();
             }
             circular = false;
         }
@@ -454,7 +467,7 @@ public:
                     
                 }
                 std::cout <<")";
-                temp = temp->rightNode;
+                temp = temp->right_node;
                 numPrint++;
                 if(numPrint < size[index])
                     std::cout<< ", ";
@@ -466,7 +479,7 @@ public:
                 T beep = temp->data;
                 for(typename T::iterator it = beep.begin(); it != beep.end(); it++)
                     std::cout << *it << ", ";
-                temp = temp->rightNode;
+                temp = temp->right_node;
             }
         }
         std::cout<<std::endl;
@@ -503,7 +516,7 @@ public:
                 if(temp == head[index])
                     headprint = true;
                 std::cout << "("<<temp->row_number<<", "<<temp->column_number<<")";
-                temp = temp->rightNode;
+                temp = temp->right_node;
                 numPrint++;
                 if(numPrint < size[index])
                     std::cout<< ", ";
@@ -513,7 +526,7 @@ public:
         else{
             while (temp != NULL) {
                 std::cout << "("<<temp->row_number<<", "<<temp->column_number<<"), " << ", ";
-                temp = temp->rightNode;
+                temp = temp->right_node;
             }
         }
         std::cout << std::endl;
@@ -527,8 +540,8 @@ public:
             while (!headprint || numPrint < size[index]) {
                 if(temp == head[index])
                     headprint = true;
-                std::cout << "("<<temp->rightNode->row_number<<", "<<temp->rightNode->column_number<<")";
-                temp = temp->rightNode;
+                std::cout << "("<<temp->right_node->row_number<<", "<<temp->right_node->column_number<<")";
+                temp = temp->right_node;
                 numPrint++;
                 if(numPrint < size[index])
                     std::cout<< ", ";
@@ -537,8 +550,8 @@ public:
         }
         else{
             while (temp != NULL) {
-                std::cout << "("<<temp->rightNode->row_number<<", "<<temp->rightNode->column_number<<"), " << ", ";
-                temp = temp->rightNode;
+                std::cout << "("<<temp->right_node->row_number<<", "<<temp->right_node->column_number<<"), " << ", ";
+                temp = temp->right_node;
             }
         }
         std::cout << std::endl;
@@ -573,12 +586,14 @@ public:
         pso = permute_start_orders;
         peo = permute_end_order;
         rso = repermute_start_order;
+        reo = repermute_end_order;
     }
     
     void reset_permute(){
         permute_start_orders = pso;
         permute_end_order = peo;
         repermute_start_order = rso;
+        repermute_end_order = reo;
     }
 };
 

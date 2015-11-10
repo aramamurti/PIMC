@@ -18,7 +18,7 @@
 
 class Path{
 public:
-    typedef boost::shared_ptr<PathList<vectorf>> list_ptr;
+    typedef boost::shared_ptr<PathList<vectorf> > list_ptr;
 
     //constructor and destructor
     Path(int procnum, IO &writer);
@@ -26,21 +26,21 @@ public:
     
     //methods
     float vext(int slice, int ptcl);
-    float potentialAction(int slice);
-    float kineticAction(int slice, int dist);
-    float kineticEnergy();
-    float potentialEnergy();
+    float potential_action(int slice);
+    float kinetic_action(int slice, int dist);
+    float kinetic_energy();
+    float potential_energy();
     float energy();
     vectori get_cycles();
     vectori get_winding_number();
-    void setup_beads();
+    void set_up_beads();
     void constr_perms(int procnum);
     float slice_perm_prob(vectori ptcls, int stslice);
     void put_in_box();
     
-    //get_Ter methods
+    //getter methods
     int getDist(){return multistep_dist;}
-    utility* getUte(){return util;}
+    Utility* get_util(){return util;}
     Parameters* get_parameters(){return params;}
     vectorff* get_prob_list(){return &prob_list;}
     vectorii* get_perm_list(){return &perm_list;}
@@ -68,7 +68,7 @@ private:
     int last_start;
     int last_end;
     
-    utility* util;
+    Utility* util;
     int multistep_dist;
     float multvec[4];
     int pnum;

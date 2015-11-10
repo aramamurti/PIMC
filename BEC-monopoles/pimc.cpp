@@ -23,7 +23,7 @@ std::vector<int> Pimc::run(int end_step, Path* path, IO &writer, vectorf &energy
     std::vector<int> accept;
     
     for(int step = 0; step < end_step; step++){
-        int ptcl = (int) path->getUte()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
+        int ptcl = (int) path->get_util()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
         if(mvs.comMove(path, ptcl))
             numacceptc += 1;
         if(mvs.bisectionMoveHelper(path, ptcl))
@@ -41,7 +41,7 @@ std::vector<int> Pimc::run(int end_step, Path* path, IO &writer, vectorf &energy
             energytr.push_back(en);
             cycleList.push_back(cycles);
             
-            writer.write_step_state(step, en, path->kineticEnergy(), path->potentialEnergy(), cycles, path->get_parameters()->get_num_particles(), path->get_winding_number());
+            writer.write_step_state(step, en, path->kinetic_energy(), path->potential_energy(), cycles, path->get_parameters()->get_num_particles(), path->get_winding_number());
         }
     }
     

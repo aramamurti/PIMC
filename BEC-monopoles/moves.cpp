@@ -20,13 +20,13 @@ bool moves::comMove(Path* path, int ptcl){
     
     vectorf shift(path->get_parameters()->get_ndim());
     for(vectorf::iterator it = shift.begin(); it != shift.end(); it++ )
-        *it = path->getUte()->randgaussian(delta);
+        *it = path->get_util()->randgaussian(delta);
     
     path->get_beads()->set_old_data();
     
     float oldAct = 0.0;
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        oldAct += path->potentialAction(slice);
+        oldAct += path->potential_action(slice);
     }
     
     
@@ -34,10 +34,10 @@ bool moves::comMove(Path* path, int ptcl){
     
     float newAct = 0.0;
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        newAct += path->potentialAction(slice);
+        newAct += path->potential_action(slice);
     }
     
-    if(path->getUte()->randnormed(1)<exp(-(newAct - oldAct))){
+    if(path->get_util()->randnormed(1)<exp(-(newAct - oldAct))){
         path->put_in_box();
         std::vector<int> lc = path->get_last_changed();
         lc.push_back(ptcl);
@@ -57,10 +57,10 @@ inline void moves::bisectionMove(Path* path, int ptcl, int start, int m){
         float tau1 = (m/2)*path->get_parameters()->get_tau();
         vectorf move(0);
         vectorff bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
-        vectorf aved = path->getUte()->avedist(bds,path->get_parameters()->get_box_size());
+        vectorf aved = path->get_util()->avedist(bds,path->get_parameters()->get_box_size());
         float width = sqrt(path->get_parameters()->get_lambda()*tau1);
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
-            move.push_back(aved[ndim] + path->getUte()->randgaussian(width));
+            move.push_back(aved[ndim] + path->get_util()->randgaussian(width));
         }
         path->get_beads()->set_bead_data(ptcl, slice, move);
         bisectionMove(path, ptcl, start, m/2);
@@ -71,7 +71,7 @@ inline void moves::bisectionMove(Path* path, int ptcl, int start, int m){
 bool moves::bisectionMoveHelper(Path* path, int ptcl){
     int m = path->getDist();
     
-    int start = path->getUte()->randint(path->get_parameters()->get_num_timeslices());
+    int start = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
     
     int ls = path->get_last_locs()[0];
     int le = path->get_last_locs()[1];
@@ -95,7 +95,7 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     
     for(int a = 0; a < m+1; a++){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        oldPotAct += path->potentialAction(slice);
+        oldPotAct += path->potential_action(slice);
     }
     
     std::vector<int> identity(path->get_parameters()->get_num_particles());
@@ -130,11 +130,11 @@ bool moves::bisectionMoveHelper(Path* path, int ptcl){
     float newPotAct = 0.0;
     for(int a = 0; a < m+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        newPotAct += path->potentialAction(slice);
+        newPotAct += path->potential_action(slice);
     }
     
     float potDiff = newPotAct-oldPotAct;
-    float rn = path->getUte()->randnormed(1);
+    float rn = path->get_util()->randnormed(1);
     
     
     if(exp(-potDiff) < rn){
@@ -163,7 +163,7 @@ inline vectori moves::pickPermutation(Path* path, int start){
         sum += *it2;
     
     int choice = 0;
-    float rn = path->getUte()->randnormed(sum);
+    float rn = path->get_util()->randnormed(sum);
     float probsum = 0.0;
     for(int i = 0; i < permWeight.size(); i++){
         probsum += permWeight[i];

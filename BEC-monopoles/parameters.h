@@ -26,7 +26,7 @@ private:
     int skip;
     int equilibration;
     float box_size;
-    bool pbc;
+    bool per_bound_cond;
     bool potentials[5];
     int charges;
     bool charged;
@@ -58,8 +58,8 @@ public:
         
         tau = 1/(T*timeslices);
         
-        pbc = false;
-        if(pbc)
+        per_bound_cond = false;
+        if(per_bound_cond)
             box_size = pow(particles/10.,1/3.)*7.7099;
         else
             box_size = -1;

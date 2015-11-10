@@ -10,5 +10,18 @@
 #define tables_hpp
 
 #include <stdio.h>
+#include "uni_header.h"
+
+class TableBase{
+    
+};
+
+class PermuTable: public TableBase{
+    
+};
+
+class NNTable: public TableBase{
+    
+};
 
 #endif /* tables_hpp */

@@ -23,9 +23,6 @@ int main(int argc, const char * argv[]) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
-    
-    std::ofstream f1,f2,f3,f4;
-    
     IO writer(world_rank);
 
     Path* path = new Path(world_rank, writer);
@@ -36,7 +33,7 @@ int main(int argc, const char * argv[]) {
     
     vectori accept = sim->run(path->get_parameters()->get_end_step(), path, writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
-    writer.write_final(path->getUte()->vecavg(energy), path->getUte()->vecstd(energy)/sqrt(energy.size()), path->get_parameters()->get_num_particles(),cycles, accept);
+    writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_parameters()->get_num_particles(),cycles, accept);
     
     delete sim;
     delete path;

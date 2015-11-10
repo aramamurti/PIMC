@@ -15,7 +15,7 @@ Path::Path(int procnum, IO &writer)
 :multvec{1.0,20.0,100.0, 400.0}{ // Multiplication factor for the permute probabilities
     
     //Declare all objects and variables, set all parameters that need to be modified from default (in parameters.h)
-    util = new utility(procnum);
+    util = new Utility(procnum);
     params = new Parameters();
 //    params->set_T(0.2+procnum*0.1);
 //    params->set_timeslices((int)(40-20*params->get_T()));
@@ -26,12 +26,8 @@ Path::Path(int procnum, IO &writer)
     last_end = 0;
     pnum = procnum;
     pot = new potentials(params->get_num_particles(), pow(params->get_box_size(),3));
-    
-    
-    
-    
 
-    setup_beads();
+    set_up_beads();
     
     //If the particles are bosons, construct the permutation table
     if(params->is_boson()){
@@ -55,7 +51,7 @@ Path::Path(int procnum, IO &writer)
         beads.reset();
     }
     
-    void Path::setup_beads(){
+    void Path::set_up_beads(){
         //Set up the initial distribution of particles.
         vectorff offset(params->get_num_particles(), vectorf(params->get_ndim(), 0.0));
         
@@ -103,7 +99,7 @@ Path::Path(int procnum, IO &writer)
         
         for(int slice = 0; slice < params->get_num_timeslices(); slice++){
             for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
-                beads->pushBack(offset[ptcl],ptcl);
+                beads->push_back(offset[ptcl],ptcl);
             }
         }
         
@@ -129,7 +125,7 @@ Path::Path(int procnum, IO &writer)
             k = maxPtcls;
         
         
-        std::vector<std::vector<int>> initPermList(0);
+        std::vector<std::vector<int> > init_perm_list(0);
         iota(d.begin(),d.end(),0);
         
         do
@@ -139,11 +135,11 @@ Path::Path(int procnum, IO &writer)
             {
                 tempvec.push_back(d[i]);
             }
-            initPermList.push_back(tempvec);
+            init_perm_list.push_back(tempvec);
             std::reverse(d.begin()+k,d.end());
         } while (next_permutation(d.begin(),d.end()));
         
-        for(std::vector<std::vector<int>>::iterator it = initPermList.begin(); it != initPermList.end(); it++){
+        for(std::vector<std::vector<int> >::iterator it = init_perm_list.begin(); it != init_perm_list.end(); it++){
             std::vector<int> identity(params->get_num_particles());
             iota(identity.begin(),identity.end(),0);
             int displaced[k];
@@ -161,7 +157,7 @@ Path::Path(int procnum, IO &writer)
         auto last = unique(perm_list.begin(), perm_list.end());
         perm_list.erase(last, perm_list.end());
         
-        for(std::vector<std::vector<int>>::iterator it = perm_list.begin(); it != perm_list.end(); ){
+        for(std::vector<std::vector<int> >::iterator it = perm_list.begin(); it != perm_list.end(); ){
             std::vector<int> cp(0);
             for(int j = 0; j < (*it).size(); j++)
                 if((*it)[j] != j)
@@ -211,29 +207,29 @@ Path::Path(int procnum, IO &writer)
     
     
     float Path::slice_perm_prob(std::vector<int> ptcls, int slice){
-        std::vector<int> permsToRecomp;
+        std::vector<int> recomp_perms;
         for(std::vector<int>::iterator it = ptcls.begin(); it != ptcls.end(); it++){
-            permsToRecomp.insert(permsToRecomp.end(), perm_part_loc[*it].begin(), perm_part_loc[*it].end());
+            recomp_perms.insert(recomp_perms.end(), perm_part_loc[*it].begin(), perm_part_loc[*it].end());
         }
         std::vector<int>::iterator it;
-        std::sort(permsToRecomp.begin(), permsToRecomp.end());
-        it = std::unique (permsToRecomp.begin(), permsToRecomp.end());
-        permsToRecomp.erase(it, permsToRecomp.end());
+        std::sort(recomp_perms.begin(), recomp_perms.end());
+        it = std::unique (recomp_perms.begin(), recomp_perms.end());
+        recomp_perms.erase(it, recomp_perms.end());
         
         
         float permTot = 0.0;
         std::vector<int> identity(params->get_num_particles());
         iota(identity.begin(),identity.end(),0);
 
-        float oldAction = 0.0;
+        float old_action = 0.0;
         for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
-            oldAction += kineticAction(slice,multistep_dist);
+            old_action += kinetic_action(slice,multistep_dist);
         }
         
         prob_list[slice][0] = 1;
         
-        for(int j = 0; j < permsToRecomp.size(); j++){
-            int i = permsToRecomp[j];
+        for(int j = 0; j < recomp_perms.size(); j++){
+            int i = recomp_perms[j];
             std::vector<int> oneperm = perm_list[i];
             int chdptcl = 0;
             beads->set_permutation(identity,oneperm, slice, multistep_dist);
@@ -241,16 +237,16 @@ Path::Path(int procnum, IO &writer)
             
             chdptcl = (int)permed_parts[i].size();
             
-            float newAction = 0.0;
+            float new_action = 0.0;
             for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
-                newAction += kineticAction(slice,multistep_dist);
+                new_action += kinetic_action(slice,multistep_dist);
             }
             
             float multfac = 1.0;
             if(chdptcl != 0)
                 multfac = multvec[chdptcl-1];
             
-            float kFac = multfac * exp(-(newAction - oldAction));
+            float kFac = multfac * exp(-(new_action - old_action));
             prob_list[slice][i] = kFac;
             
             beads->permute(true);
@@ -329,7 +325,7 @@ Path::Path(int procnum, IO &writer)
         return vVal;
     }
     
-    float Path::potentialAction(int slice){
+    float Path::potential_action(int slice){
         float pot = 0;
         for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
             pot += vext(slice, ptcl);
@@ -337,7 +333,7 @@ Path::Path(int procnum, IO &writer)
         return params->get_tau()*pot;
     }
     
-    float Path::kineticAction(int slice, int dist){
+    float Path::kinetic_action(int slice, int dist){
         float kin = 0;
         for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
             vectorff pair = beads->get_pair_same_path(ptcl, slice, dist);
@@ -348,11 +344,11 @@ Path::Path(int procnum, IO &writer)
         return kin;
     }
     
-    /******************************************************
-     Thermo Energy
-     ******************************************************/
+    /************************************************************************************
+     Estimators: Energy, Permutation, Winding Number
+     *************************************************************************************/
     
-    float Path::potentialEnergy(){
+    float Path::potential_energy(){
         float PE = 0.0;
         for(int slice = 0; slice<params->get_num_timeslices();slice++){
             for(int ptcl = 0; ptcl<params->get_num_particles(); ptcl++){
@@ -382,7 +378,7 @@ Path::Path(int procnum, IO &writer)
         return PE;
     }
     
-    float Path::kineticEnergy(){
+    float Path::kinetic_energy(){
         float tot = 0.0;
         float norm = 1.0/(4.0*params->get_lambda()*pow(params->get_tau(),2));
         for(int slice = 0; slice < params->get_num_timeslices(); slice++){
@@ -399,7 +395,7 @@ Path::Path(int procnum, IO &writer)
     }
     
     float Path::energy(){
-        float energy = kineticEnergy()+potentialEnergy();
+        float energy = kinetic_energy()+potential_energy();
         return energy;
     }
     
