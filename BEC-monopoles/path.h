@@ -34,35 +34,31 @@ public:
     iVector get_cycles();
     iVector get_winding_number();
     void set_up_beads();
-    void constr_perms(int procnum);
-    float slice_perm_prob(iVector ptcls, int stslice);
     void put_in_box();
     
     //getter methods
     int get_multistep_dist(){return multistep_dist;}
     boost::shared_ptr<Utility> get_util(){return util;}
     boost::shared_ptr<Parameters> get_parameters(){return params;}
-    ffVector* get_prob_list(){return &prob_list;}
-    iiVector* get_perm_list(){return &perm_list;}
     list_ptr get_beads(){return beads;}
     iVector get_last_changed(){return last_chd_parts;}
-    iVector get_last_locs(){iVector locs; locs.push_back(last_start); locs.push_back(last_end); return locs;}
+    iVector get_last_start_end(){iVector se; se.push_back(last_start); se.push_back(last_end); return se;}
     void set_last_changed(iVector lc){last_chd_parts = lc;}
-    void set_last_step(int s, int e){last_start = s; last_end = e;}
+    void set_last_start_end(int s, int e){last_start = s; last_end = e;}
     int getPNum(){return pnum;}
+    iVector get_charge_list(){return charge_list;}
+    
+    float multvec[4];
+
     
 private:
     
 
     boost::shared_ptr<Parameters> params;
-    boost::shared_ptr<potentials> pot;
+    boost::shared_ptr<Potential_Functions> pot;
     boost::shared_ptr<Utility> util;
 
     list_ptr beads;
-    iiVector perm_list;
-    iiVector permed_parts;
-    iiVector perm_part_loc;
-    ffVector prob_list;
     
     iVector charge_list;
     
@@ -71,7 +67,6 @@ private:
     int last_end;
     
     int multistep_dist;
-    float multvec[4];
     int pnum;
 
 

@@ -19,7 +19,7 @@ private:
     class Node {
     public:
         typedef boost::shared_ptr<Node> node_ptr;
-        
+
         int row_number;
         int column_number;
         unsigned int key;
@@ -63,6 +63,9 @@ private:
     
     std::vector<std::vector<node_ptr> > list_map;
     std::vector<std::vector<node_ptr> > old_list_map;
+    
+    std::vector<std::vector<node_ptr> > worm;
+    std::vector<std::vector<node_ptr> > ye_olde_worm;
     
     
 public:

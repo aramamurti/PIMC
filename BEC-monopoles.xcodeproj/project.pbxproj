@@ -13,10 +13,10 @@
 		B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D21B17A45E003B0DC6 /* pimc.cpp */; };
 		B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D41B17A45E003B0DC6 /* potentials.cpp */; };
 		B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D61B17A45E003B0DC6 /* utility.cpp */; };
-		B98249E41B18EA28003B0DC6 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */; };
-		B98249E51B18EA28003B0DC6 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */; };
 		B9D607CA1BEE82C5008DC784 /* tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9D607C81BEE82C5008DC784 /* tables.cpp */; settings = {ASSET_TAGS = (); }; };
 		B9D607CD1BF14A62008DC784 /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9D607CB1BF14A62008DC784 /* IO.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9E526241BF39DA100768B84 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */; };
+		B9E526251BF39DA100768B84 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526231BF39DA100768B84 /* libmpi.1.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -45,8 +45,6 @@
 		B98249D61B17A45E003B0DC6 /* utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utility.cpp; sourceTree = "<group>"; };
 		B98249D71B17A45E003B0DC6 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
 		B98249E01B18CACB003B0DC6 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
-		B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
 		B9A483A41B28CCC1005FFE8B /* uni_header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
 		B9B041F01B25F95A0005E355 /* pimc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
 		B9C40F801B26364A007A41BD /* container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = container.h; sourceTree = "<group>"; };
@@ -54,6 +52,8 @@
 		B9D607C91BEE82C5008DC784 /* tables.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = tables.hpp; sourceTree = "<group>"; };
 		B9D607CB1BF14A62008DC784 /* IO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IO.cpp; sourceTree = "<group>"; };
 		B9D607CC1BF14A62008DC784 /* IO.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IO.hpp; sourceTree = "<group>"; };
+		B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
+		B9E526231BF39DA100768B84 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,8 +61,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B98249E41B18EA28003B0DC6 /* libmpi_cxx.1.dylib in Frameworks */,
-				B98249E51B18EA28003B0DC6 /* libmpi.1.dylib in Frameworks */,
+				B9E526241BF39DA100768B84 /* libmpi_cxx.1.dylib in Frameworks */,
+				B9E526251BF39DA100768B84 /* libmpi.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,8 +72,8 @@
 		B98249B71B17A441003B0DC6 = {
 			isa = PBXGroup;
 			children = (
-				B98249E21B18EA28003B0DC6 /* libmpi_cxx.1.dylib */,
-				B98249E31B18EA28003B0DC6 /* libmpi.1.dylib */,
+				B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */,
+				B9E526231BF39DA100768B84 /* libmpi.1.dylib */,
 				B98249C21B17A441003B0DC6 /* BEC-monopoles */,
 				B98249C11B17A441003B0DC6 /* Products */,
 			);
@@ -267,7 +267,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					/usr/local/include/,
 				);
-				LIBRARY_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "/usr/local/Cellar/open-mpi/1.8.1/lib";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
 				OTHER_LDFLAGS = "";
 				"OTHER_LDFLAGS[arch=*]" = (
@@ -289,7 +289,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					/usr/local/include/,
 				);
-				LIBRARY_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "/usr/local/Cellar/open-mpi/1.8.1/lib";
 				"LIBRARY_SEARCH_PATHS[arch=*]" = /usr/local/lib/;
 				OTHER_LDFLAGS = "";
 				"OTHER_LDFLAGS[arch=*]" = (

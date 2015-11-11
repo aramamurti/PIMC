@@ -11,9 +11,9 @@
 
 #include "uni_header.h"
 
-class potentials{
+class Potential_Functions{
 public:
-    potentials(int initna, float initvol){
+    Potential_Functions(int initna, float initvol){
         L = pow(initvol,1/3.);
         numatoms = initna;
         volume = initvol;
@@ -24,7 +24,7 @@ public:
         kmax = ceil(kcut/(2.*M_PI*L));
     };
     
-    ~potentials(){};
+    ~Potential_Functions(){};
     
     float getcoulcut(){return coulcut;}
     float getkcut(){return kcut;}

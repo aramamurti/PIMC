@@ -11,43 +11,62 @@
 
 #include <stdio.h>
 #include "uni_header.h"
+#include "path.h"
 
-class TableBase{
-public:
-    TableBase();
-    ~TableBase();
-    void set_up_table();
-    
-private:
-    
-};
 
-class PermTable: public TableBase{
+class Neighbor_Table{
+    
 public:
-    PermTable();
-    ~PermTable();
-    void set_up_perms();
-    void recalc_perms();
-    iiVector get_perm_list();
-    ffVector get_perm_prob();
     
-private:
+    Neighbor_Table(boost::shared_ptr<Path> path, float cutoff){};
+    ~Neighbor_Table(){};
     
-    
-    
-};
-
-class NNTable: public TableBase{
-public:
-    NNTable();
-    ~NNTable();
     void set_up_nn();
     void update_table();
     void add_bead();
-    void rem_bead();
+    void remove_bead();
+
+private:
+    
+    boost::shared_ptr<Path> path;
+    boost::unordered_map<int, int> bead_grid;
+    
+    float rcut;
+
+    
+};
+
+
+class Permutation_Table{
+    
+public:
+    
+    Permutation_Table(boost::shared_ptr<Path> path, float cutoff = -1);
+    ~Permutation_Table(){};
+    
+    void set_up_perms();
+    float recalc_perms(iVector ptcls, int slice);
+    iVector pick_permutation(int ptcl, int start);
+    
+    iiVector* get_perm_list(){return &perm_list;}
+    ffVector* get_prob_list(){return &prob_list;}
     
 private:
     
+    boost::shared_ptr<Path> path;
+    
+    bool cutoff;
+    int multistep_dist;
+    
+    boost::shared_ptr<Neighbor_Table> ntable;
+    
+    iiVector perm_list;
+    ffVector prob_list;
+    iiVector perm_part_loc;
+    iiVector permed_parts;
+
+    
 };
+
 
 #endif /* tables_hpp */

@@ -30,7 +30,6 @@ void IO::set_up_outfiles(int world_rank){
     f4.open(result4.c_str());
     
     f2 << "Step No." << ", " << "Energy/atom" << ", " << "KE/atom" << ", " << "PE/atom" << std::endl;
-
 }
 
 void IO::write_final(double energy, double energystd, int num_particles, iiVector cycles, iVector accept){

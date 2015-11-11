@@ -23,6 +23,8 @@ int main(int argc, const char * argv[]) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
+    std::cout << world_rank << ": Setting up..." << std::endl;
+    
     IO writer(world_rank);
 
     boost::shared_ptr<Path> path(new Path(world_rank, writer));
@@ -31,6 +33,7 @@ int main(int argc, const char * argv[]) {
     fVector energy(0);
     iiVector cycles;
     
+    std::cout<< world_rank << ": Starting algorithm..." <<std::endl;
     iVector accept = sim->run(path->get_parameters()->get_end_step(), path, writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
     writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_parameters()->get_num_particles(),cycles, accept);

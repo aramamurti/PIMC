@@ -149,7 +149,7 @@ void Bisection::accept(int ptcl){
     chd_ptcl.push_back(ptcl);
     
     path->set_last_changed(chd_ptcl);
-    path->set_last_step(start, start+multistep_dist);
+    path->set_last_start_end(start, start+multistep_dist);
     path->get_beads()->set_prev_perm();
     
     Move_Base::accept();
@@ -166,15 +166,17 @@ void Bisection::reject(){
  
  ***********************************************************************************/
 
-Perm_Bisection::Perm_Bisection(boost::shared_ptr<Path> path) : Bisection(path){}
+Perm_Bisection::Perm_Bisection(boost::shared_ptr<Path> path) : Bisection(path){
+    ptable = boost::shared_ptr<Permutation_Table>(new Permutation_Table(path));
+}
 
 void Perm_Bisection::attempt(int ptcl){
     Move_Base::attempt();
 
     start = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
     
-    int ls = path->get_last_locs()[0];
-    int le = path->get_last_locs()[1];
+    int ls = path->get_last_start_end()[0];
+    int le = path->get_last_start_end()[1];
     
     iVector lc;
     
@@ -186,7 +188,7 @@ void Perm_Bisection::attempt(int ptcl){
     if((start+multistep_dist > ls &&start+multistep_dist <=le) ||
                 ((start >=ls) && (start <=le))|| (le > path->get_parameters()->get_num_timeslices()
                                                 && start < le % path->get_parameters()->get_num_timeslices()))
-        path->slice_perm_prob(lc, start);
+        ptable->recalc_perms(lc, start);
     
     path->get_beads()->set_old_data();
     
@@ -202,7 +204,7 @@ void Perm_Bisection::attempt(int ptcl){
     permed_parts = std::vector<int>(0);
     
     if(path->get_parameters()->is_boson()){
-        chosenPerm = pick_perm(start);
+        chosenPerm = ptable->pick_permutation(0, start);
         
         for(iVector::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
@@ -235,7 +237,7 @@ void Perm_Bisection::attempt(int ptcl){
 
 void Perm_Bisection::accept(){
     path->set_last_changed(permed_parts);
-    path->set_last_step(start, start + multistep_dist);
+    path->set_last_start_end(start, start + multistep_dist);
     path->get_beads()->set_prev_perm();
     
     Move_Base::accept();
@@ -247,29 +249,5 @@ void Perm_Bisection::reject(){
     path->get_beads()->reset_permute();
 }
 
-
-inline iVector Perm_Bisection::pick_perm(int start){
-    fVector permWeight = (*path->get_prob_list())[start];
-    fVector::iterator it2;
-    
-    float sum = 0.0;
-    for(it2 = permWeight.begin(); it2 != permWeight.end(); it2++)
-        sum += *it2;
-    
-    int choice = 0;
-    float rn = path->get_util()->randnormed(sum);
-    float probsum = 0.0;
-    for(int i = 0; i < permWeight.size(); i++){
-        probsum += permWeight[i];
-        if(rn<=probsum){
-            choice = i;
-            break;
-        }
-    }
-    
-    iVector chosenPerm = (*path->get_perm_list())[choice];
-    
-    return chosenPerm;
-}
 
 

@@ -10,11 +10,11 @@
 #define __PIMC__moves__
 
 #include "path.h"
+#include "tables.hpp"
 
 class Move_Base{
     
 public:
-    Move_Base();
     Move_Base(boost::shared_ptr<Path> path);
     ~Move_Base(){};
     virtual Move_Base* clone() const = 0;
@@ -88,10 +88,10 @@ public:
     void attempt(int ptcl);
     void accept();
     void reject();
-    iVector pick_perm(int start);
     
 private:
     iVector permed_parts;
+    boost::shared_ptr<Permutation_Table> ptable;
     
 };
 
@@ -128,42 +128,42 @@ public:
 class Advance_Head: public Move_Base{
     
 public:
-    Advance_Head(){};
+    Advance_Head();
     ~Advance_Head(){};
 };
 
 class Advance_Tail: public Move_Base{
     
 public:
-    Advance_Tail(){};
+    Advance_Tail();
     ~Advance_Tail(){};
 };
 
 class Recede_Head: public Move_Base{
     
 public:
-    Recede_Head(){};
+    Recede_Head();
     ~Recede_Head(){};
 };
 
 class Recede_Tail: public Move_Base{
     
 public:
-    Recede_Tail(){};
+    Recede_Tail();
     ~Recede_Tail(){};
 };
 
 class Swap_Head: public Move_Base{
     
 public:
-    Swap_Head(){};
+    Swap_Head();
     ~Swap_Head(){};
 };
 
 class Swap_Tail: public Move_Base{
     
 public:
-    Swap_Tail(){};
+    Swap_Tail();
     ~Swap_Tail(){};
 };
 
