@@ -10,7 +10,7 @@
 #define __PIMC__moves__
 
 #include "path.h"
-#include "tables.hpp"
+#include "permtable.hpp"
 #include "actions.hpp"
 
 class Move_Base{
@@ -29,6 +29,8 @@ public:
     
     int get_num_accepts(){return num_accepts;}
     int get_num_attempts(){return num_attempts;}
+    
+    string get_move_name(){return move_name;}
 
     
     
@@ -39,6 +41,8 @@ protected:
     
     float old_action;
     float new_action;
+    
+    string move_name;
     
     boost::shared_ptr<Potential_Action> pa;
 

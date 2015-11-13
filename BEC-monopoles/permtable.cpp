@@ -6,7 +6,7 @@
 //  Copyright © 2015 Adith Ramamurti. All rights reserved.
 //
 
-#include "tables.hpp"
+#include "permtable.hpp"
 
 /****************************************************************************************
  

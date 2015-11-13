@@ -1,5 +1,5 @@
 //
-//  tables.hpp
+//  permtable.hpp
 //  BEC-monopoles
 //
 //  Created by Adith Ramamurti on 11/7/15.

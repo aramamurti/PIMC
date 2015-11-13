@@ -13,7 +13,7 @@
 #include "uni_header.h"
 #include "path.h"
 #include "potentials.h"
-#include "tables.hpp"
+#include "permtable.hpp"
 
 class Estimator_Base{
 public:

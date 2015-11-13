@@ -12,7 +12,6 @@ float Energy_Estimator::total_energy(){
     float ke =  kinetic_energy();
     float pe = potential_energy();
     
-    std::cout << ke << "\t" << pe << "\t" << ke+pe << std::endl;
     return ke +pe;
 }
 
