@@ -15,33 +15,37 @@ iVector PIMC::run(int end_step, IO &writer, fVector &energytr, iiVector &cycleLi
     
     iVector accept;
     
-    std::vector<bool> move_list;
-    move_list.push_back(false);
-    move_list.push_back(false);
-    move_list.push_back(true);
+    std::vector<bool> move_list(3, false);
+    move_list[0] = true;
+    move_list[2] = true;
+    
+    std::vector<bool> estimator_list(3,true);
     
     set_up_moves(move_list);
-    
-    en = boost::shared_ptr<Energy_Estimator>(new Energy_Estimator(path, path->get_parameters()->get_potentials()));
+    set_up_estimators(estimator_list);
     
     for(int step = 0; step < end_step; step++){
-        int ptcl = (int) path->get_util()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
-
         
         if(step % 100 == 0 && step < path->get_parameters()->get_equilibration()){
-            std::cout << path->getPNum() << ": " << step << ", " <<en->total_energy() << std::endl;
+            std::cout << path->get_processor_num() << ": " << step << ", " <<(estimators[0].estimate())[0] << std::endl;
         }
-        moves[0].attempt(ptcl);
-        //moves[1].attempt(ptcl);
-
+        
+        for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
+            (*it).attempt();
+        }
         
         if(step % path->get_parameters()->get_skip() == 0 && step >= path->get_parameters()->get_equilibration()){
-            iVector cycles = path->get_cycles();
+            fVector cycles_float = estimators[1].estimate();
+            iVector cycles(cycles_float.begin(),cycles_float.end());
             
-            energytr.push_back(en->total_energy());
+            fVector winding_float = estimators[2].estimate();
+            iVector winding(winding_float.begin(), winding_float.end());
+            fVector energy = estimators[0].estimate();
+            
+            energytr.push_back(energy[0]);
             cycleList.push_back(cycles);
             
-            writer.write_step_state(step, en->total_energy(), en->kinetic_energy(), en->potential_energy(), cycles, path->get_beads()->get_num_particles(), path->get_winding_number());
+            writer.write_step_state(step, energy, cycles, path->get_beads()->get_num_particles(), winding);
         }
     }
     
@@ -54,7 +58,6 @@ iVector PIMC::run(int end_step, IO &writer, fVector &energytr, iiVector &cycleLi
 
 void PIMC::set_up_moves(std::vector<bool> move_list){
     int i = 0;
-    
     for(std::vector<bool>::iterator it = move_list.begin(); it != move_list.end(); it++){
         if(*it)
             switch(i){
@@ -71,3 +74,23 @@ void PIMC::set_up_moves(std::vector<bool> move_list){
         i++;
     }
 }
+
+void PIMC::set_up_estimators(std::vector<bool> estimator_list){
+    int i = 0;
+    for(std::vector<bool>::iterator it = estimator_list.begin(); it != estimator_list.end(); it++){
+        if(*it)
+            switch(i){
+                case 0:
+                    estimators.push_back(new Energy_Estimator(path,path->get_parameters()->get_potentials()));
+                    break;
+                case 1:
+                    estimators.push_back(new Permutation_Estimator(path));
+                    break;
+                case 2:
+                    estimators.push_back(new Winding_Estimator(path));
+                    break;
+            }
+        i++;
+    }
+}
+

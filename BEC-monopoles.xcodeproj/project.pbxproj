@@ -96,9 +96,9 @@
 			children = (
 				B9477D5C1BF5553600A8CDB4 /* main.cpp */,
 				B9477D621BF5553600A8CDB4 /* pimc.cpp */,
+				B9477D631BF5553600A8CDB4 /* pimc.h */,
 				B9477D601BF5553600A8CDB4 /* path.cpp */,
 				B9477D611BF5553600A8CDB4 /* path.h */,
-				B9477D631BF5553600A8CDB4 /* pimc.h */,
 				B9477D551BF5553600A8CDB4 /* actions.cpp */,
 				B9477D561BF5553600A8CDB4 /* actions.hpp */,
 				B9477D571BF5553600A8CDB4 /* container.h */,

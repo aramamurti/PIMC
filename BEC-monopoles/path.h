@@ -26,8 +26,6 @@ public:
     ~Path();
     
     //methods
-    iVector get_cycles();
-    iVector get_winding_number();
     void set_up_beads();
     void put_in_box();
     
@@ -40,7 +38,7 @@ public:
     iVector get_last_start_end(){iVector se; se.push_back(last_start); se.push_back(last_end); return se;}
     void set_last_changed(iVector lc){last_chd_parts = lc;}
     void set_last_start_end(int s, int e){last_start = s; last_end = e;}
-    int getPNum(){return pnum;}
+    int get_processor_num(){return pnum;}
     iVector get_charge_list(){return charge_list;}
     
     float multvec[4];
@@ -52,7 +50,7 @@ private:
         
     public:
         
-        Separation_Table(boost::shared_ptr<Path> path){};
+        Separation_Table(boost::shared_ptr<Path> path);
         ~Separation_Table(){};
         
         void set_up_st(){};

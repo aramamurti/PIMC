@@ -22,10 +22,13 @@ public:
     ~PIMC(){};
     iVector run(int end_step, IO &writer, fVector &energytr, iiVector &cycleList);
     void set_up_moves(std::vector<bool> move_list);
+    void set_up_estimators(std::vector<bool> estimator_list);
+    void attempt_moves();
+    void estimate();
     
 private:
     boost::ptr_vector<Move_Base> moves;
-    boost::shared_ptr<Energy_Estimator> en;
+    boost::ptr_vector<Estimator_Base> estimators;
     boost::shared_ptr<Path> path;
 };
 

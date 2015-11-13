@@ -14,11 +14,19 @@
 
 class Action_Base{
 public:
-    Action_Base(boost::shared_ptr<Path> path){this->path = path;}
+    Action_Base(boost::shared_ptr<Path> path){
+        this->path = path;
+        utility = path->get_util();
+        num_timeslices = path->get_parameters()->get_num_timeslices();
+
+    }
     ~Action_Base(){};
     float get_action(int slice, int dist);
 protected:
     boost::shared_ptr<Path> path;
+    boost::shared_ptr<Utility> utility;
+    int num_timeslices;
+
 };
 
 class Potential_Action: public Action_Base{
@@ -47,8 +55,6 @@ public:
                 }
             i++;
         }
-        utility = boost::shared_ptr<Utility>(new Utility(path->getPNum()));
-        num_timeslices = path->get_parameters()->get_num_timeslices();
     }
     ~Potential_Action(){};
     
@@ -58,8 +64,6 @@ public:
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;
     std::vector<int> potentials;
-    boost::shared_ptr<Utility> utility;
-    int num_timeslices;
 
 
 };
@@ -67,18 +71,14 @@ private:
 class Kinetic_Action: public Action_Base{
 public:
     Kinetic_Action(boost::shared_ptr<Path> path): Action_Base(path){
-        utility = boost::shared_ptr<Utility>(new Utility(path->getPNum()));
         norm = 1.0/(4.0*path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
-        num_timeslices = path->get_parameters()->get_num_timeslices();
     }
     ~Kinetic_Action(){};
     
     float get_action(int slice, int dist);
     
 private:
-    boost::shared_ptr<Utility> utility;
     float norm;
-    int num_timeslices;
 };
 
 

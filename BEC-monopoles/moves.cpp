@@ -23,6 +23,7 @@ Move_Base::Move_Base(boost::shared_ptr<Path> path){
 }
 
 void Move_Base::attempt(){
+    ptcl = (int) path->get_util()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
     num_attempts++;
     old_action = 0.0;
     new_action = 0.0;
@@ -60,7 +61,7 @@ Center_of_Mass::Center_of_Mass(boost::shared_ptr<Path> path) : Move_Base(path){
     shift.resize(path->get_parameters()->get_ndim());
 }
 
-void Center_of_Mass::attempt(int ptcl){
+void Center_of_Mass::attempt(){
     Move_Base::attempt();
     
     path->get_beads()->set_old_data();
@@ -80,12 +81,12 @@ void Center_of_Mass::attempt(int ptcl){
     }
     
     if(check_move())
-        accept(ptcl);
+        accept();
     else
         reject();
 }
 
-void Center_of_Mass::accept(int ptcl){
+void Center_of_Mass::accept(){
     Move_Base::accept();
     iVector lc = path->get_last_changed();
     lc.push_back(ptcl);
@@ -102,7 +103,7 @@ Bisection::Bisection(boost::shared_ptr<Path> path) : Move_Base(path){
     multistep_dist = path->get_multistep_dist();
 }
 
-void Bisection::attempt(int ptcl){
+void Bisection::attempt(){
     Move_Base::attempt();
     
     start = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
@@ -122,7 +123,7 @@ void Bisection::attempt(int ptcl){
     }
     
     if(check_move())
-        accept(ptcl);
+        accept();
     else
         reject();
 }
@@ -144,7 +145,7 @@ void Bisection::level_move(int ptcl, int start, int m){
     }
 }
 
-void Bisection::accept(int ptcl){
+void Bisection::accept(){
     
     iVector chd_ptcl;
     chd_ptcl.push_back(ptcl);
@@ -171,7 +172,7 @@ Perm_Bisection::Perm_Bisection(boost::shared_ptr<Path> path) : Bisection(path){
     ptable = boost::shared_ptr<Permutation_Table>(new Permutation_Table(path));
 }
 
-void Perm_Bisection::attempt(int ptcl){
+void Perm_Bisection::attempt(){
     Move_Base::attempt();
 
     start = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
@@ -229,9 +230,7 @@ void Perm_Bisection::attempt(int ptcl){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
         new_action += pa->get_action(slice,0);
     }
-    
-    //std::cout << old_action << "\t" << new_action <<std::endl;
-    
+        
     if(check_move())
         accept();
     else

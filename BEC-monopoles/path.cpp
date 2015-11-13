@@ -110,31 +110,9 @@ Path::Path(int procnum, IO &writer)
         
     }
 
-    
-    /************************************************************************************
-     Estimators: Energy, Permutation, Winding Number
-     *************************************************************************************/
 
-
-    iVector Path::get_cycles(){
-        iVector cycles = beads->get_cycles();
-        return cycles;
-    }
+Path::Separation_Table::Separation_Table(boost::shared_ptr<Path> path){
+    this->path = path;
     
-    iVector Path::get_winding_number(){
-        fVector dvectot(params->get_ndim(),0.0);
-        for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
-            for(int slice = 0; slice < params->get_num_timeslices(); slice++){
-                ffVector pair = beads->get_pair_same_path(ptcl, slice, 1);
-                fVector distVec = util->dist(pair, params->get_box_size());
-                dvectot = util->vecadd(dvectot, distVec);
-            }
-        }
-        iVector wnum(params->get_ndim(),0);
-        for(fVector::iterator it = dvectot.begin(); it != dvectot.end(); it++){
-            wnum[it-dvectot.begin()] = (int)round(*it/params->get_box_size());
-        }
-        return wnum;
-    }
-    
+}
     

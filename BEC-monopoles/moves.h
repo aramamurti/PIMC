@@ -18,10 +18,10 @@ class Move_Base{
 public:
     Move_Base(boost::shared_ptr<Path> path);
     ~Move_Base(){};
+    
     virtual Move_Base* clone() const = 0;
     
-    void attempt();
-    virtual void attempt(int ptcl) = 0;
+    virtual void attempt();
     
     bool check_move();
     void accept();
@@ -30,19 +30,22 @@ public:
     int get_num_accepts(){return num_accepts;}
     int get_num_attempts(){return num_attempts;}
     
-    string get_move_name(){return move_name;}
+    std::string get_move_name(){return move_name;}
 
     
     
 protected:
     boost::shared_ptr<Path> path;
+    
     int num_attempts;
     int num_accepts;
+    
+    int ptcl;
     
     float old_action;
     float new_action;
     
-    string move_name;
+    std::string move_name;
     
     boost::shared_ptr<Potential_Action> pa;
 
@@ -56,8 +59,8 @@ public:
     
     Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
     
-    void attempt(int ptcl);
-    void accept(int ptcl);
+    void attempt();
+    void accept();
     
 private:
     float delta;
@@ -73,8 +76,8 @@ public:
     
     Bisection* clone() const{return new Bisection(*this);}
     
-    void attempt(int ptcl);
-    void accept(int ptcl);
+    void attempt();
+    void accept();
     void reject();
     void level_move(int ptcl, int start, int m);
     
@@ -92,7 +95,7 @@ public:
     
     Perm_Bisection* clone() const{return new Perm_Bisection(*this);}
     
-    void attempt(int ptcl);
+    void attempt();
     void accept();
     void reject();
     

@@ -21,9 +21,9 @@ public:
     
     void set_up_outfiles(int world_rank);
     void write_parameters(boost::shared_ptr<Parameters> params);
-    void write_step_state(int step, double en, double ke, double pe, iVector cycles, int num_particles, iVector wnum);
+    void write_step_state(int step, fVector energy, iVector cycles, int num_particles, iVector wnum);
     void write_acceptance();
-    void write_final(double energy, double energystd, int num_particles, iiVector cycles, iVector accept);
+    void write_final(float energy, float energystd, int num_particles, iiVector cycles, iVector accept);
     void close(){    f1.close();
         f2.close();
         f3.close();

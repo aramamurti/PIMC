@@ -32,7 +32,7 @@ void IO::set_up_outfiles(int world_rank){
     f2 << "Step No." << ", " << "Energy/atom" << ", " << "KE/atom" << ", " << "PE/atom" << std::endl;
 }
 
-void IO::write_final(double energy, double energystd, int num_particles, iiVector cycles, iVector accept){
+void IO::write_final(float energy, float energystd, int num_particles, iiVector cycles, iVector accept){
     
     f1 << "Total Energy = " <<energy << " +/- "<< energystd<< std::endl;
     f1 << "Energy/atom= " <<energy/num_particles<< "\n" <<std::endl;
@@ -53,7 +53,7 @@ void IO::write_final(double energy, double energystd, int num_particles, iiVecto
     
     fVector cyclepercent;
     for(iVector::iterator it = cyclesum.begin(); it != cyclesum.end(); it++){
-        cyclepercent.push_back(((double)*it)/sum);
+        cyclepercent.push_back(((float)*it)/sum);
     }
     
     f1 << "Permutation fraction" << std::endl;
@@ -65,8 +65,8 @@ void IO::write_final(double energy, double energystd, int num_particles, iiVecto
 }
 
 
-void IO::write_step_state(int step, double en, double ke, double pe, iVector cycles, int num_particles, iVector wnum){
-    f2 << step << ", " << en/num_particles << ", " << ke/num_particles << ", " << pe/num_particles << std::endl;
+void IO::write_step_state(int step, fVector energy, iVector cycles, int num_particles, iVector wnum){
+    f2 << step << ", " << energy[0]/num_particles << ", " << energy[1]/num_particles << ", " << energy[2]/num_particles << std::endl;
     for(iVector::iterator it = cycles.begin(); it != cycles.end(); it++){
         f3 << *it;
         if(cycles.size() - (it-cycles.begin()) != 1)

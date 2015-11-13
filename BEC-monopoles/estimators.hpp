@@ -17,11 +17,21 @@
 
 class Estimator_Base{
 public:
-    Estimator_Base(boost::shared_ptr<Path> path){this->path = path;}
+    Estimator_Base(boost::shared_ptr<Path> path){
+        this->path = path;
+        utility = path->get_util();
+        num_timeslices = path->get_parameters()->get_num_timeslices();
+        ndim = path->get_parameters()->get_ndim();
+    }
     ~Estimator_Base(){};
+    virtual fVector estimate(){return fVector(0);}
     
 protected:
     boost::shared_ptr<Path> path;
+    boost::shared_ptr<Utility> utility;
+    int num_timeslices;
+    int ndim;
+
 };
 
 class Energy_Estimator: public Estimator_Base{
@@ -51,9 +61,7 @@ public:
             i++;
         }
         
-        utility = boost::shared_ptr<Utility>(new Utility(path->getPNum()));
         norm = 1.0/(4.0*path->get_parameters()->get_lambda()*pow(path->get_parameters()->get_tau(),2));
-        num_timeslices = path->get_parameters()->get_num_timeslices();
         
     };
     ~Energy_Estimator(){};
@@ -61,14 +69,24 @@ public:
     float potential_energy();
     float kinetic_energy();
     
-    float total_energy();
+    fVector estimate();
     
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;
     std::vector<int> potentials;
-    boost::shared_ptr<Utility> utility;
     float norm;
-    int num_timeslices;
+};
+
+class Permutation_Estimator: public Estimator_Base{
+public:
+    Permutation_Estimator(boost::shared_ptr<Path> path): Estimator_Base(path){};
+    fVector estimate();
+};
+
+class Winding_Estimator: public Estimator_Base{
+public:
+    Winding_Estimator(boost::shared_ptr<Path> path): Estimator_Base(path){};
+    fVector estimate();
 };
 
 #endif /* estimators_hpp */
