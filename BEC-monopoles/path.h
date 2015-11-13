@@ -16,21 +16,16 @@
 #include "IO.hpp"
 
 
+
 class Path{
 public:
     typedef boost::shared_ptr<PathList<fVector> > list_ptr;
-
+    
     //constructor and destructor
     Path(int procnum, IO &writer);
     ~Path();
     
     //methods
-    float vext(int slice, int ptcl);
-    float potential_action(int slice);
-    float kinetic_action(int slice, int dist);
-    float kinetic_energy();
-    float potential_energy();
-    float energy();
     iVector get_cycles();
     iVector get_winding_number();
     void set_up_beads();
@@ -49,15 +44,36 @@ public:
     iVector get_charge_list(){return charge_list;}
     
     float multvec[4];
-
+    
     
 private:
     
-
+    class Separation_Table{
+        
+    public:
+        
+        Separation_Table(boost::shared_ptr<Path> path){};
+        ~Separation_Table(){};
+        
+        void set_up_st(){};
+        void update_table();
+        void add_bead();
+        void remove_bead();
+        
+    private:
+        
+        boost::shared_ptr<Path> path;
+        boost::unordered_map<int, std::pair<int, int>> bead_pairs;
+        boost::unordered_map<int, std::vector<float> > bead_pair_sep;
+        
+        float rcut;
+        
+    };
+    
     boost::shared_ptr<Parameters> params;
     boost::shared_ptr<Potential_Functions> pot;
     boost::shared_ptr<Utility> util;
-
+    
     list_ptr beads;
     
     iVector charge_list;
@@ -68,8 +84,11 @@ private:
     
     int multistep_dist;
     int pnum;
-
-
+    
+    boost::shared_ptr<Separation_Table> sep_table;
+    
 };
+
+
 
 #endif /* defined(__PIMCtest__paths__) */

@@ -14,16 +14,19 @@
 #include "uni_header.h"
 #include <unistd.h>
 #include "IO.hpp"
+#include "estimators.hpp"
 
 class PIMC{
 public:
-    PIMC();
+    PIMC(boost::shared_ptr<Path> path);
     ~PIMC(){};
-    iVector run(int end_step, boost::shared_ptr<Path> path, IO &writer, fVector &energytr, iiVector &cycleList);
-    void set_up_moves(boost::shared_ptr<Path> path, std::vector<bool> move_list);
+    iVector run(int end_step, IO &writer, fVector &energytr, iiVector &cycleList);
+    void set_up_moves(std::vector<bool> move_list);
     
 private:
     boost::ptr_vector<Move_Base> moves;
+    boost::shared_ptr<Energy_Estimator> en;
+    boost::shared_ptr<Path> path;
 };
 
 

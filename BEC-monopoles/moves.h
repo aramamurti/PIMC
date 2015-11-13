@@ -11,6 +11,7 @@
 
 #include "path.h"
 #include "tables.hpp"
+#include "actions.hpp"
 
 class Move_Base{
     
@@ -38,6 +39,8 @@ protected:
     
     float old_action;
     float new_action;
+    
+    boost::shared_ptr<Potential_Action> pa;
 
 };
 

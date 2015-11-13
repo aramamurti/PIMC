@@ -27,7 +27,7 @@ private:
     int equilibration;
     float box_size;
     bool per_bound_cond;
-    bool potentials[5];
+    std::vector<bool> potentials;
     int charges;
     bool charged;
 
@@ -50,11 +50,8 @@ public:
         skip = 10;
         equilibration = 1000;
         
+        potentials.resize(4);
         potentials[0] = true;
-        potentials[1] = false;
-        potentials[2] = false;
-        potentials[3] = false;
-        potentials[4] = false;
         
         tau = 1/(T*timeslices);
         
@@ -90,7 +87,7 @@ public:
     int get_num_timeslices(){return timeslices;}
     int get_num_particles(){return particles;}
     float get_box_size(){return box_size;}
-    bool* get_potentials(){return potentials;}
+    std::vector<bool> get_potentials(){return potentials;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */

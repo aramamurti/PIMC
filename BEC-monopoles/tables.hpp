@@ -12,36 +12,13 @@
 #include <stdio.h>
 #include "uni_header.h"
 #include "path.h"
-
-
-class Neighbor_Table{
-    
-public:
-    
-    Neighbor_Table(boost::shared_ptr<Path> path, float cutoff){};
-    ~Neighbor_Table(){};
-    
-    void set_up_nn();
-    void update_table();
-    void add_bead();
-    void remove_bead();
-
-private:
-    
-    boost::shared_ptr<Path> path;
-    boost::unordered_map<int, int> bead_grid;
-    
-    float rcut;
-
-    
-};
-
+#include "actions.hpp"
 
 class Permutation_Table{
     
 public:
     
-    Permutation_Table(boost::shared_ptr<Path> path, float cutoff = -1);
+    Permutation_Table(boost::shared_ptr<Path> path);
     ~Permutation_Table(){};
     
     void set_up_perms();
@@ -55,15 +32,14 @@ private:
     
     boost::shared_ptr<Path> path;
     
-    bool cutoff;
     int multistep_dist;
-    
-    boost::shared_ptr<Neighbor_Table> ntable;
     
     iiVector perm_list;
     ffVector prob_list;
     iiVector perm_part_loc;
     iiVector permed_parts;
+    
+    boost::shared_ptr<Kinetic_Action> ka;
 
     
 };

@@ -7,14 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B98249C41B17A441003B0DC6 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249C31B17A441003B0DC6 /* main.cpp */; };
-		B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249CE1B17A45E003B0DC6 /* moves.cpp */; };
-		B98249DB1B17A45E003B0DC6 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D01B17A45E003B0DC6 /* path.cpp */; };
-		B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D21B17A45E003B0DC6 /* pimc.cpp */; };
-		B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D41B17A45E003B0DC6 /* potentials.cpp */; };
-		B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B98249D61B17A45E003B0DC6 /* utility.cpp */; };
-		B9D607CA1BEE82C5008DC784 /* tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9D607C81BEE82C5008DC784 /* tables.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9D607CD1BF14A62008DC784 /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9D607CB1BF14A62008DC784 /* IO.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6A1BF5553600A8CDB4 /* actions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D551BF5553600A8CDB4 /* actions.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6B1BF5553600A8CDB4 /* estimators.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D581BF5553600A8CDB4 /* estimators.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6C1BF5553600A8CDB4 /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5A1BF5553600A8CDB4 /* IO.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6D1BF5553600A8CDB4 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5C1BF5553600A8CDB4 /* main.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6E1BF5553600A8CDB4 /* moves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5D1BF5553600A8CDB4 /* moves.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6F1BF5553600A8CDB4 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D601BF5553600A8CDB4 /* path.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D701BF5553600A8CDB4 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D621BF5553600A8CDB4 /* pimc.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D711BF5553600A8CDB4 /* tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D651BF5553600A8CDB4 /* tables.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D721BF5553600A8CDB4 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D681BF5553600A8CDB4 /* utility.cpp */; settings = {ASSET_TAGS = (); }; };
 		B9E526241BF39DA100768B84 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */; };
 		B9E526251BF39DA100768B84 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526231BF39DA100768B84 /* libmpi.1.dylib */; };
 /* End PBXBuildFile section */
@@ -33,25 +34,28 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		B9477D551BF5553600A8CDB4 /* actions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = actions.cpp; sourceTree = "<group>"; };
+		B9477D561BF5553600A8CDB4 /* actions.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = actions.hpp; sourceTree = "<group>"; };
+		B9477D571BF5553600A8CDB4 /* container.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = container.h; sourceTree = "<group>"; };
+		B9477D581BF5553600A8CDB4 /* estimators.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = estimators.cpp; sourceTree = "<group>"; };
+		B9477D591BF5553600A8CDB4 /* estimators.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = estimators.hpp; sourceTree = "<group>"; };
+		B9477D5A1BF5553600A8CDB4 /* IO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IO.cpp; sourceTree = "<group>"; };
+		B9477D5B1BF5553600A8CDB4 /* IO.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IO.hpp; sourceTree = "<group>"; };
+		B9477D5C1BF5553600A8CDB4 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		B9477D5D1BF5553600A8CDB4 /* moves.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = moves.cpp; sourceTree = "<group>"; };
+		B9477D5E1BF5553600A8CDB4 /* moves.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = moves.h; sourceTree = "<group>"; };
+		B9477D5F1BF5553600A8CDB4 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; };
+		B9477D601BF5553600A8CDB4 /* path.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = path.cpp; sourceTree = "<group>"; };
+		B9477D611BF5553600A8CDB4 /* path.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = path.h; sourceTree = "<group>"; };
+		B9477D621BF5553600A8CDB4 /* pimc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pimc.cpp; sourceTree = "<group>"; };
+		B9477D631BF5553600A8CDB4 /* pimc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
+		B9477D641BF5553600A8CDB4 /* potentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = potentials.h; sourceTree = "<group>"; };
+		B9477D651BF5553600A8CDB4 /* tables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tables.cpp; sourceTree = "<group>"; };
+		B9477D661BF5553600A8CDB4 /* tables.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = tables.hpp; sourceTree = "<group>"; };
+		B9477D671BF5553600A8CDB4 /* uni_header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
+		B9477D681BF5553600A8CDB4 /* utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utility.cpp; sourceTree = "<group>"; };
+		B9477D691BF5553600A8CDB4 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
 		B98249C01B17A441003B0DC6 /* BEC-monopoles */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "BEC-monopoles"; sourceTree = BUILT_PRODUCTS_DIR; };
-		B98249C31B17A441003B0DC6 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		B98249CE1B17A45E003B0DC6 /* moves.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = moves.cpp; sourceTree = "<group>"; };
-		B98249CF1B17A45E003B0DC6 /* moves.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = moves.h; sourceTree = "<group>"; };
-		B98249D01B17A45E003B0DC6 /* path.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = path.cpp; sourceTree = "<group>"; };
-		B98249D11B17A45E003B0DC6 /* path.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = path.h; sourceTree = "<group>"; };
-		B98249D21B17A45E003B0DC6 /* pimc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pimc.cpp; sourceTree = "<group>"; };
-		B98249D41B17A45E003B0DC6 /* potentials.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = potentials.cpp; sourceTree = "<group>"; };
-		B98249D51B17A45E003B0DC6 /* potentials.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = potentials.h; sourceTree = "<group>"; };
-		B98249D61B17A45E003B0DC6 /* utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utility.cpp; sourceTree = "<group>"; };
-		B98249D71B17A45E003B0DC6 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
-		B98249E01B18CACB003B0DC6 /* parameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parameters.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		B9A483A41B28CCC1005FFE8B /* uni_header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
-		B9B041F01B25F95A0005E355 /* pimc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pimc.h; sourceTree = "<group>"; };
-		B9C40F801B26364A007A41BD /* container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = container.h; sourceTree = "<group>"; };
-		B9D607C81BEE82C5008DC784 /* tables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tables.cpp; sourceTree = "<group>"; };
-		B9D607C91BEE82C5008DC784 /* tables.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = tables.hpp; sourceTree = "<group>"; };
-		B9D607CB1BF14A62008DC784 /* IO.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IO.cpp; sourceTree = "<group>"; };
-		B9D607CC1BF14A62008DC784 /* IO.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IO.hpp; sourceTree = "<group>"; };
 		B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
 		B9E526231BF39DA100768B84 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -90,24 +94,27 @@
 		B98249C21B17A441003B0DC6 /* BEC-monopoles */ = {
 			isa = PBXGroup;
 			children = (
-				B98249C31B17A441003B0DC6 /* main.cpp */,
-				B98249E01B18CACB003B0DC6 /* parameters.h */,
-				B98249D21B17A45E003B0DC6 /* pimc.cpp */,
-				B9B041F01B25F95A0005E355 /* pimc.h */,
-				B98249D01B17A45E003B0DC6 /* path.cpp */,
-				B98249D11B17A45E003B0DC6 /* path.h */,
-				B98249CE1B17A45E003B0DC6 /* moves.cpp */,
-				B98249CF1B17A45E003B0DC6 /* moves.h */,
-				B9D607C81BEE82C5008DC784 /* tables.cpp */,
-				B9D607C91BEE82C5008DC784 /* tables.hpp */,
-				B98249D41B17A45E003B0DC6 /* potentials.cpp */,
-				B98249D51B17A45E003B0DC6 /* potentials.h */,
-				B9C40F801B26364A007A41BD /* container.h */,
-				B98249D61B17A45E003B0DC6 /* utility.cpp */,
-				B98249D71B17A45E003B0DC6 /* utility.h */,
-				B9A483A41B28CCC1005FFE8B /* uni_header.h */,
-				B9D607CB1BF14A62008DC784 /* IO.cpp */,
-				B9D607CC1BF14A62008DC784 /* IO.hpp */,
+				B9477D551BF5553600A8CDB4 /* actions.cpp */,
+				B9477D561BF5553600A8CDB4 /* actions.hpp */,
+				B9477D571BF5553600A8CDB4 /* container.h */,
+				B9477D581BF5553600A8CDB4 /* estimators.cpp */,
+				B9477D591BF5553600A8CDB4 /* estimators.hpp */,
+				B9477D5A1BF5553600A8CDB4 /* IO.cpp */,
+				B9477D5B1BF5553600A8CDB4 /* IO.hpp */,
+				B9477D5C1BF5553600A8CDB4 /* main.cpp */,
+				B9477D5D1BF5553600A8CDB4 /* moves.cpp */,
+				B9477D5E1BF5553600A8CDB4 /* moves.h */,
+				B9477D5F1BF5553600A8CDB4 /* parameters.h */,
+				B9477D601BF5553600A8CDB4 /* path.cpp */,
+				B9477D611BF5553600A8CDB4 /* path.h */,
+				B9477D621BF5553600A8CDB4 /* pimc.cpp */,
+				B9477D631BF5553600A8CDB4 /* pimc.h */,
+				B9477D641BF5553600A8CDB4 /* potentials.h */,
+				B9477D651BF5553600A8CDB4 /* tables.cpp */,
+				B9477D661BF5553600A8CDB4 /* tables.hpp */,
+				B9477D671BF5553600A8CDB4 /* uni_header.h */,
+				B9477D681BF5553600A8CDB4 /* utility.cpp */,
+				B9477D691BF5553600A8CDB4 /* utility.h */,
 			);
 			path = "BEC-monopoles";
 			sourceTree = "<group>";
@@ -168,14 +175,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B98249DE1B17A45E003B0DC6 /* utility.cpp in Sources */,
-				B9D607CA1BEE82C5008DC784 /* tables.cpp in Sources */,
-				B98249DA1B17A45E003B0DC6 /* moves.cpp in Sources */,
-				B98249C41B17A441003B0DC6 /* main.cpp in Sources */,
-				B98249DC1B17A45E003B0DC6 /* pimc.cpp in Sources */,
-				B98249DB1B17A45E003B0DC6 /* path.cpp in Sources */,
-				B98249DD1B17A45E003B0DC6 /* potentials.cpp in Sources */,
-				B9D607CD1BF14A62008DC784 /* IO.cpp in Sources */,
+				B9477D721BF5553600A8CDB4 /* utility.cpp in Sources */,
+				B9477D6B1BF5553600A8CDB4 /* estimators.cpp in Sources */,
+				B9477D6E1BF5553600A8CDB4 /* moves.cpp in Sources */,
+				B9477D701BF5553600A8CDB4 /* pimc.cpp in Sources */,
+				B9477D6F1BF5553600A8CDB4 /* path.cpp in Sources */,
+				B9477D6C1BF5553600A8CDB4 /* IO.cpp in Sources */,
+				B9477D6D1BF5553600A8CDB4 /* main.cpp in Sources */,
+				B9477D711BF5553600A8CDB4 /* tables.cpp in Sources */,
+				B9477D6A1BF5553600A8CDB4 /* actions.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

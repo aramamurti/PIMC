@@ -598,6 +598,10 @@ public:
         repermute_start_order = rso;
         repermute_end_order = reo;
     }
+    
+    int get_num_particles(){
+        return size.size();
+    }
 };
 
     

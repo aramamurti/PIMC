@@ -14,15 +14,10 @@
  
  ****************************************************************************************/
 
-Permutation_Table::Permutation_Table(boost::shared_ptr<Path> path, float cutoff){
+Permutation_Table::Permutation_Table(boost::shared_ptr<Path> path){
     this->path = path;
-    if(cutoff < 0)
-        this->cutoff = false;
-    else{
-        this->cutoff = true;
-        ntable = boost::shared_ptr<Neighbor_Table>(new Neighbor_Table(path, cutoff));
-    }
-    
+    ka = boost::shared_ptr<Kinetic_Action>(new Kinetic_Action(this->path));
+
     multistep_dist = path->get_multistep_dist();
     set_up_perms();
 }
@@ -130,13 +125,13 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
     recomp_perms.erase(it, recomp_perms.end());
     
     
-    float permTot = 0.0;
+    float perm_tot = 0.0;
     iVector identity(path->get_parameters()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     
     float old_action = 0.0;
     for(int ptcl = 0; ptcl < path->get_parameters()->get_num_particles(); ptcl++){
-        old_action += path->kinetic_action(slice,multistep_dist);
+        old_action += ka->get_action(slice,multistep_dist);
     }
     
     prob_list[slice][0] = 1;
@@ -152,7 +147,7 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
         
         float new_action = 0.0;
         for(int ptcl = 0; ptcl < path->get_parameters()->get_num_particles(); ptcl++){
-            new_action += path->kinetic_action(slice,multistep_dist);
+            new_action += ka->get_action(slice,multistep_dist);
         }
         
         float multfac = 1.0;
@@ -166,26 +161,32 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
     }
     
     for(fVector::iterator it = prob_list[slice].begin(); it != prob_list[slice].end(); it++)
-        permTot += *it;
+        perm_tot += *it;
     
-    return permTot;
+    return perm_tot;
 }
 
 iVector Permutation_Table::pick_permutation(int ptcl, int start){
-    fVector permWeight = prob_list[start];
-    fVector::iterator it2;
+    fVector perm_weight = prob_list[start];
+    iVector perm_loc = perm_part_loc[ptcl];
     
-    float sum = 0.0;
-    for(it2 = permWeight.begin(); it2 != permWeight.end(); it2++)
-        sum += *it2;
+    float sum = perm_weight[0];
+    for(iVector::iterator it = perm_loc.begin(); it != perm_loc.end(); it++)
+        sum += perm_weight[*it];
     
     int choice = 0;
     float rn = path->get_util()->randnormed(sum);
     float probsum = 0.0;
-    for(int i = 0; i < permWeight.size(); i++){
-        probsum += permWeight[i];
+    for(int i = 0; i < perm_loc.size()+1; i++){
+        if(i == 0)
+            probsum += perm_weight[i];
+        else
+            probsum += perm_weight[perm_loc[i-1]];
         if(rn<=probsum){
-            choice = i;
+            if(i == 0)
+                choice = 0;
+            else
+                choice = perm_loc[i-1];
             break;
         }
     }
@@ -195,10 +196,3 @@ iVector Permutation_Table::pick_permutation(int ptcl, int start){
     return chosenPerm;
 
 }
-
-
-/****************************************************************************************
- 
-                                NEIGHBOR TABLE CLASS
- 
- ****************************************************************************************/

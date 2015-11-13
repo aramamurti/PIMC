@@ -19,6 +19,7 @@ Move_Base::Move_Base(boost::shared_ptr<Path> path){
     num_accepts = 0;
     num_attempts = 0;
     this->path = path;
+    pa = boost::shared_ptr<Potential_Action>(new Potential_Action(this->path, this->path->get_parameters()->get_potentials()));
 }
 
 void Move_Base::attempt(){
@@ -69,13 +70,13 @@ void Center_of_Mass::attempt(int ptcl){
 
     
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        old_action += path->potential_action(slice);
+        old_action += pa->get_action(slice,0);
     }
     
     path->get_beads()->shift_all(ptcl, shift);
     
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        new_action += path->potential_action(slice);
+        new_action += pa->get_action(slice,0);
     }
     
     if(check_move())
@@ -110,14 +111,14 @@ void Bisection::attempt(int ptcl){
     
     for(int a = 0; a < multistep_dist+1; a++){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        old_action += path->potential_action(slice);
+        old_action += pa->get_action(slice,0);
     }
     
     level_move(ptcl, start, multistep_dist);
     
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        new_action += path->potential_action(slice);
+        new_action += pa->get_action(slice,0);
     }
     
     if(check_move())
@@ -194,10 +195,10 @@ void Perm_Bisection::attempt(int ptcl){
     
     for(int a = 0; a < multistep_dist+1; a++){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        old_action += path->potential_action(slice);
+        old_action += pa->get_action(slice,0);
     }
     
-    iVector identity(path->get_parameters()->get_num_particles());
+    iVector identity(path->get_beads()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     iVector chosenPerm = identity;
     iVector origpart(0);
@@ -226,8 +227,10 @@ void Perm_Bisection::attempt(int ptcl){
     
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        new_action += path->potential_action(slice);
+        new_action += pa->get_action(slice,0);
     }
+    
+    //std::cout << old_action << "\t" << new_action <<std::endl;
     
     if(check_move())
         accept();
@@ -247,6 +250,13 @@ void Perm_Bisection::reject(){
     path->get_beads()->permute(true);
     Bisection::reject();
     path->get_beads()->reset_permute();
+    
+    float check_action = 0;
+    for(int a = 0; a < multistep_dist+1; a++ ){
+        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
+        check_action += pa->get_action(slice,0);
+    }
+    
 }
 
 
