@@ -165,6 +165,7 @@ public:
     int get_num_particles(){return particles;}
     float get_box_size(){return box_size;}
     std::vector<bool> get_potentials(){return potentials;}
+    std::vector<bool> get_move_list(){return move_list;}
 };
 
 #endif /* defined(__BEC_monopoles__parameters__) */

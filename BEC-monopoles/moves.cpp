@@ -23,7 +23,7 @@ Move_Base::Move_Base(boost::shared_ptr<Path> path){
 }
 
 void Move_Base::attempt(){
-    ptcl = (int) path->get_util()->randnormed(path->get_parameters()->get_num_particles())%path->get_parameters()->get_num_particles();
+    ptcl = (int) path->get_util()->randnormed(path->get_beads()->get_num_particles())%path->get_beads()->get_num_particles();
     num_attempts++;
     old_action = 0.0;
     new_action = 0.0;

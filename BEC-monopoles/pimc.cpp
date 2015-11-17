@@ -15,13 +15,9 @@ iVector PIMC::run(int end_step, IO &writer, fVector &energytr, iiVector &cycleLi
     
     iVector accept;
     
-    std::vector<bool> move_list(3, false);
-    move_list[0] = true;
-    move_list[2] = true;
-        
     std::vector<bool> estimator_list(3,true);
     
-    set_up_moves(move_list);
+    set_up_moves(path->get_parameters()->get_move_list());
     set_up_estimators(estimator_list);
     
     for(int step = 0; step < end_step; step++){

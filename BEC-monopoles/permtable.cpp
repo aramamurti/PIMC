@@ -25,10 +25,10 @@ Permutation_Table::Permutation_Table(boost::shared_ptr<Path> path){
 void Permutation_Table::set_up_perms(){
     prob_list.resize(path->get_parameters()->get_num_timeslices());
     
-    iVector d(path->get_parameters()->get_num_particles());
+    iVector d(path->get_beads()->get_num_particles());
     int k, maxPtcls = 3;
-    if(path->get_parameters()->get_num_particles() <= maxPtcls)
-        k = path->get_parameters()->get_num_particles();
+    if(path->get_beads()->get_num_particles() <= maxPtcls)
+        k = path->get_beads()->get_num_particles();
     else
         k = maxPtcls;
     
@@ -90,7 +90,7 @@ void Permutation_Table::set_up_perms(){
         }
     }
     
-    for(int ptcl = 0; ptcl < path->get_parameters()->get_num_particles(); ptcl ++){
+    for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl ++){
         iVector locs;
         
         for(int n = 0; n < permed_parts.size(); ++n)
@@ -102,7 +102,7 @@ void Permutation_Table::set_up_perms(){
         perm_part_loc.push_back(locs);
     }
     
-    iVector ptcls(path->get_parameters()->get_num_particles());
+    iVector ptcls(path->get_beads()->get_num_particles());
     iota(ptcls.begin(),ptcls.end(),0);
     
     
@@ -126,11 +126,11 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
     
     
     float perm_tot = 0.0;
-    iVector identity(path->get_parameters()->get_num_particles());
+    iVector identity(path->get_beads()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     
     float old_action = 0.0;
-    for(int ptcl = 0; ptcl < path->get_parameters()->get_num_particles(); ptcl++){
+    for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
         old_action += ka->get_action(slice,multistep_dist);
     }
     
@@ -146,7 +146,7 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
         chdptcl = (int)permed_parts[i].size();
         
         float new_action = 0.0;
-        for(int ptcl = 0; ptcl < path->get_parameters()->get_num_particles(); ptcl++){
+        for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
             new_action += ka->get_action(slice,multistep_dist);
         }
         

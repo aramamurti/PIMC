@@ -43,7 +43,7 @@ int main(int argc, const char * argv[]) {
     std::cout<< world_rank << ": Starting algorithm..." <<std::endl;
     iVector accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
-    writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_parameters()->get_num_particles(),cycles, accept);
+    writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_beads()->get_num_particles(),cycles, accept);
 
     writer.close();
     
