@@ -22,7 +22,7 @@ public:
     typedef boost::shared_ptr<PathList<fVector> > list_ptr;
     
     //constructor and destructor
-    Path(int procnum, IO &writer);
+    Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters);
     ~Path();
     
     //methods
@@ -50,10 +50,12 @@ private:
         
     public:
         
-        Separation_Table(boost::shared_ptr<Path> path);
+        Separation_Table(boost::shared_ptr<Path> path){
+            this->path = path;
+        };
         ~Separation_Table(){};
         
-        void set_up_st(){};
+        void set_up_st();
         void update_table();
         void add_bead();
         void remove_bead();
@@ -63,6 +65,8 @@ private:
         boost::shared_ptr<Path> path;
         boost::unordered_map<int, std::pair<int, int>> bead_pairs;
         boost::unordered_map<int, std::vector<float> > bead_pair_sep;
+        boost::hash<std::pair<int, int> > pair_hash;
+
         
         float rcut;
         

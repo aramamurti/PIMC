@@ -11,13 +11,13 @@
 /****
  Constructor: sets up paths and parameters for each particle and constructs all objects necessary for the PIMC simulation steps.
  *****/
-Path::Path(int procnum, IO &writer)
+Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
 :multvec{1.0,20.0,100.0, 400.0}{ // Multiplication factor for the permute probabilities
     
     //Declare all objects and variables, set all parameters that need to be modified from default (in parameters.h)
     
     util = boost::shared_ptr<Utility>(new Utility(procnum));
-    params = boost::shared_ptr<Parameters>(new Parameters());
+    params = parameters;
     
     writer.write_parameters(params);
     multistep_dist = 8;
@@ -109,10 +109,3 @@ Path::Path(int procnum, IO &writer)
                 }
         
     }
-
-
-Path::Separation_Table::Separation_Table(boost::shared_ptr<Path> path){
-    this->path = path;
-    
-}
-    

@@ -29,6 +29,8 @@ public:
         f3.close();
         f4.close();};
     
+    boost::shared_ptr<Parameters> read_parameters(std::string infile);
+    
 private:
     std::ofstream f1,f2,f3,f4;
 

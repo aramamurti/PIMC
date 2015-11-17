@@ -86,3 +86,33 @@ void IO::write_parameters(boost::shared_ptr<Parameters> params){
     f1 << "Simulation Parameters:\nN      = \t" << params->get_num_particles() << "\nNumber of Time Slices   =\t" << params->get_num_timeslices()<< "\nndim      = \t" << params->get_ndim() <<"\nBox Size      = \t" << params->get_box_size() <<"\ntau    = \t" << params->get_tau() << "\n" << "lambda =\t" << params->get_lambda() <<"\nT      = \t" << params->get_T() << "\n" << std::endl;
 
 }
+
+boost::shared_ptr<Parameters> IO::read_parameters(std::string infile){
+    std::ifstream fin(infile.c_str());
+    typedef boost::shared_ptr<boost::unordered_map<std::string, std::string> > sectionmap;
+    boost::unordered_map<std::string, sectionmap > parameters_map;
+    
+    std::string key;
+    std::string line;
+    while (std::getline(fin, line))
+    {
+        std::istringstream sstr1(line);
+        std::string a, b, c;
+        sstr1 >> a >> b >> c;
+        if(a[0] == '['){
+            std::stringstream sstr2;
+            sstr2 << a.substr(1) << b;
+            key = sstr2.str().substr(0,sstr2.str().length()-1);
+            parameters_map.insert(std::make_pair(key, sectionmap(new boost::unordered_map<std::string, std::string> )));
+        }
+        else if (a != ""){
+            boost::unordered_map<std::string, sectionmap >::iterator it =  parameters_map.find(key);
+            (*it).second->insert(std::make_pair(a, c));
+        }
+        
+        
+    }
+    
+    boost::shared_ptr<Parameters> params(new Parameters(parameters_map));
+    return params;
+}

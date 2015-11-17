@@ -18,6 +18,12 @@
 
 int main(int argc, const char * argv[]) {
     
+    std::string parameters_file;
+    if(argc == 2)
+        parameters_file = argv[1];
+    else
+        parameters_file = "parameters.cfg";
+        
     MPI_Init(NULL, NULL);
     
     int world_rank;
@@ -27,7 +33,7 @@ int main(int argc, const char * argv[]) {
     
     IO writer(world_rank);
 
-    boost::shared_ptr<Path> path(new Path(world_rank, writer));
+    boost::shared_ptr<Path> path(new Path(world_rank, writer, writer.read_parameters(parameters_file)));
     
     boost::shared_ptr<PIMC> sim(new PIMC(path));
     
