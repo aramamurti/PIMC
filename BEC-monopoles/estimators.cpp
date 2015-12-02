@@ -8,11 +8,11 @@
 
 #include "estimators.hpp"
 
-fVector Energy_Estimator::estimate(){
-    float ke =  kinetic_energy();
-    float pe = potential_energy();
+dVector Energy_Estimator::estimate(){
+    double ke =  kinetic_energy();
+    double pe = potential_energy();
     
-    fVector energy;
+    dVector energy;
     energy.push_back(ke+pe);
     energy.push_back(ke);
     energy.push_back(pe);
@@ -20,8 +20,8 @@ fVector Energy_Estimator::estimate(){
     return energy;
 }
 
-float Energy_Estimator::potential_energy(){
-    float pe = 0;
+double Energy_Estimator::potential_energy(){
+    double pe = 0;
     int num_particles = path->get_beads()->get_num_particles();
     for(std::vector<boost::shared_ptr<Potential_Functions> >::iterator it = pot_funcs.begin(); it != pot_funcs.end(); it++){
         switch(potentials[it-pot_funcs.begin()]){
@@ -35,8 +35,8 @@ float Energy_Estimator::potential_energy(){
                 for(int slice = 0; slice < num_timeslices; slice ++)
                     for(int ptcl = 0; ptcl < num_particles; ptcl ++)
                         for(int i = ptcl+1; i < num_particles; i++){
-                            fVector distvec =utility->dist(path->get_beads()->get_pair_same_slice(ptcl, i, slice), path->get_parameters()->get_box_size());
-                            float dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                            dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                            double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                             pe += (*it)->potential_value(dist);
                         }
                 break;
@@ -49,15 +49,15 @@ float Energy_Estimator::potential_energy(){
     
 }
 
-float Energy_Estimator::kinetic_energy(){
+double Energy_Estimator::kinetic_energy(){
     int num_particles = path->get_beads()->get_num_particles();
-    float ke = 0.0;
-    float tot = 0.0;
+    double ke = 0.0;
+    double tot = 0.0;
     for(int slice = 0; slice < num_timeslices; slice++){
         for(int ptcl = 0; ptcl < num_particles; ptcl++){
-            ffVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
-            fVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
-            float dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
+            ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
+            dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+            double dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
             tot -= norm*dist;
         }
     }
@@ -67,24 +67,24 @@ float Energy_Estimator::kinetic_energy(){
     return ke;
 }
 
-fVector Winding_Estimator::estimate(){
+dVector Winding_Estimator::estimate(){
     int num_particles = path->get_beads()->get_num_particles();
-    fVector dvectot(ndim,0.0);
+    dVector dvectot(ndim,0.0);
     for(int ptcl = 0; ptcl < num_particles; ptcl++){
         for(int slice = 0; slice < num_timeslices; slice++){
-            ffVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
-            fVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+            ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
+            dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
             dvectot = utility->vecadd(dvectot, distVec);
         }
     }
     iVector wnum(ndim,0);
-    for(fVector::iterator it = dvectot.begin(); it != dvectot.end(); it++){
+    for(dVector::iterator it = dvectot.begin(); it != dvectot.end(); it++){
         wnum[it-dvectot.begin()] = (int)round(*it/path->get_parameters()->get_box_size());
     }
-    return fVector(wnum.begin(),wnum.end());
+    return dVector(wnum.begin(),wnum.end());
 }
 
-fVector Permutation_Estimator::estimate(){
+dVector Permutation_Estimator::estimate(){
     iVector cycles = path->get_beads()->get_cycles();
-    return fVector(cycles.begin(), cycles.end());
+    return dVector(cycles.begin(), cycles.end());
 }

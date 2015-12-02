@@ -8,8 +8,8 @@
 
 #include "actions.hpp"
 
-float Potential_Action::potential_helper(int slice, int ptcl){
-    float pe = 0;
+double Potential_Action::potential_helper(int slice, int ptcl){
+    double pe = 0;
     int num_particles = path->get_beads()->get_num_particles();
     
     for(std::vector<boost::shared_ptr<Potential_Functions> >::iterator it = pot_funcs.begin(); it != pot_funcs.end(); it++){
@@ -21,8 +21,8 @@ float Potential_Action::potential_helper(int slice, int ptcl){
             case 2:
                 for(int i = 0; i < num_particles; i++)
                     if(i!=ptcl){
-                        fVector distvec =utility->dist(path->get_beads()->get_pair_same_slice(ptcl, i, slice), path->get_parameters()->get_box_size());
-                        float dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                        dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                        double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         pe += (*it)->potential_value(dist);
                     }
                 break;
@@ -35,8 +35,8 @@ float Potential_Action::potential_helper(int slice, int ptcl){
     return pe;
 }
 
-float Potential_Action::get_action(int slice, int dist){
-    float pot = 0;
+double Potential_Action::get_action(int slice, int dist){
+    double pot = 0;
     int num_particles = path->get_beads()->get_num_particles();
     for(int ptcl = 0; ptcl < num_particles; ptcl++){
         pot += potential_helper(slice, ptcl);
@@ -44,14 +44,14 @@ float Potential_Action::get_action(int slice, int dist){
     return path->get_parameters()->get_tau()*pot;
 }
 
-float Kinetic_Action::get_action(int slice, int dist){
-    float kin = 0;
+double Kinetic_Action::get_action(int slice, int dist){
+    double kin = 0;
     int num_particles = path->get_beads()->get_num_particles();
 
     for(int ptcl = 0; ptcl < num_particles; ptcl++){
-        ffVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, dist);
-        fVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
-        float ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+        ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, dist);
+        dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+        double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
         kin += norm/dist*ipdist;
     }
     return kin;

@@ -42,8 +42,8 @@ protected:
     
     int ptcl;
     
-    float old_action;
-    float new_action;
+    double old_action;
+    double new_action;
     
     std::string move_name;
     
@@ -63,8 +63,8 @@ public:
     void accept();
     
 private:
-    float delta;
-    fVector shift;
+    double delta;
+    dVector shift;
     
 };
 

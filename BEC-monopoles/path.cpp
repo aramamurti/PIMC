@@ -26,10 +26,7 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
     pnum = procnum;
 
     set_up_beads();
-    
-//    sep_table = boost::shared_ptr<Separation_Table>(new Separation_Table(boost::shared_ptr<Path>(this)));
-//    sep_table->set_up_st();
-    
+        
 }
 
     //Deconstructor
@@ -39,7 +36,7 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
     
     void Path::set_up_beads(){
         //Set up the initial distribution of particles.
-        ffVector offset(params->get_num_particles(), fVector(params->get_ndim(), 0.0));
+        ddVector offset(params->get_num_particles(), dVector(params->get_ndim(), 0.0));
         
         if(params->get_box_size() == -1){
             for(unsigned int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
@@ -51,25 +48,25 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
         }
         else{
             offset.resize(0);
-            unsigned int pps = (int)ceil(pow(params->get_num_particles(),1/((float)params->get_ndim())));
-            float spacing = params->get_box_size()/pps;
+            unsigned int pps = (int)ceil(pow(params->get_num_particles(),1/((double)params->get_ndim())));
+            double spacing = params->get_box_size()/pps;
             for(int i = 0; i < pps; i++){
                 if(params->get_ndim() == 1){
-                    fVector pos;
+                    dVector pos;
                     pos.push_back(i*spacing);
                     offset.push_back(pos);
                 }
                 else{
                     for(int j = 0; j < pps; j++){
                         if(params->get_ndim() == 1){
-                            fVector pos;
+                            dVector pos;
                             pos.push_back(i*spacing);
                             pos.push_back(j*spacing);
                             offset.push_back(pos);
                         }
                         else{
                             for(int k = 0; k < pps; k++){
-                                fVector pos;
+                                dVector pos;
                                 pos.push_back(i*spacing);
                                 pos.push_back(j*spacing);
                                 pos.push_back(k*spacing);
@@ -81,13 +78,17 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
             }
         }
         
-        beads = list_ptr(new PathList<fVector>());
+        beads = list_ptr(new PathList<dVector>(params->get_ndim(), params->get_box_size()));
         
         for(int slice = 0; slice < params->get_num_timeslices(); slice++){
             for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
                 beads->push_back(offset[ptcl],ptcl);
             }
         }
+        
+        beads->generate_separations();
+        beads->generate_neighbors();
+
         
         if(params->is_charged()){
             int numcharges = params->get_num_chgs();
@@ -98,14 +99,16 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
         
         //Make the beads a periodic chain
         beads->make_circular();
-        
     }
         
     void Path::put_in_box(){
+        
+        beads->set_old_data();
+        
         if(params->get_box_size() != -1)
             for(int ptcl = 0; ptcl < beads->get_num_particles(); ptcl++)
                 for(int slice = 0; slice < params->get_num_timeslices(); slice++){
+                    //std::cout << beads->get_bead_data(ptcl,slice)[0] << "\t"<< util->location(beads->get_bead_data(ptcl, slice), params->get_box_size())[0] << std::endl;
                     beads->set_bead_data(ptcl, slice, util->location(beads->get_bead_data(ptcl, slice), params->get_box_size()));
                 }
-        
     }

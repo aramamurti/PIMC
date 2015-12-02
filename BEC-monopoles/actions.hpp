@@ -21,7 +21,7 @@ public:
 
     }
     ~Action_Base(){};
-    float get_action(int slice, int dist);
+    double get_action(int slice, int dist);
 protected:
     boost::shared_ptr<Path> path;
     boost::shared_ptr<Utility> utility;
@@ -58,8 +58,8 @@ public:
     }
     ~Potential_Action(){};
     
-    float get_action(int slice, int dist);
-    float potential_helper(int slice, int ptcl);
+    double get_action(int slice, int dist);
+    double potential_helper(int slice, int ptcl);
     
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;
@@ -75,10 +75,10 @@ public:
     }
     ~Kinetic_Action(){};
     
-    float get_action(int slice, int dist);
+    double get_action(int slice, int dist);
     
 private:
-    float norm;
+    double norm;
 };
 
 

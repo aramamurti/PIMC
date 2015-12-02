@@ -37,7 +37,7 @@ int main(int argc, const char * argv[]) {
     
     boost::shared_ptr<PIMC> sim(new PIMC(path));
     
-    fVector energy(0);
+    dVector energy(0);
     iiVector cycles;
     
     std::cout<< world_rank << ": Starting algorithm..." <<std::endl;

@@ -27,15 +27,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/any.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-
-
+#include <boost/functional/hash.hpp>
 
 typedef std::vector<int> iVector;
-typedef std::vector<float> fVector;
-typedef std::vector<std::vector<float> > ffVector;
+typedef std::vector<double> dVector;
 typedef std::vector<std::vector<int> > iiVector;
-
-
+typedef std::vector<std::vector<double> > ddVector;
 
 #endif

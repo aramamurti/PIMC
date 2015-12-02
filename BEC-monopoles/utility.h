@@ -11,29 +11,30 @@
 
 #include "uni_header.h"
 
-#endif /* defined(__PIMC__utility__) */
 
 class Utility{
 public:
     Utility(int procnum);
     ~Utility();
     std::string currentDateTime();
-    float randnormed(int max);
+    double randnormed(int max);
     int randint(int max);
-    float randgaussian(float width);
-    float vecavg(fVector vec);
-    float vecstd(fVector v);
-    fVector vecadd(fVector a, fVector b);
+    double randgaussian(double width);
+    double vecavg(dVector vec);
+    double vecstd(dVector v);
+    dVector vecadd(dVector a, dVector b);
 
 
-    float per_bound_cond(float a, float b);
+    double per_bound_cond(double a, double b);
     int factorial(int n){return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;}
     int permutation(int n, int k){return factorial(n)/factorial(n-k);}
-    fVector location(fVector bead, float box_size);
-    fVector dist(ffVector beads, float box_size);
-    fVector avedist(ffVector beads, float box_size);
+    dVector location(dVector bead, double box_size);
+    dVector dist(ddVector beads, double box_size);
+    dVector avedist(ddVector beads, double box_size);
     
 private:
     const gsl_rng_type * T;
     gsl_rng * r;
 };
+
+#endif /* defined(__PIMC__utility__) */

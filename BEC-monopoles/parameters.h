@@ -17,7 +17,7 @@ private:
     
     typedef boost::unordered_map<std::string, std::string> sectionmap;
     
-    float tau, T, kb, lambda, box_size;
+    double tau, T, kb, lambda, box_size;
     int ndim, timeslices, particles, skip, equilibration, end_step, charges;
     bool boson, per_bound_cond, charged;
     std::vector<bool> potentials, move_list;
@@ -138,32 +138,32 @@ public:
                 
         }
         
-        set_timeslices(10);
+        set_timeslices(40);
         skip = 10;
         
     }
     
     ~Parameters(){}
     
-    void set_timeslices(float newTS){
+    void set_timeslices(double newTS){
         timeslices = newTS;
         tau = 1/(T*timeslices);
     }
     
     int get_ndim(){return ndim;}
-    float get_T(){return T;}
-    float get_kb(){return kb;}
+    double get_T(){return T;}
+    double get_kb(){return kb;}
     bool is_boson(){return boson;}
     bool is_charged(){return charged;}
     int get_num_chgs(){return charges;}
-    float get_tau(){return tau;}
-    float get_lambda(){return lambda;}
+    double get_tau(){return tau;}
+    double get_lambda(){return lambda;}
     int get_end_step(){return end_step;}
     int get_skip(){return skip;}
     int get_equilibration(){return equilibration;}
     int get_num_timeslices(){return timeslices;}
     int get_num_particles(){return particles;}
-    float get_box_size(){return box_size;}
+    double get_box_size(){return box_size;}
     std::vector<bool> get_potentials(){return potentials;}
     std::vector<bool> get_move_list(){return move_list;}
 };

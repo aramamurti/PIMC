@@ -112,7 +112,7 @@ void Permutation_Table::set_up_perms(){
     }
 }
 
-float Permutation_Table::recalc_perms(iVector ptcls, int slice){
+double Permutation_Table::recalc_perms(iVector ptcls, int slice){
     iVector recomp_perms;
     
     for(iVector::iterator it = ptcls.begin(); it != ptcls.end(); it++){
@@ -125,11 +125,11 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
     recomp_perms.erase(it, recomp_perms.end());
     
     
-    float perm_tot = 0.0;
+    double perm_tot = 0.0;
     iVector identity(path->get_beads()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     
-    float old_action = 0.0;
+    double old_action = 0.0;
     for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
         old_action += ka->get_action(slice,multistep_dist);
     }
@@ -145,41 +145,41 @@ float Permutation_Table::recalc_perms(iVector ptcls, int slice){
         
         chdptcl = (int)permed_parts[i].size();
         
-        float new_action = 0.0;
+        double new_action = 0.0;
         for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
             new_action += ka->get_action(slice,multistep_dist);
         }
         
-        float multfac = 1.0;
+        double multfac = 1.0;
         if(chdptcl != 0)
             multfac = path->multvec[chdptcl-1];
         
-        float kFac = multfac * exp(-(new_action - old_action));
+        double kFac = multfac * exp(-(new_action - old_action));
         prob_list[slice][i] = kFac;
         
         path->get_beads()->permute(true);
     }
     
-    for(fVector::iterator it = prob_list[slice].begin(); it != prob_list[slice].end(); it++)
+    for(dVector::iterator it = prob_list[slice].begin(); it != prob_list[slice].end(); it++)
         perm_tot += *it;
     
     return perm_tot;
 }
 
 iVector Permutation_Table::pick_permutation(int ptcl, int start){
-    fVector perm_weight = prob_list[start];
+    dVector perm_weight = prob_list[start];
     iVector perm_loc = perm_part_loc[ptcl];
     
-    float sum = perm_weight[0];
+    double sum = perm_weight[0];
     for(iVector::iterator it = perm_loc.begin(); it != perm_loc.end(); it++)
         sum += perm_weight[*it];
     
     int choice = 0;
-    float rn = path->get_util()->randnormed(sum);
-    float probsum = 0.0;
+    double rn = path->get_util()->randnormed(sum);
+    double probsum = 0.0;
     for(int i = 0; i < perm_loc.size()+1; i++){
         if(i == 0)
-            probsum += perm_weight[i];
+            probsum += perm_weight[0];
         else
             probsum += perm_weight[perm_loc[i-1]];
         if(rn<=probsum){

@@ -66,7 +66,7 @@ void Center_of_Mass::attempt(){
     
     path->get_beads()->set_old_data();
     
-    for(fVector::iterator it = shift.begin(); it != shift.end(); it++ )
+    for(dVector::iterator it = shift.begin(); it != shift.end(); it++ )
         *it = path->get_util()->randgaussian(delta);
 
     
@@ -131,11 +131,11 @@ void Bisection::attempt(){
 void Bisection::level_move(int ptcl, int start, int m){
     if(m != 1 && m%2 == 0){
         int slice = (start + m/2);
-        float tau1 = (m/2)*path->get_parameters()->get_tau();
-        fVector move(0);
-        ffVector bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
-        fVector aved = path->get_util()->avedist(bds,path->get_parameters()->get_box_size());
-        float width = sqrt(path->get_parameters()->get_lambda()*tau1);
+        double tau1 = (m/2)*path->get_parameters()->get_tau();
+        dVector move(0);
+        ddVector bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
+        dVector aved = path->get_util()->avedist(bds,path->get_parameters()->get_box_size());
+        double width = sqrt(path->get_parameters()->get_lambda()*tau1);
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             move.push_back(aved[ndim] + path->get_util()->randgaussian(width));
         }
@@ -250,7 +250,7 @@ void Perm_Bisection::reject(){
     Bisection::reject();
     path->get_beads()->reset_permute();
     
-    float check_action = 0;
+    double check_action = 0;
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
         check_action += pa->get_action(slice,0);

@@ -22,11 +22,11 @@ public:
     ~Permutation_Table(){};
     
     void set_up_perms();
-    float recalc_perms(iVector ptcls, int slice);
+    double recalc_perms(iVector ptcls, int slice);
     iVector pick_permutation(int ptcl, int start);
     
     iiVector* get_perm_list(){return &perm_list;}
-    ffVector* get_prob_list(){return &prob_list;}
+    ddVector* get_prob_list(){return &prob_list;}
     
 private:
     
@@ -35,7 +35,7 @@ private:
     int multistep_dist;
     
     iiVector perm_list;
-    ffVector prob_list;
+    ddVector prob_list;
     iiVector perm_part_loc;
     iiVector permed_parts;
     

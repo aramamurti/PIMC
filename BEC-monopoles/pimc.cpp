@@ -11,7 +11,7 @@
 
 PIMC::PIMC(boost::shared_ptr<Path> path){this->path = path;}
 
-iVector PIMC::run(int end_step, IO &writer, fVector &energytr, iiVector &cycleList){
+iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleList){
     
     iVector accept;
     
@@ -27,16 +27,16 @@ iVector PIMC::run(int end_step, IO &writer, fVector &energytr, iiVector &cycleLi
         }
         
         for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
-            (*it).attempt();
+            it->attempt();
         }
         
         if(step % path->get_parameters()->get_skip() == 0 && step >= path->get_parameters()->get_equilibration()){
-            fVector cycles_float = estimators[1].estimate();
-            iVector cycles(cycles_float.begin(),cycles_float.end());
+            dVector cycles_double = estimators[1].estimate();
+            iVector cycles(cycles_double.begin(),cycles_double.end());
             
-            fVector winding_float = estimators[2].estimate();
-            iVector winding(winding_float.begin(), winding_float.end());
-            fVector energy = estimators[0].estimate();
+            dVector winding_double = estimators[2].estimate();
+            iVector winding(winding_double.begin(), winding_double.end());
+            dVector energy = estimators[0].estimate();
             
             energytr.push_back(energy[0]);
             cycleList.push_back(cycles);

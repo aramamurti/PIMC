@@ -34,7 +34,7 @@ Utility::~Utility(){
     gsl_rng_free(r);
 }
 
-float Utility::randnormed(int max){
+double Utility::randnormed(int max){
     return gsl_rng_uniform (r) * max;
 }
 
@@ -42,31 +42,31 @@ int Utility::randint(int max){
     return (int)gsl_rng_uniform_int(r,max);
 }
 
-float Utility::randgaussian(float width){
+double Utility::randgaussian(double width){
     return gsl_ran_gaussian_ziggurat(r, width);
 }
 
-float Utility::vecavg(fVector v)
+double Utility::vecavg(dVector v)
 {
-    float sum = accumulate(v.begin(), v.end(), 0.0);
-    float mean = sum / v.size();
+    double sum = accumulate(v.begin(), v.end(), 0.0);
+    double mean = sum / v.size();
     
     return mean;
 }
 
-float Utility::vecstd(fVector v){
-    float mean = vecavg(v);
-    fVector diff(v.size());
-    std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<float>(), mean));
-    float sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    float stdev = sqrt(sq_sum / v.size());
+double Utility::vecstd(dVector v){
+    double mean = vecavg(v);
+    dVector diff(v.size());
+    std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<double>(), mean));
+    double sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double stdev = sqrt(sq_sum / v.size());
     
     return stdev;
 }
 
-fVector Utility::vecadd(fVector a, fVector b){
-    fVector result;
-    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](float l, float r)
+dVector Utility::vecadd(dVector a, dVector b){
+    dVector result;
+    std::transform(a.begin(), a.end(), b.begin(), std::back_inserter(result), [&](double l, double r)
                    {
                        return r+l;
                    });
@@ -74,9 +74,9 @@ fVector Utility::vecadd(fVector a, fVector b){
     return result;
 }
 
-fVector Utility::location(fVector bead, float box_size){
+dVector Utility::location(dVector bead, double box_size){
     int ndim = (int)bead.size();
-    fVector loc;
+    dVector loc;
     for(int i = 0; i < ndim; i++){
         if(box_size != -1)
             loc.push_back(per_bound_cond(bead[i],box_size));
@@ -85,13 +85,13 @@ fVector Utility::location(fVector bead, float box_size){
     }
     return loc;
 }
-fVector Utility::dist(ffVector beads, float box_size){
+dVector Utility::dist(ddVector beads, double box_size){
     int ndim = (int)beads[0].size();
-    fVector dist;
-    fVector bead1 = location(beads[0],box_size);
-    fVector bead2 = location(beads[1],box_size);
+    dVector dist;
+    dVector bead1 = location(beads[0],box_size);
+    dVector bead2 = location(beads[1],box_size);
     for(int i = 0; i < ndim; i++){
-        float dimdist = bead2[i]-bead1[i];
+        double dimdist = bead2[i]-bead1[i];
         if(box_size != -1)
             dimdist = per_bound_cond(dimdist+box_size/2, box_size)-box_size/2;
         dist.push_back(dimdist);
@@ -99,19 +99,19 @@ fVector Utility::dist(ffVector beads, float box_size){
     return dist;
 }
 
-fVector Utility::avedist(ffVector beads, float box_size){
-    fVector dstc = dist(beads, box_size);
-    for(fVector::iterator it = dstc.begin(); it!= dstc.end(); it++){
+dVector Utility::avedist(ddVector beads, double box_size){
+    dVector dstc = dist(beads, box_size);
+    for(dVector::iterator it = dstc.begin(); it!= dstc.end(); it++){
         *it = *it/2 + beads[0][it-dstc.begin()];
     }
     return dstc;
 }
 
-float Utility::per_bound_cond(float a, float b)
+double Utility::per_bound_cond(double a, double b)
 {
     if(b < 0)
         return fmod(-a, -b);
-    float ret = fmod(a,b);
+    double ret = fmod(a,b);
     if(ret < 0)
         ret+=b;
     return ret;

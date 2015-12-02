@@ -10,7 +10,6 @@
 #define __PIMCtest__paths__
 
 #include "potentials.h"
-#include "utility.h"
 #include "parameters.h"
 #include "container.h"
 #include "IO.hpp"
@@ -19,7 +18,7 @@
 
 class Path{
 public:
-    typedef boost::shared_ptr<PathList<fVector> > list_ptr;
+    typedef boost::shared_ptr<PathList<dVector> > list_ptr;
     
     //constructor and destructor
     Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters);
@@ -41,36 +40,10 @@ public:
     int get_processor_num(){return pnum;}
     iVector get_charge_list(){return charge_list;}
     
-    float multvec[4];
+    double multvec[4];
     
     
 private:
-    
-    class Separation_Table{
-        
-    public:
-        
-        Separation_Table(boost::shared_ptr<Path> path){
-            this->path = path;
-        };
-        ~Separation_Table(){};
-        
-        void set_up_st();
-        void update_table();
-        void add_bead();
-        void remove_bead();
-        
-    private:
-        
-        boost::shared_ptr<Path> path;
-        boost::unordered_map<int, std::pair<int, int>> bead_pairs;
-        boost::unordered_map<int, std::vector<float> > bead_pair_sep;
-        boost::hash<std::pair<int, int> > pair_hash;
-
-        
-        float rcut;
-        
-    };
     
     boost::shared_ptr<Parameters> params;
     boost::shared_ptr<Potential_Functions> pot;
@@ -86,9 +59,6 @@ private:
     
     int multistep_dist;
     int pnum;
-    
-    boost::shared_ptr<Separation_Table> sep_table;
-    
 };
 
 

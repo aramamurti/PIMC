@@ -24,7 +24,7 @@ public:
         ndim = path->get_parameters()->get_ndim();
     }
     ~Estimator_Base(){};
-    virtual fVector estimate(){return fVector(0);}
+    virtual dVector estimate(){return dVector(0);}
     
 protected:
     boost::shared_ptr<Path> path;
@@ -66,27 +66,27 @@ public:
     };
     ~Energy_Estimator(){};
     
-    float potential_energy();
-    float kinetic_energy();
+    double potential_energy();
+    double kinetic_energy();
     
-    fVector estimate();
+    dVector estimate();
     
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;
     std::vector<int> potentials;
-    float norm;
+    double norm;
 };
 
 class Permutation_Estimator: public Estimator_Base{
 public:
     Permutation_Estimator(boost::shared_ptr<Path> path): Estimator_Base(path){};
-    fVector estimate();
+    dVector estimate();
 };
 
 class Winding_Estimator: public Estimator_Base{
 public:
     Winding_Estimator(boost::shared_ptr<Path> path): Estimator_Base(path){};
-    fVector estimate();
+    dVector estimate();
 };
 
 #endif /* estimators_hpp */
