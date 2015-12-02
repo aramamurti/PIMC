@@ -278,10 +278,12 @@ public:
         nt->set_up_neighbor_table();
     }
     
-    void shift_all(int row, T shift){
+    iVector shift_all(int row, T shift){
         node_ptr temp = list_map[row][0];
         std::vector<std::pair<size_t, int> > key_list;
         std::vector<T> new_locs;
+        
+        iVector shifted_rows(1,row);
         
         for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
             *it += shift[it-temp->data.begin()];
@@ -292,11 +294,15 @@ public:
         key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
         
         temp = temp->right_node;
+        int cur_row = row;
         while(temp != list_map[row][0]){
             for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
                 *it += shift[it-temp->data.begin()];
             }
-            
+            if(temp->column_number == 0 && temp->row_number != cur_row){
+                cur_row = temp->row_number;
+                shifted_rows.push_back(cur_row);
+            }
             nt->update_bead(temp);
             
             new_locs.push_back(temp->data);
@@ -308,6 +314,7 @@ public:
         for(std::vector<std::pair<size_t, int> >::iterator it = key_list.begin(); it!= key_list.end(); it++){
             sep->update_bead(it->second, it->first, new_locs[it-key_list.begin()]);
         }
+        return shifted_rows;
     }
     
     void set_old_data(){
@@ -488,6 +495,27 @@ public:
         return ret;
     }
     
+    iVector get_pair_rows(int row, int start, int dist){
+        
+        int row2 = row;
+        int end = start+dist;
+        
+        if(start >= size[row] && end >= size[row] && circular){
+            start = start%size[row];
+            row = list_map[row][size[row]-1]->right_node->row_number;
+        }
+        
+        if(end >= size[row] && circular){
+            end = end%size[row];
+            row2 = list_map[row2][size[row]-1]->right_node->row_number;
+        }
+        
+        iVector ret(0);
+        ret.push_back(row);
+        ret.push_back(row2);
+        return ret;
+    }
+    
     std::vector<T> get_pair_same_slice(int row1, int row2, int slice){
         
         if(slice >= size[row1] && circular){
@@ -531,6 +559,12 @@ public:
         return sep->get_separation(std::pair<size_t,size_t>(list_map[path_row][slice]->key,worm[worm_row][slice]->key));
     }
     
+    std::vector<std::pair<int, int> > get_worm_indices(){
+        std::vector<std::pair<int, int> > inds;
+        inds.push_back(worm_head_index);
+        inds.push_back(worm_tail_index);
+        return inds;
+    }
     
     iVector get_cycles(){
         iVector cyclenum(size.size(),0);
@@ -1066,6 +1100,12 @@ public:
         sep->update_bead(slice, worm[row][slice]->key, data);
     }
     
+    void remove_worm(){
+        while(worm_size != 0){
+            worm_pop_back(true);
+        }
+    }
+    
     
     /************
      Printing Methods
@@ -1252,7 +1292,6 @@ public:
                 }
                 std::cout << std::endl;
             }
-        
     }
 };
 

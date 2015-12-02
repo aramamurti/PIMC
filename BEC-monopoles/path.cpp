@@ -108,7 +108,6 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
         if(params->get_box_size() != -1)
             for(int ptcl = 0; ptcl < beads->get_num_particles(); ptcl++)
                 for(int slice = 0; slice < params->get_num_timeslices(); slice++){
-                    //std::cout << beads->get_bead_data(ptcl,slice)[0] << "\t"<< util->location(beads->get_bead_data(ptcl, slice), params->get_box_size())[0] << std::endl;
                     beads->set_bead_data(ptcl, slice, util->location(beads->get_bead_data(ptcl, slice), params->get_box_size()));
                 }
     }

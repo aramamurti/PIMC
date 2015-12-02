@@ -17,7 +17,7 @@ public:
     Utility(int procnum);
     ~Utility();
     std::string currentDateTime();
-    double randnormed(int max);
+    double randnormed(double max);
     int randint(int max);
     double randgaussian(double width);
     double vecavg(dVector vec);

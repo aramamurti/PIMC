@@ -58,8 +58,9 @@ public:
     }
     ~Potential_Action(){};
     
-    double get_action(int slice, int dist);
+    double get_action(int slice, int dist, bool only_worm = false,int start_omit = 0, int end_omit = 0);
     double potential_helper(int slice, int ptcl);
+    double potential_helper_worm(int slice,int start_omit, int end_omit);
     
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;

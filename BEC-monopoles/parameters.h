@@ -17,8 +17,8 @@ private:
     
     typedef boost::unordered_map<std::string, std::string> sectionmap;
     
-    double tau, T, kb, lambda, box_size;
-    int ndim, timeslices, particles, skip, equilibration, end_step, charges;
+    double tau, T, kb, lambda, box_size, mu, C0;
+    int ndim, timeslices, particles, skip, equilibration, end_step, charges, mbar;
     bool boson, per_bound_cond, charged;
     std::vector<bool> potentials, move_list;
     std::string particle_type;
@@ -139,7 +139,10 @@ public:
         }
         
         set_timeslices(40);
+        mbar = 40;
         skip = 10;
+        mu = -1;
+        C0 = 7.5;
         
     }
     
@@ -164,6 +167,9 @@ public:
     int get_num_timeslices(){return timeslices;}
     int get_num_particles(){return particles;}
     double get_box_size(){return box_size;}
+    double get_mu(){return mu;}
+    double get_C0(){return C0;}
+    int get_mbar(){return mbar;}
     std::vector<bool> get_potentials(){return potentials;}
     std::vector<bool> get_move_list(){return move_list;}
 };

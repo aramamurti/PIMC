@@ -71,13 +71,13 @@ void Center_of_Mass::attempt(){
 
     
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        old_action += pa->get_action(slice,0);
+        old_action += pa->get_action(slice,0, false);
     }
     
-    path->get_beads()->shift_all(ptcl, shift);
+    changed_particles = path->get_beads()->shift_all(ptcl, shift);
     
     for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        new_action += pa->get_action(slice,0);
+        new_action += pa->get_action(slice,0, false);
     }
     
     if(check_move())
@@ -89,7 +89,9 @@ void Center_of_Mass::attempt(){
 void Center_of_Mass::accept(){
     Move_Base::accept();
     iVector lc = path->get_last_changed();
-    lc.push_back(ptcl);
+    for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
+        lc.push_back(*it);
+    }
     path->set_last_changed(lc);
 }
 
@@ -112,14 +114,14 @@ void Bisection::attempt(){
     
     for(int a = 0; a < multistep_dist+1; a++){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        old_action += pa->get_action(slice,0);
+        old_action += pa->get_action(slice,0, false);
     }
     
     level_move(ptcl, start, multistep_dist);
     
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        new_action += pa->get_action(slice,0);
+        new_action += pa->get_action(slice,0, false);
     }
     
     if(check_move())
@@ -134,6 +136,9 @@ void Bisection::level_move(int ptcl, int start, int m){
         double tau1 = (m/2)*path->get_parameters()->get_tau();
         dVector move(0);
         ddVector bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
+        iVector chd_ptcls = path->get_beads()->get_pair_rows(ptcl, start, m);
+        changed_particles.push_back(chd_ptcls[0]);
+        changed_particles.push_back(chd_ptcls[1]);
         dVector aved = path->get_util()->avedist(bds,path->get_parameters()->get_box_size());
         double width = sqrt(path->get_parameters()->get_lambda()*tau1);
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
@@ -147,10 +152,15 @@ void Bisection::level_move(int ptcl, int start, int m){
 
 void Bisection::accept(){
     
-    iVector chd_ptcl;
-    chd_ptcl.push_back(ptcl);
+    iVector lc = path->get_last_changed();
+    auto last = std::unique(changed_particles.begin(), changed_particles.end());
+    changed_particles.erase(last, changed_particles.end());
+
+    for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
+        lc.push_back(*it);
+    }
+    path->set_last_changed(lc);
     
-    path->set_last_changed(chd_ptcl);
     path->set_last_start_end(start, start+multistep_dist);
     path->get_beads()->set_prev_perm();
     
@@ -177,26 +187,14 @@ void Perm_Bisection::attempt(){
 
     start = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
     
-    int ls = path->get_last_start_end()[0];
-    int le = path->get_last_start_end()[1];
-    
-    iVector lc;
-    
-    if(le > path->get_parameters()->get_num_timeslices() && start < le% path->get_parameters()->get_num_timeslices())
-        lc = path->get_beads()->get_rep_swap_order();
-    else
-        lc = path->get_last_changed();
-    
-    if((start+multistep_dist > ls &&start+multistep_dist <=le) ||
-                ((start >=ls) && (start <=le))|| (le > path->get_parameters()->get_num_timeslices()
-                                                && start < le % path->get_parameters()->get_num_timeslices()))
-        ptable->recalc_perms(lc, start);
+    for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++)
+        ptable->recalc_perms(path->get_last_changed(), slice);
     
     path->get_beads()->set_old_data();
     
     for(int a = 0; a < multistep_dist+1; a++){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        old_action += pa->get_action(slice,0);
+        old_action += pa->get_action(slice,0, false);
     }
     
     iVector identity(path->get_beads()->get_num_particles());
@@ -228,7 +226,7 @@ void Perm_Bisection::attempt(){
     
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        new_action += pa->get_action(slice,0);
+        new_action += pa->get_action(slice,0, false);
     }
         
     if(check_move())
@@ -238,7 +236,10 @@ void Perm_Bisection::attempt(){
 }
 
 void Perm_Bisection::accept(){
-    path->set_last_changed(permed_parts);
+    
+    auto last = std::unique(changed_particles.begin(), changed_particles.end());
+    changed_particles.erase(last, changed_particles.end());
+    path->set_last_changed(changed_particles);
     path->set_last_start_end(start, start + multistep_dist);
     path->get_beads()->set_prev_perm();
     
@@ -249,12 +250,7 @@ void Perm_Bisection::reject(){
     path->get_beads()->permute(true);
     Bisection::reject();
     path->get_beads()->reset_permute();
-    
-    double check_action = 0;
-    for(int a = 0; a < multistep_dist+1; a++ ){
-        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        check_action += pa->get_action(slice,0);
-    }
+    path->set_last_changed(iVector(0));
 }
 
 /***************************************************************************************
@@ -263,8 +259,63 @@ void Perm_Bisection::reject(){
  
  ***************************************************************************************/
 
+Insert::Insert(boost::shared_ptr<Path> path) : Move_Base(path){
 
+}
 
+void Insert::attempt(){
+    Move_Base::attempt();
+    
+    int m = path->get_util()->randint(path->get_parameters()->get_mbar())+1;
+    int start_slice = path->get_util()->randint(path->get_parameters()->get_num_timeslices());
+    
+    dVector pos(0);
+    for(int i = 0; i < path->get_parameters()->get_ndim();i++){
+        pos.push_back(path->get_util()->randnormed(path->get_parameters()->get_box_size()));
+    }
+    
+    path->get_beads()->initialize_worm();
+    path->get_beads()->new_worm(pos, start_slice);
+    
+    for(int i = 1; i < m; i++){
+        dVector new_pos(0);
+        double width = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
+        for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
+            new_pos.push_back(pos[ndim] + path->get_util()->randgaussian(width));
+        }
+        path->get_beads()->worm_push_back(new_pos);
+        pos = new_pos;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*m;
+    
+    new_action = 0;
+    for(int a = 0; a < m; a++ ){
+        int slice = (start_slice + a)%path->get_parameters()->get_num_timeslices();
+        new_action += pa->get_action(slice,0,true);
+    }
+    
+    if(check_move())
+        accept();
+    else
+        reject();
+
+    
+}
+bool Insert::check_move(){
+    if(path->get_util()->randnormed(1)<path->get_parameters()->get_C0()*exp(-new_action + mu_shift*path->get_parameters()->get_tau()))
+        return true;
+    else
+        return false;
+}
+void Insert::accept(){
+    Move_Base::accept();
+    path->set_worm(true);
+}
+
+void Insert::reject(){
+    path->get_beads()->remove_worm();
+}
 
 
 /***************************************************************************************
@@ -273,7 +324,47 @@ void Perm_Bisection::reject(){
  
  ***************************************************************************************/
 
+Remove::Remove(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
 
+void Remove::attempt(){
+    Move_Base::attempt();
+    
+    int worm_size =path->get_beads()->get_worm_size();
+    if(worm_size > path->get_parameters()->get_mbar()){
+        reject();
+        return;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*worm_size;
+    
+    old_action = 0;
+    for(int a = 0; a < worm_size; a++ ){
+        int slice = (path->get_beads()->get_worm_indices()[0].second + a)%path->get_parameters()->get_num_timeslices();
+        old_action += pa->get_action(slice,0,true);
+    }
+    
+    if(check_move())
+        accept();
+    else
+        reject();
+
+    
+}
+bool Remove::check_move(){
+    if(path->get_util()->randnormed(1)<path->get_parameters()->get_C0()*exp((old_action - mu_shift*path->get_parameters()->get_tau())))
+        return true;
+    else
+        return false;
+}
+void Remove::accept(){
+    Move_Base::accept();
+    path->get_beads()->remove_worm();
+    path->set_worm(false);
+}
+
+void Remove::reject(){}
 
 
 
@@ -284,7 +375,58 @@ void Perm_Bisection::reject(){
  ***************************************************************************************/
 
 
+Advance_Head::Advance_Head(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
 
+void Advance_Head::attempt(){
+    Move_Base::attempt();
+    
+    int m = path->get_util()->randint(path->get_parameters()->get_mbar())+1;
+    int start_slice = path->get_beads()->get_worm_indices()[0].second;
+    
+    dVector pos = path->get_beads()->get_worm_bead_data(0, start_slice);
+    for(int i = 0; i < m; i++){
+        dVector new_pos(0);
+        double width = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
+        for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
+            new_pos.push_back(pos[ndim] + path->get_util()->randgaussian(width));
+        }
+        path->get_beads()->worm_push_front(new_pos);
+        pos = new_pos;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*m;
+    
+    new_action = 0;
+    
+    for(int a = 1; a <= m; a++){
+        int slice = (start_slice - a+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+        new_action += pa->get_action(slice,0,true);
+    }
+    
+    if(check_move())
+        accept();
+    else
+        reject(m);
+    
+    
+}
+bool Advance_Head::check_move(){
+    if(path->get_util()->randnormed(1)<exp(-new_action + mu_shift*path->get_parameters()->get_tau()))
+        return true;
+    else
+        return false;
+}
+void Advance_Head::accept(){
+    Move_Base::accept();
+}
+
+void Advance_Head::reject(int m){
+    for(int i = 0; i < m; i++){
+        path->get_beads()->worm_pop_front(true);
+    }
+}
 
 
 
@@ -294,7 +436,57 @@ void Perm_Bisection::reject(){
  
  ***************************************************************************************/
 
+Recede_Head::Recede_Head(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
 
+void Recede_Head::attempt(){
+    Move_Base::attempt();
+    
+    int m = path->get_util()->randint(path->get_parameters()->get_mbar())+1;
+    int start_slice = path->get_beads()->get_worm_indices()[0].second;
+
+    
+    int worm_size =path->get_beads()->get_worm_size();
+    if(worm_size < m){
+        reject();
+        return;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*worm_size;
+    
+    old_action = 0;
+    for(int a = 0; a < m; a++ ){
+        int slice = (start_slice + a)%path->get_parameters()->get_num_timeslices();
+        old_action += pa->get_action(slice,0,true,m);
+    }
+    
+    if(check_move())
+        accept(m);
+    else
+        reject();
+
+    
+    
+}
+bool Recede_Head::check_move(){
+    if(path->get_util()->randnormed(1)<exp(old_action - mu_shift*path->get_parameters()->get_tau()))
+        return true;
+    else
+        return false;
+}
+void Recede_Head::accept(int m){
+    Move_Base::accept();
+    for(int i = 0; i < m; i++){
+        path->get_beads()->worm_pop_front(true);
+    }
+    if(path->get_beads()->get_worm_size() == 0)
+        path->set_worm(false);
+}
+
+void Recede_Head::reject(){
+
+}
 
 
 
@@ -305,7 +497,58 @@ void Perm_Bisection::reject(){
  
  ***************************************************************************************/
 
+Advance_Tail::Advance_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
 
+void Advance_Tail::attempt(){
+    Move_Base::attempt();
+    
+    int m = path->get_util()->randint(path->get_parameters()->get_mbar())+1;
+    int start_slice = path->get_beads()->get_worm_indices()[1].second;
+    
+    dVector pos = path->get_beads()->get_worm_bead_data(path->get_beads()->get_worm_indices()[1].first, start_slice);
+    for(int i = 0; i < m; i++){
+        dVector new_pos(0);
+        double width = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
+        for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
+            new_pos.push_back(pos[ndim] + path->get_util()->randgaussian(width));
+        }
+        path->get_beads()->worm_push_back(new_pos);
+        pos = new_pos;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*m;
+    
+    new_action = 0;
+    
+    for(int a = 1; a <= m; a++){
+        int slice = (start_slice + a)%path->get_parameters()->get_num_timeslices();
+        new_action += pa->get_action(slice,0,true);
+    }
+    
+    if(check_move())
+        accept();
+    else
+        reject(m);
+    
+    
+}
+bool Advance_Tail::check_move(){
+    if(path->get_util()->randnormed(1)<exp(-new_action + mu_shift*path->get_parameters()->get_tau()))
+        return true;
+    else
+        return false;
+}
+void Advance_Tail::accept(){
+    Move_Base::accept();
+}
+
+void Advance_Tail::reject(int m){
+    for(int i = 0; i < m; i++){
+        path->get_beads()->worm_pop_front(true);
+    }
+}
 
 
 
@@ -314,4 +557,79 @@ void Perm_Bisection::reject(){
                                 RECEDE TAIL MOVE
  
  ***************************************************************************************/
+Recede_Tail::Recede_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
 
+void Recede_Tail::attempt(){
+    Move_Base::attempt();
+    
+    int m = path->get_util()->randint(path->get_parameters()->get_mbar())+1;
+    int start_slice = path->get_beads()->get_worm_indices()[1].second;
+    
+    int worm_size =path->get_beads()->get_worm_size();
+    if(worm_size < m){
+        reject();
+        return;
+    }
+    
+    mu_shift = path->get_parameters()->get_mu()*worm_size;
+    
+    old_action = 0;
+    for(int a = 0; a < m; a++ ){
+        int slice = (start_slice - a + path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+        old_action += pa->get_action(slice,0,true,0,m);
+    }
+    
+    if(check_move())
+        accept(m);
+    else
+        reject();
+    
+}
+bool Recede_Tail::check_move(){
+    if(path->get_util()->randnormed(1)<exp(old_action - mu_shift*path->get_parameters()->get_tau()))
+        return true;
+    else
+        return false;
+}
+void Recede_Tail::accept(int m){
+    Move_Base::accept();
+    for(int i = 0; i < m; i++){
+        path->get_beads()->worm_pop_back(true);
+    }
+    if(path->get_beads()->get_worm_size() == 0)
+        path->set_worm(false);
+}
+
+void Recede_Tail::reject(){
+    
+}
+
+/*******************************************************************
+ 
+                            OPEN MOVE
+ 
+ ******************************************************************/
+
+
+
+/*******************************************************************
+ 
+                            CLOSE MOVE
+ 
+ ******************************************************************/
+
+
+/*******************************************************************
+ 
+                            SWAP HEAD MOVE
+ 
+ ******************************************************************/
+
+
+/*******************************************************************
+ 
+                            SWAP TAIL MOVE
+ 
+ ******************************************************************/

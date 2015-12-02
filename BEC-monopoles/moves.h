@@ -47,6 +47,8 @@ protected:
     
     std::string move_name;
     
+    iVector changed_particles;
+    
     boost::shared_ptr<Potential_Action> pa;
 
 };
@@ -108,72 +110,122 @@ private:
 class Insert: public Move_Base{
     
 public:
-    Insert(boost::shared_ptr<Path> path) : Move_Base(path) {};
+    Insert(boost::shared_ptr<Path> path);
     ~Insert(){};
+    void attempt();
+    void accept();
+    void reject();
+    bool check_move();
+    
+private:
+    double mu_shift;
+
     
 };
 
 class Remove: public Move_Base{
     
 public:
-    Remove(boost::shared_ptr<Path> path) : Move_Base(path) {};
+    Remove(boost::shared_ptr<Path> path);
     ~Remove(){};
+    void attempt();
+    void accept();
+    void reject();
+    bool check_move();
+
+private:
+    double mu_shift;
     
 };
 
 class Open: public Move_Base{
     
 public:
-    Open(boost::shared_ptr<Path> path) : Move_Base(path) {};
+    Open(boost::shared_ptr<Path> path);
     ~Open(){};
 };
 
 class Close: public Move_Base{
     
 public:
-    Close(boost::shared_ptr<Path> path) : Move_Base(path) {};
+    Close(boost::shared_ptr<Path> path);
     ~Close(){};
 };
 
 class Advance_Head: public Move_Base{
     
 public:
-    Advance_Head();
+    Advance_Head(boost::shared_ptr<Path> path);
     ~Advance_Head(){};
+    void attempt();
+    void accept();
+    void reject();
+    void reject(int m);
+    bool check_move();
+    
+private:
+    double mu_shift;
+
 };
 
 class Advance_Tail: public Move_Base{
     
 public:
-    Advance_Tail();
+    Advance_Tail(boost::shared_ptr<Path> path);
     ~Advance_Tail(){};
+    void attempt();
+    void accept();
+    void reject();
+    void reject(int m);
+    bool check_move();
+    
+private:
+    double mu_shift;
+
+
 };
 
 class Recede_Head: public Move_Base{
     
 public:
-    Recede_Head();
+    Recede_Head(boost::shared_ptr<Path> path);
     ~Recede_Head(){};
+    void attempt();
+    void accept(int m);
+    void reject();
+    bool check_move();
+    
+private:
+    double mu_shift;
+
 };
 
 class Recede_Tail: public Move_Base{
     
 public:
-    Recede_Tail();
+    Recede_Tail(boost::shared_ptr<Path> path);
     ~Recede_Tail(){};
+    void attempt();
+    void accept(int m);
+    void reject();
+    bool check_move();
+    
+private:
+    double mu_shift;
+
 };
 
 class Swap_Head: public Move_Base{
     
 public:
-    Swap_Head();
+    Swap_Head(boost::shared_ptr<Path> path);
     ~Swap_Head(){};
 };
 
 class Swap_Tail: public Move_Base{
     
 public:
-    Swap_Tail();
+    Swap_Tail(boost::shared_ptr<Path> path);
     ~Swap_Tail(){};
 };
 

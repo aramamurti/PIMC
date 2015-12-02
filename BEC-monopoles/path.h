@@ -39,6 +39,8 @@ public:
     void set_last_start_end(int s, int e){last_start = s; last_end = e;}
     int get_processor_num(){return pnum;}
     iVector get_charge_list(){return charge_list;}
+    bool worm_exists(){return worm;}
+    void set_worm(bool new_worm_status){worm = new_worm_status;}
     
     double multvec[4];
     
@@ -59,6 +61,8 @@ private:
     
     int multistep_dist;
     int pnum;
+    
+    bool worm;
 };
 
 

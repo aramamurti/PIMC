@@ -34,7 +34,7 @@ Utility::~Utility(){
     gsl_rng_free(r);
 }
 
-double Utility::randnormed(int max){
+double Utility::randnormed(double max){
     return gsl_rng_uniform (r) * max;
 }
 
