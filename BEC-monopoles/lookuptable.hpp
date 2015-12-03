@@ -62,6 +62,7 @@ public:
     void update_bead(int slice, size_t key, dVector new_loc){
         auto bead = beads_map[slice].find(key);
         bead->second = new_loc;
+
         for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[slice].begin(); it != beads_map[slice].end(); it++){
             if(it != bead){
                 ddVector bead_pair;
@@ -70,9 +71,22 @@ public:
                 bead_pair.push_back(bead->second);
                 bead_pair.push_back(it->second);
                 dVector dist = util->dist(bead_pair,boxsize);
-                bead_pair_sep.find(bead_pair_id_1)->second = dist;
+                auto it2 = bead_pair_sep.find(bead_pair_id_1);
+                if(it2 == bead_pair_sep.end()){
+                    bead_pair_sep.insert(std::pair<size_t, dVector>(bead_pair_id_1,dist));
+                }
+                else
+                   bead_pair_sep.find(bead_pair_id_1)->second = dist;
+
+                   
                 dVector neg_dist;
                 std::transform(dist.begin(), dist.end(), std::back_inserter(neg_dist), std::negate<double>());
+                   
+                it2 = bead_pair_sep.find(bead_pair_id_2);
+                   if(it2 == bead_pair_sep.end()){
+                        bead_pair_sep.insert(std::pair<size_t, dVector>(bead_pair_id_2,neg_dist));
+                   }
+                   else
                 bead_pair_sep.find(bead_pair_id_2)->second = neg_dist;
             }
         }
@@ -238,13 +252,14 @@ public:
     
     void add_bead(T reference){
         dVector data = reference->data;
+        int col = reference->column_number;
+
         if(data.size()!=0){
             iVector grid_num;
             for(int i = 0; i < ndim; i++){
                 grid_num.push_back(util->per_bound_cond((int)(data[i]/grid_step), num_grid));
             }
             size_t grid_key;
-            int col = reference->column_number;
             switch(ndim){
                 case 1:
                     grid_key = grid_num[0];
@@ -268,6 +283,18 @@ public:
                 it->second.push_back(reference->key);
             }
         }
+        else{
+            size_t grid_key = 0;
+            auto it = grid_beads[col].find(grid_key);
+            if(it == grid_beads[col].end()){
+                std::vector<size_t> keys;
+                keys.push_back(reference->key);
+                grid_beads[col].insert(std::pair<size_t, std::vector<size_t> >(grid_key, keys));
+            }
+            else{
+                it->second.push_back(reference->key);
+            }
+        }
         
     }
     
@@ -275,10 +302,13 @@ public:
     void update_bead(T reference){
         dVector data = reference->data;
         dVector olddat = reference->olddat;
-        
+       
         iVector old_grid_num;
-        for(int i = 0; i < ndim; i++)
-            old_grid_num.push_back(util->per_bound_cond((int)(olddat[i]/grid_step),num_grid));
+
+        if(olddat.size()!=0){
+            for(int i = 0; i < ndim; i++)
+                old_grid_num.push_back(util->per_bound_cond((int)(olddat[i]/grid_step),num_grid));
+        }
         
         iVector new_grid_num;
         for(int i = 0; i < ndim; i++)
@@ -304,17 +334,21 @@ public:
         }
         
         size_t old_grid_key;
-        switch(ndim){
-            case 1:
-                old_grid_key = old_grid_num[0];
-                break;
-            case 2:
-                old_grid_key = pair_hash(std::pair<int, int>(old_grid_num[0],old_grid_num[1]));
-                break;
-            case 3:
-                old_grid_key = triple_hash(boost::tuple<int,int,int>(old_grid_num[0],old_grid_num[1],old_grid_num[2]));
-                break;
-        }
+        
+        if(olddat.size()!=0)
+            switch(ndim){
+                case 1:
+                    old_grid_key = old_grid_num[0];
+                    break;
+                case 2:
+                    old_grid_key = pair_hash(std::pair<int, int>(old_grid_num[0],old_grid_num[1]));
+                    break;
+                case 3:
+                    old_grid_key = triple_hash(boost::tuple<int,int,int>(old_grid_num[0],old_grid_num[1],old_grid_num[2]));
+                    break;
+            }
+        else
+            old_grid_key = 0;
         
         auto it = grid_beads[col].find(old_grid_key);
         if(it != grid_beads[col].end()){
@@ -337,22 +371,28 @@ public:
     void remove_bead(T reference){
         dVector data = reference->data;
         iVector grid_num;
-        for(int i = 0; i < ndim; i++)
-            grid_num.push_back(util->per_bound_cond((int)(data[i]/grid_step),num_grid));
         
         size_t grid_key;
         int col = reference->column_number;
-        switch(ndim){
-            case 1:
-                grid_key = grid_num[0];
-                break;
-            case 2:
-                grid_key = pair_hash(std::pair<int, int>(grid_num[0],grid_num[1]));
-                break;
-            case 3:
-                grid_key = triple_hash(boost::tuple<int,int,int>(grid_num[0],grid_num[1],grid_num[2]));
-                break;
+
+        if(data.size() != 0){
+        for(int i = 0; i < ndim; i++)
+            grid_num.push_back(util->per_bound_cond((int)(data[i]/grid_step),num_grid));
+        
+            switch(ndim){
+                case 1:
+                    grid_key = grid_num[0];
+                    break;
+                case 2:
+                    grid_key = pair_hash(std::pair<int, int>(grid_num[0],grid_num[1]));
+                    break;
+                case 3:
+                    grid_key = triple_hash(boost::tuple<int,int,int>(grid_num[0],grid_num[1],grid_num[2]));
+                    break;
+            }
         }
+        else
+            grid_key = 0;
         
         auto it = grid_beads[col].find(grid_key);
         if(it != grid_beads[col].end()){

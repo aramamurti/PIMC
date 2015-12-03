@@ -19,43 +19,10 @@ double Potential_Action::potential_helper(int slice, int ptcl){
                 break;
             case 1:
             case 2:
-                
                 for(int i = ptcl+1; i < num_particles; i++){
                     dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
                     double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                     pe += (*it)->potential_value(dist);
-                }
-                
-                if(path->worm_exists()){
-                    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
-                    int worm_end_row = ht[1].first;
-                    
-                    int worm_start_col = ht[0].second;
-                    int worm_end_col = ht[0].second;
-                    
-                    iVector rel_worm_rows;
-                    
-                    int cur_row = 0;
-                    if(worm_start_col > slice)
-                        cur_row++;
-                    while(cur_row < worm_end_row){
-                        rel_worm_rows.push_back(cur_row);
-                        cur_row++;
-                    }
-                    if(worm_end_col >= slice)
-                        rel_worm_rows.push_back(cur_row);
-                    for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
-                        for(int i = 0; i < num_particles; i++){
-                            dVector distvec = path->get_beads()->get_worm_path_separation(i, *worm_it, slice);
-                            double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
-                            pe += (*it)->potential_value(dist);
-                        }
-                        for(iVector::iterator worm_it2 = worm_it+1; worm_it2 != rel_worm_rows.end(); worm_it2++){
-                            dVector distvec = path->get_beads()->get_worm_separation(*worm_it, *worm_it2, slice);
-                            double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
-                            pe += (*it)->potential_value(dist);
-                        }
-                    }
                 }
                 break;
             case 3:
@@ -129,6 +96,32 @@ double Potential_Action::get_action(int slice, int dist, bool only_worm, int sta
     return path->get_parameters()->get_tau()*pot;
 }
 
+double Potential_Action::get_action_single_particle(int ptcl, int slice){
+    double pot = 0;
+    int num_particles = path->get_beads()->get_num_particles();
+    for(std::vector<boost::shared_ptr<Potential_Functions> >::iterator it = pot_funcs.begin(); it != pot_funcs.end(); it++){
+        switch(potentials[it-pot_funcs.begin()]){
+            case 0:
+                pot += (*it)->potential_value(path->get_beads()->get_bead_data(ptcl, slice));
+                break;
+            case 1:
+            case 2:
+                for(int i = 0; i < num_particles; i++)
+                    if(i != ptcl){
+                        dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                        double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                        pot += (*it)->potential_value(dist);
+                    }
+                break;
+            case 3:
+                break;
+        }
+    }
+    
+    
+    return path->get_parameters()->get_tau()*pot;
+}
+
 double Kinetic_Action::get_action(int slice, int dist){
     double kin = 0;
     int num_particles = path->get_beads()->get_num_particles();
@@ -139,5 +132,29 @@ double Kinetic_Action::get_action(int slice, int dist){
         double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
         kin += norm/dist*ipdist;
     }
+    return kin;
+}
+
+double Kinetic_Action::get_action_single_particle(int ptcl, int slice, int dist){
+    double kin = 0;    
+    ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, dist);
+    dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+    double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+    kin += norm/dist*ipdist;
+    return kin;
+}
+
+double Kinetic_Action::get_action_worm_head_tail(int head_col, int tail_col, int dist){
+    double kin = 0;
+    
+    dVector head = path->get_beads()->get_worm_bead_data(0, head_col);
+    dVector tail = path->get_beads()->get_worm_bead_data(path->get_beads()->get_worm_dims()[1], tail_col);
+    ddVector pair;
+    pair.push_back(head);
+    pair.push_back(tail);
+    
+    dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+    double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+    kin += norm/dist*ipdist;
     return kin;
 }

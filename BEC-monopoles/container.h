@@ -857,7 +857,6 @@ public:
             int first_row = size.size();
             int row = size.size();
             
-            bool head_tail_same_row;
             if(worm_tail_index.second>=worm_head_index.second){
                 while(worm_head_index.second != 0)
                     worm_push_front(T(0));
@@ -915,6 +914,45 @@ public:
             }
         }
     }
+    
+    std::vector<std::pair<int, int> > temporarily_close_worm(){
+        set_old_worm();
+        
+        if(worm_size == 0){
+            std::cout << "No worm exists." << std::endl;
+            return std::vector<std::pair<int, int> >(0);
+        }
+        else{
+            if(worm_tail_index.second>=worm_head_index.second){
+                while(worm_head_index.second != 0)
+                    worm_push_front(T(0));
+                while(worm_tail_index.second != worm[0].size()-1)
+                    worm_push_back(T(0));
+            }
+            else{
+                int difference = worm_head_index.second - worm_tail_index.second;
+                difference--;
+                while(difference != 0){
+                    worm_push_front(T(0));
+                    difference--;
+                }
+            }
+        }
+        
+        std::vector<std::pair<int, int> > old_ht;
+        old_ht.push_back(old_worm_head_index);
+        old_ht.push_back(old_worm_tail_index);
+        return old_ht;
+    }
+    
+    void reopen_temp_closed_worm(){
+        while(worm_head_index.second != old_worm_head_index.second)
+            worm_pop_front(true);
+        while(worm_tail_index.second != old_worm_tail_index.second)
+            worm_pop_back(true);
+        reset_worm();
+    }
+    
     
     void reset_indices(iVector rtr){
         std::vector<int> new_indices(size.size()+rtr.size(),0);

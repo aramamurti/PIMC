@@ -50,6 +50,8 @@ protected:
     iVector changed_particles;
     
     boost::shared_ptr<Potential_Action> pa;
+    boost::shared_ptr<Kinetic_Action> ka;
+
 
 };
 
@@ -143,6 +145,15 @@ class Open: public Move_Base{
 public:
     Open(boost::shared_ptr<Path> path);
     ~Open(){};
+    void attempt();
+    void accept();
+    bool check_move();
+    
+private:
+    double mu_shift;
+    int start_slice;
+    int m;
+    
 };
 
 class Close: public Move_Base{
@@ -150,6 +161,16 @@ class Close: public Move_Base{
 public:
     Close(boost::shared_ptr<Path> path);
     ~Close(){};
+    void attempt();
+    void accept();
+    void reject();
+    bool check_move();
+    
+private:
+    double mu_shift;
+    int start_slice;
+    int m;
+    std::vector<std::pair<int, int> > ht;
 };
 
 class Advance_Head: public Move_Base{
