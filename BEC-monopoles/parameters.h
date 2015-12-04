@@ -44,19 +44,6 @@ public:
         else
             kb = 1;
         
-        param_it = moves.find("Center_of_Mass");
-        if(param_it != moves.end())
-            move_list.push_back((*param_it).second == "true");
-        
-        param_it = moves.find("Bisection");
-        if(param_it != moves.end())
-            move_list.push_back((*param_it).second == "true");
-
-        param_it = moves.find("Perm_Bisection");
-        if(param_it != moves.end())
-            move_list.push_back((*param_it).second == "true");
-
-        
         param_it = simpars.find("particles");
         if(param_it != simpars.end())
             particles = std::stoi((*param_it).second);
@@ -106,7 +93,7 @@ public:
                 charged = false;
                 boson = false;
                 if(per_bound_cond)
-                    box_size = 10;
+                    box_size = 100;
                 potentials[0] = true;
             }
             else if((*param_it).second == "he4"){
@@ -138,9 +125,33 @@ public:
                 
         }
         
+        param_it = moves.find("Center_of_Mass");
+        if(param_it != moves.end())
+            move_list.push_back((*param_it).second == "true");
+        
+        param_it = moves.find("Bisection");
+        if(param_it != moves.end())
+            move_list.push_back((*param_it).second == "true");
+        
+        param_it = moves.find("Worm");
+        if(param_it != moves.end()){
+            if(!boson){
+                move_list.push_back(false);
+                move_list.push_back(false);
+            }
+            else if((*param_it).second == "true"){
+                move_list.push_back(false);
+                move_list.push_back(true);
+            }
+            else{
+                move_list.push_back(true);
+                move_list.push_back(false);
+            }
+        }
+        
         set_timeslices(40);
         mbar = 40;
-        skip = 10;
+        skip = 100;
         mu = -1;
         C0 = 7.5;
         

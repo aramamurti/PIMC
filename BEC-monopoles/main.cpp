@@ -24,10 +24,10 @@ int main(int argc, const char * argv[]) {
     else
         parameters_file = "parameters.cfg";
         
-    MPI_Init(NULL, NULL);
+    //MPI_Init(NULL, NULL);
     
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int world_rank = 0;
+    //MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
     std::cout << world_rank << ": Setting up..." << std::endl;
     
@@ -47,7 +47,7 @@ int main(int argc, const char * argv[]) {
 
     writer.close();
     
-    MPI_Finalize();
+    //MPI_Finalize();
     
     return 0;
 }

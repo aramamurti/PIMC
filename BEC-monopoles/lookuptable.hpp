@@ -41,7 +41,6 @@ public:
         beads_map[slice].erase(key);
     }
     
-    
     void initialize_sep_table(){
         for(std::vector<boost::unordered_map<size_t, std::vector<double> > >::iterator it = beads_map.begin(); it != beads_map.end(); it++){
             for(boost::unordered_map<size_t, std::vector<double> >::iterator it2 = (*it).begin(); it2 != (*it).end(); it2++)
@@ -463,6 +462,24 @@ public:
     
     void reset_old_table(){
         grid_beads = old_grid_beads;
+    }
+    
+    std::vector<size_t> get_neighboring_beads(T reference, int col){
+        size_t grid_key = get_bead_grid_num(reference);
+        std::vector<size_t> all_grid_boxes = grid_neigbors.find(grid_key)->second;
+        all_grid_boxes.push_back(grid_key);
+        std::vector<size_t> bead_keys(0);
+        for(std::vector<size_t>::iterator it = all_grid_boxes.begin(); it != all_grid_boxes.end(); it++){
+            std::vector<size_t> addtl_bead_keys = get_beads_in_box(*it,col);
+            bead_keys.insert(bead_keys.end(),addtl_bead_keys.begin(),addtl_bead_keys.end());
+        }
+        return bead_keys;
+    }
+    
+    std::vector<size_t> get_beads_in_box(size_t grid_key, int col){
+        boost::unordered_map<size_t, std::vector<size_t> > grid_bead_col = grid_beads[col];
+        std::vector<size_t> bead_keys = grid_bead_col.find(grid_key)->second;
+        return bead_keys;
     }
     
     

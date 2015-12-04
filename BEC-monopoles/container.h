@@ -36,6 +36,8 @@ private:
         node_ptr right_node;
         node_ptr old_right_node;
         
+        bool in_worm;
+        
         Node(T e) {
             this->data = e;
             left_node = node_ptr();
@@ -221,6 +223,7 @@ public:
         
         update_key_map(node);
         
+        node->in_worm = false;
         
         if (size[index] == 1) {
             list_map[index][size[index]-1] = node;
@@ -231,6 +234,7 @@ public:
         node->left_node->right_node = node;
         
         list_map[index][size[index]-1] = node;
+        
     }
     
     void set_key_add_sep(node_ptr node){
@@ -633,6 +637,8 @@ public:
             else
                 node->key = key;
             
+            node->in_worm = true;
+
             update_key_map(node);
             
             worm_size++;
@@ -671,6 +677,7 @@ public:
             
             update_key_map(node);
             
+            node->in_worm = true;
             
             worm_size++;
         }
@@ -711,6 +718,8 @@ public:
             }
             else
                 node->key = key;
+            
+            node->in_worm = true;
             
             update_key_map(node);
             
@@ -1144,6 +1153,119 @@ public:
         }
     }
     
+    std::vector<std::pair<size_t, dVector> > get_worm_tail_neighbors(int distance){
+        std::vector<size_t> bead_keys = nt->get_neighboring_beads(worm[worm_tail_index.first][worm_tail_index.second],(worm_tail_index.second+distance)%size[0]);
+        std::vector<node_ptr> bead_list;
+        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
+            node_ptr node = key_map.find(*it)->second;
+            if(!node->in_worm){
+                bead_list.push_back(node);
+            }
+        }
+        std::vector<std::pair<size_t, dVector> > bead_ret;
+        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
+            std::pair<size_t, dVector> bead_desc;
+            bead_desc.first = (*it)->key;
+            bead_desc.second = (*it)->data;
+            bead_ret.push_back(bead_desc);
+        }
+        return bead_ret;
+    }
+    
+    std::vector<std::pair<size_t, dVector> > get_worm_head_neighbors(int distance){
+        std::vector<size_t> bead_keys = nt->get_neighboring_beads(worm[worm_head_index.first][worm_head_index.second],(worm_head_index.second-distance+size[0])%size[0]);
+        std::vector<node_ptr> bead_list;
+        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
+            node_ptr node = key_map.find(*it)->second;
+            if(!node->in_worm){
+                bead_list.push_back(node);
+            }
+        }
+        std::vector<std::pair<size_t, dVector> > bead_ret;
+        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
+            std::pair<size_t, dVector> bead_desc;
+            bead_desc.first = (*it)->key;
+            bead_desc.second = (*it)->data;
+            bead_ret.push_back(bead_desc);
+        }
+        return bead_ret;
+    }
+    
+    bool check_if_neighbor(size_t key1, size_t key2){
+        std::vector<std::pair<size_t, dVector> > neighbors = get_neighbors(key1, 0);
+        std::vector<size_t> neighbor_keys;
+        for(std::vector<std::pair<size_t, dVector> >::iterator it = neighbors.begin(); it != neighbors.end(); it++)
+            neighbor_keys.push_back(it->first);
+        auto it = std::find(neighbor_keys.begin(), neighbor_keys.end(), key2);
+        if(it != neighbor_keys.end())
+            return true;
+        else
+            return false;
+    }
+    
+    std::vector<std::pair<size_t, dVector> > get_neighbors(size_t key, int distance){
+        std::vector<size_t> bead_keys = nt->get_neighboring_beads(key_map.find(key)->second, (key_map.find(key)->second->column_number+distance+size[0])%size[0]);
+        std::vector<node_ptr> bead_list;
+        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
+            node_ptr node = key_map.find(*it)->second;
+            if(!node->in_worm){
+                bead_list.push_back(node);
+            }
+        }
+        std::vector<std::pair<size_t, dVector> > bead_ret;
+        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
+            std::pair<size_t, dVector> bead_desc;
+            bead_desc.first = (*it)->key;
+            bead_desc.second = (*it)->data;
+            bead_ret.push_back(bead_desc);
+        }
+        return bead_ret;
+    }
+    
+    std::pair<int, int> get_bead_indices(size_t key){
+        auto it = key_map.find(key);
+        int row = it->second->row_number;
+        int col = it->second->column_number;
+        return std::pair<int, int>(row,col);
+    }
+    
+    size_t get_prev_bead_key(size_t key, int dist_back){
+        auto it = key_map.find(key);
+        int row = it->second->row_number;
+        int col = it->second->column_number;
+        
+        if(dist_back > col){
+            col = col-dist_back+size[0];
+            row = list_map[row][0]->left_node->row_number;
+        }
+        else
+            col = col - dist_back;
+        
+        return list_map[row][col]->key;
+    }
+    
+    size_t get_next_bead_key(size_t key, int dist_forward){
+        auto it = key_map.find(key);
+        int row = it->second->row_number;
+        int col = it->second->column_number;
+        
+        if(dist_forward + col >= size[0]){
+            col = (col + dist_forward)%size[0];
+            row = list_map[row][size[0]-1]->right_node->row_number;
+        }
+        else
+            col = col+dist_forward;
+        return list_map[row][col]->key;
+    }
+    
+    size_t get_bead_key(int row, int col){
+        return list_map[row][col]->key;
+    }
+    
+    size_t get_worm_key(int row, int col){
+        return worm[row][col]->key;
+    }
+    
     
     /************
      Printing Methods
@@ -1296,6 +1418,7 @@ public:
         iVector worm_dims;
         worm_dims.push_back(worm.size());
         worm_dims.push_back(worm[0].size());
+        return worm_dims;
     }
     
     int get_worm_size(){
@@ -1324,6 +1447,40 @@ public:
                     }
                     else{
                         std::cout << nt->get_bead_grid_num(worm[row][col]);
+                    }
+                    if(col != worm[0].size() -1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
+            }
+    }
+    
+    void check_if_in_worm(){
+        for(int row = 0; row < size.size(); row ++){
+            for(int col = 0; col < size[row]; col ++){
+                if(list_map[row][col]->in_worm)
+                    std::cout<< "yes" << ", ";
+                else
+                    std::cout << "no" << ", ";
+            }
+            std::cout << std::endl;
+        }
+        
+        if(worm_size == 0){
+            std::cout<< "Worm is empty!" << std::endl;
+            return;
+        }
+        else
+            for(int row = 0; row <= worm_tail_index.first; row++){
+                for(int col = 0; col < worm[0].size(); col++){
+                    if(worm[row][col] == NULL){
+                        std::cout << "NULL";
+                    }
+                    else{
+                        if(worm[row][col]->in_worm)
+                            std::cout<< "yes";
+                        else
+                            std::cout << "no";
                     }
                     if(col != worm[0].size() -1)
                         std::cout << ", ";

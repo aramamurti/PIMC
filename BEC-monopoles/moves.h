@@ -114,6 +114,10 @@ class Insert: public Move_Base{
 public:
     Insert(boost::shared_ptr<Path> path);
     ~Insert(){};
+    
+    Insert* clone() const{return new Insert(*this);}
+
+    
     void attempt();
     void accept();
     void reject();
@@ -130,6 +134,9 @@ class Remove: public Move_Base{
 public:
     Remove(boost::shared_ptr<Path> path);
     ~Remove(){};
+    
+    Remove* clone() const{return new Remove(*this);}
+
     void attempt();
     void accept();
     void reject();
@@ -145,6 +152,9 @@ class Open: public Move_Base{
 public:
     Open(boost::shared_ptr<Path> path);
     ~Open(){};
+    
+    Open* clone() const{return new Open(*this);}
+
     void attempt();
     void accept();
     bool check_move();
@@ -161,6 +171,9 @@ class Close: public Move_Base{
 public:
     Close(boost::shared_ptr<Path> path);
     ~Close(){};
+    
+    Close* clone() const{return new Close(*this);}
+
     void attempt();
     void accept();
     void reject();
@@ -178,6 +191,9 @@ class Advance_Head: public Move_Base{
 public:
     Advance_Head(boost::shared_ptr<Path> path);
     ~Advance_Head(){};
+    
+    Advance_Head* clone() const{return new Advance_Head(*this);}
+
     void attempt();
     void accept();
     void reject();
@@ -194,6 +210,9 @@ class Advance_Tail: public Move_Base{
 public:
     Advance_Tail(boost::shared_ptr<Path> path);
     ~Advance_Tail(){};
+    
+    Advance_Tail* clone() const{return new Advance_Tail(*this);}
+
     void attempt();
     void accept();
     void reject();
@@ -211,6 +230,9 @@ class Recede_Head: public Move_Base{
 public:
     Recede_Head(boost::shared_ptr<Path> path);
     ~Recede_Head(){};
+    
+    Recede_Head* clone() const{return new Recede_Head(*this);}
+
     void attempt();
     void accept(int m);
     void reject();
@@ -226,6 +248,9 @@ class Recede_Tail: public Move_Base{
 public:
     Recede_Tail(boost::shared_ptr<Path> path);
     ~Recede_Tail(){};
+    
+    Recede_Tail* clone() const{return new Recede_Tail(*this);}
+
     void attempt();
     void accept(int m);
     void reject();
@@ -241,6 +266,18 @@ class Swap_Head: public Move_Base{
 public:
     Swap_Head(boost::shared_ptr<Path> path);
     ~Swap_Head(){};
+    
+    Swap_Head* clone() const{return new Swap_Head(*this);}
+
+    void attempt();
+    bool check_move();
+    void reject();
+    void accept();
+    
+private:
+    int m;
+    double sig_I;
+    double sig_ksi;
 };
 
 class Swap_Tail: public Move_Base{
@@ -248,6 +285,19 @@ class Swap_Tail: public Move_Base{
 public:
     Swap_Tail(boost::shared_ptr<Path> path);
     ~Swap_Tail(){};
+    
+    Swap_Tail* clone() const{return new Swap_Tail(*this);}
+
+    void attempt();
+    bool check_move();
+    void reject();
+    void accept();
+    
+private:
+    int m;
+    double sig_I;
+    double sig_ksi;
+    
 };
 
 #endif /* defined(__PIMC__moves__) */

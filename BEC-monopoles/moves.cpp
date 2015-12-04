@@ -93,6 +93,8 @@ void Center_of_Mass::accept(){
     for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
         lc.push_back(*it);
     }
+    auto last = std::unique(lc.begin(), lc.end());
+    lc.erase(last, lc.end());
     path->set_last_changed(lc);
 }
 
@@ -114,15 +116,23 @@ void Bisection::attempt(){
     path->get_beads()->set_old_data();
     
     for(int a = 0; a < multistep_dist+1; a++){
-        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        old_action += pa->get_action(slice,0, false);
+        int slice = start+a;
+        int row = ptcl;
+        if(slice >= path->get_parameters()->get_num_timeslices()){
+            row = path->get_beads()->get_pair_rows(ptcl, start, multistep_dist)[1];
+        }
+        old_action += pa->get_action_single_particle(row, slice);
     }
     
     level_move(ptcl, start, multistep_dist);
     
     for(int a = 0; a < multistep_dist+1; a++ ){
-        int slice = (start + a)%path->get_parameters()->get_num_timeslices();
-        new_action += pa->get_action(slice,0, false);
+        int slice = start+a;
+        int row = ptcl;
+        if(slice >= path->get_parameters()->get_num_timeslices()){
+            row = path->get_beads()->get_pair_rows(ptcl, start, multistep_dist)[1];
+        }
+        new_action += pa->get_action_single_particle(row, slice);
     }
     
     if(check_move())
@@ -160,6 +170,8 @@ void Bisection::accept(){
     for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
         lc.push_back(*it);
     }
+    last = std::unique(lc.begin(), lc.end());
+    lc.erase(last, lc.end());
     path->set_last_changed(lc);
     
     path->set_last_start_end(start, start+multistep_dist);
@@ -340,7 +352,6 @@ void Remove::attempt(){
     
     mu_shift = path->get_parameters()->get_mu()*worm_size;
     
-    old_action = 0;
     for(int a = 0; a < worm_size; a++ ){
         int slice = (path->get_beads()->get_worm_indices()[0].second + a)%path->get_parameters()->get_num_timeslices();
         old_action += pa->get_action(slice,0,true);
@@ -456,7 +467,6 @@ void Recede_Head::attempt(){
     
     mu_shift = path->get_parameters()->get_mu()*worm_size;
     
-    old_action = 0;
     for(int a = 0; a < m; a++ ){
         int slice = (start_slice + a)%path->get_parameters()->get_num_timeslices();
         old_action += pa->get_action(slice,0,true,m);
@@ -576,7 +586,6 @@ void Recede_Tail::attempt(){
     
     mu_shift = path->get_parameters()->get_mu()*worm_size;
     
-    old_action = 0;
     for(int a = 0; a < m; a++ ){
         int slice = (start_slice - a + path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
         old_action += pa->get_action(slice,0,true,0,m);
@@ -625,7 +634,6 @@ void Open::attempt(){
     
     mu_shift = path->get_parameters()->get_mu()*m;
 
-    old_action = 0;
     for(int i = 1; i < m; i ++){
         int slice = start_slice+i;
         int row = ptcl;
@@ -667,6 +675,8 @@ Close::Close(boost::shared_ptr<Path> path) : Move_Base(path){}
 
 void Close::attempt(){
     
+    Move_Base::attempt();
+    
     ht = path->get_beads()->temporarily_close_worm();
     int old_head_col = ht[0].second;
     int old_tail_col = ht[1].second;
@@ -683,13 +693,8 @@ void Close::attempt(){
         reject();
         return;
     }
-    if(m == 0){
-        new_action = 0;
-        old_action = 0;
-    }
-    else{
+    if(m != 0){
         
-        old_action = 0;
         for(int slice = old_tail_col+1; slice != old_head_col; slice++){
             slice = slice%path->get_parameters()->get_num_timeslices();
             old_action += pa->get_action(slice, 0, true);
@@ -739,7 +744,6 @@ void Close::attempt(){
             }
         }
         
-        new_action = 0;
         for(int slice = old_tail_col+1; slice != old_head_col; slice++){
             slice = slice%path->get_parameters()->get_num_timeslices();
             new_action += pa->get_action(slice, 0, true);
@@ -776,9 +780,283 @@ void Close::accept(){
  
  ******************************************************************/
 
+Swap_Head::Swap_Head(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
+
+void Swap_Head::attempt(){
+    
+    Move_Base::attempt();
+    
+    path->get_beads()->set_old_data();
+    path->get_beads()->set_old_list();
+    path->get_beads()->set_old_worm();
+    path->get_beads()->set_old_worm_data();
+    
+    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+    int head_row = ht[0].first;
+    int head_col = ht[0].second;
+    
+    m = path->get_parameters()->get_mbar();
+    
+    for(int a = 0; a < path->get_parameters()->get_mbar(); a++){
+        int slice = (head_col - a + path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+        old_action += pa->get_action(slice,0, false);
+    }
+
+    std::vector<std::pair<size_t, dVector> > L_I = path->get_beads()->get_worm_head_neighbors(path->get_parameters()->get_mbar());
+    std::vector<std::pair<size_t, double> > rho0s_I;
+    sig_I = 0;
+    for(std::vector<std::pair<size_t, dVector> >::iterator it = L_I.begin(); it != L_I.end(); it++){
+        ddVector pair;
+        pair.push_back(path->get_beads()->get_worm_bead_data(head_row, head_col));
+        pair.push_back(it->second);
+        double rho0 = 1/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, path->get_parameters()->get_mbar()));
+        rho0s_I.push_back(std::pair<size_t, double>(it->first, rho0));
+        sig_I += rho0;
+    }
+    
+    double rn = path->get_util()->randnormed(sig_I);
+    size_t choice = 0;
+    double accumulate = 0;
+    for(std::vector<std::pair<size_t, double> >::iterator it = rho0s_I.begin(); it != rho0s_I.end(); it++){
+        accumulate += it->second;
+        if(rn < accumulate){
+            choice = it->first;
+            break;
+        }
+    }
+    
+    if(!path->get_beads()->check_if_neighbor(path->get_beads()->get_worm_key(head_row, head_col), choice)){
+        reject();
+        return;
+    }
+    
+    size_t ksi_key = path->get_beads()->get_next_bead_key(choice, m);
+
+    std::vector<std::pair<size_t, dVector> > L_ksi = path->get_beads()->get_neighbors(ksi_key, -m);
+    
+    sig_ksi = 0;
+    for(std::vector<std::pair<size_t, dVector> >::iterator it = L_I.begin(); it != L_I.end(); it++){
+        ddVector pair;
+        pair.push_back(path->get_beads()->get_bead_data(path->get_beads()->get_bead_indices(ksi_key).first, path->get_beads()->get_bead_indices(ksi_key).second));
+        pair.push_back(it->second);
+        double rho0 = 1/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, m));
+        sig_ksi += rho0;
+    }
+    
+    path->get_beads()->swap_into_worm_head(path->get_beads()->get_bead_indices(choice).first, m);
+    
+    ddVector new_pos(m, dVector(path->get_parameters()->get_ndim(),0));
+    
+    
+    int shift = path->get_beads()->get_worm_indices()[1].first - ht[1].first;
+    int start_col = ht[0].second;
+    int start_row = ht[0].first+shift;
+    
+    dVector start_pos = path->get_beads()->get_worm_bead_data(start_row, start_col);
+
+    int end_col = start_col - m;
+    int end_row = start_row;
+
+    if(end_col < 0){
+        end_col = end_col + path->get_parameters()->get_num_timeslices();
+        end_row--;
+    }
+    dVector end_pos = path->get_beads()->get_worm_bead_data(end_row, end_col);
+    for(int n = 0; n < m; n++){
+        double tau1 = (m-n)*path->get_parameters()->get_tau();
+        dVector avex(path->get_parameters()->get_ndim());
+        for(dVector::iterator it = avex.begin(); it!= avex.end(); it++){
+            *it = (tau1*start_pos[it-avex.begin()]+path->get_parameters()->get_tau()*end_pos[it-avex.begin()])/(tau1+path->get_parameters()->get_tau());
+            double box_size = path->get_parameters()->get_box_size();
+            if(box_size != -1)
+                *it = path->get_util()->per_bound_cond(*it+box_size/2, box_size)-box_size/2;
+        }
+        double width = sqrt(2 * path->get_parameters()->get_lambda()/(1/path->get_parameters()->get_tau()+tau1));
+        dVector bead_pos(path->get_parameters()->get_ndim());
+        for(dVector::iterator it = bead_pos.begin(); it != bead_pos.end(); it++){
+            *it = avex[it-bead_pos.begin()] + path->get_util()->randgaussian(width);
+        }
+        new_pos.push_back(bead_pos);
+        start_pos = bead_pos;
+    }
+    
+    int counter = 0;
+    int moving_head_col = start_col;
+    int moving_head_row = start_row;
+    while(counter < m){
+        if(moving_head_col < 0){
+            moving_head_row--;
+            moving_head_col = path->get_parameters()->get_num_timeslices()-1;
+        }
+        path->get_beads()->set_worm_bead_data(moving_head_row, moving_head_col, new_pos[m-1-counter]);
+        moving_head_col--;
+        counter++;
+    }
+
+    for(int a = 0; a < path->get_parameters()->get_mbar(); a++){
+        int slice = (start_col - a+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+        new_action += pa->get_action(slice,0, false);
+    }
+
+}
+
+bool Swap_Head::check_move(){
+    if(path->get_util()->randnormed(1)< sig_I/sig_ksi * exp(-(new_action-old_action)))
+        return true;
+    else
+        return false;
+}
+
+void Swap_Head::accept(){
+    Move_Base::accept();
+}
+
+void Swap_Head::reject(){
+    path->get_beads()->reset_worm();
+    path->get_beads()->reset_list();
+    path->get_beads()->revert_old_data();
+    path->get_beads()->revert_worm_old_data();
+}
 
 /*******************************************************************
  
                             SWAP TAIL MOVE
  
  ******************************************************************/
+
+Swap_Tail::Swap_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
+    
+}
+
+void Swap_Tail::attempt(){
+    
+    Move_Base::attempt();
+    
+    path->get_beads()->set_old_data();
+    path->get_beads()->set_old_list();
+    path->get_beads()->set_old_worm();
+    path->get_beads()->set_old_worm_data();
+    
+    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+    int tail_row = ht[1].first;
+    int tail_col = ht[1].second;
+    
+    m = path->get_parameters()->get_mbar();
+    
+    for(int a = 0; a < path->get_parameters()->get_mbar(); a++){
+        int slice = (tail_col + a)%path->get_parameters()->get_num_timeslices();
+        old_action += pa->get_action(slice,0, false);
+    }
+    
+    std::vector<std::pair<size_t, dVector> > L_I = path->get_beads()->get_worm_tail_neighbors(path->get_parameters()->get_mbar());
+    std::vector<std::pair<size_t, double> > rho0s_I;
+    sig_I = 0;
+    for(std::vector<std::pair<size_t, dVector> >::iterator it = L_I.begin(); it != L_I.end(); it++){
+        ddVector pair;
+        pair.push_back(path->get_beads()->get_worm_bead_data(tail_row, tail_col));
+        pair.push_back(it->second);
+        double rho0 = 1/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, path->get_parameters()->get_mbar()));
+        rho0s_I.push_back(std::pair<size_t, double>(it->first, rho0));
+        sig_I += rho0;
+    }
+    
+    double rn = path->get_util()->randnormed(sig_I);
+    size_t choice = 0;
+    double accumulate = 0;
+    for(std::vector<std::pair<size_t, double> >::iterator it = rho0s_I.begin(); it != rho0s_I.end(); it++){
+        accumulate += it->second;
+        if(rn < accumulate){
+            choice = it->first;
+            break;
+        }
+    }
+    
+    size_t ksi_key = path->get_beads()->get_prev_bead_key(choice, m);
+    if(!path->get_beads()->check_if_neighbor(path->get_beads()->get_worm_key(tail_row, tail_col), ksi_key)){
+        reject();
+        return;
+    }
+    
+    std::vector<std::pair<size_t, dVector> > L_ksi = path->get_beads()->get_neighbors(ksi_key, m);
+    
+    sig_ksi = 0;
+    for(std::vector<std::pair<size_t, dVector> >::iterator it = L_ksi.begin(); it != L_ksi.end(); it++){
+        ddVector pair;
+        pair.push_back(path->get_beads()->get_bead_data(path->get_beads()->get_bead_indices(ksi_key).first, path->get_beads()->get_bead_indices(ksi_key).second));
+        pair.push_back(it->second);
+        double rho0 = 1/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, m));
+        sig_ksi += rho0;
+    }
+    
+    path->get_beads()->swap_into_worm_tail(path->get_beads()->get_bead_indices(choice).first, m);
+    
+    ddVector new_pos(m, dVector(path->get_parameters()->get_ndim(),0));
+    dVector start_pos = path->get_beads()->get_worm_bead_data(ht[1].first, ht[1].second);
+    int end_col = ht[1].second + m;
+    int end_row = ht[1].first;
+    if(end_col > path->get_parameters()->get_num_timeslices()){
+        end_col = end_col%path->get_parameters()->get_num_timeslices();
+        end_row++;
+    }
+    dVector end_pos = path->get_beads()->get_worm_bead_data(end_row, end_col);
+    for(int n = 0; n < m; n++){
+        double tau1 = (m-n)*path->get_parameters()->get_tau();
+        dVector avex(path->get_parameters()->get_ndim());
+        for(dVector::iterator it = avex.begin(); it!= avex.end(); it++){
+            *it = (tau1*start_pos[it-avex.begin()]+path->get_parameters()->get_tau()*end_pos[it-avex.begin()])/(tau1+path->get_parameters()->get_tau());
+            double box_size = path->get_parameters()->get_box_size();
+            if(box_size != -1)
+                *it = path->get_util()->per_bound_cond(*it+box_size/2, box_size)-box_size/2;
+        }
+        double width = sqrt(2 * path->get_parameters()->get_lambda()/(1/path->get_parameters()->get_tau()+tau1));
+        dVector bead_pos(path->get_parameters()->get_ndim());
+        for(dVector::iterator it = bead_pos.begin(); it != bead_pos.end(); it++){
+            *it = avex[it-bead_pos.begin()] + path->get_util()->randgaussian(width);
+        }
+        new_pos.push_back(bead_pos);
+        start_pos = bead_pos;
+    }
+    
+    int counter = 0;
+    int moving_tail_col = tail_col;
+    int moving_tail_row = tail_row;
+    while(counter < m){
+        if(moving_tail_col >= path->get_beads()->get_worm_dims()[1]){
+            moving_tail_row++;
+            moving_tail_col = 0;
+        }
+        path->get_beads()->set_worm_bead_data(moving_tail_row, moving_tail_col, new_pos[counter]);
+        moving_tail_col++;
+        counter++;
+    }
+
+    for(int a = 0; a < path->get_parameters()->get_mbar(); a++){
+        int slice = (tail_col + a)%path->get_parameters()->get_num_timeslices();
+        new_action += pa->get_action(slice,0, false);
+    }
+
+    if(check_move())
+        accept();
+    else
+        reject();
+}
+
+bool Swap_Tail::check_move(){
+    if(path->get_util()->randnormed(1)< sig_I/sig_ksi * exp(-(new_action-old_action)))
+        return true;
+    else
+        return false;
+}
+
+void Swap_Tail::accept(){
+    Move_Base::accept();
+}
+
+void Swap_Tail::reject(){
+    path->get_beads()->reset_worm();
+    path->get_beads()->reset_list();
+    path->get_beads()->revert_old_data();
+    path->get_beads()->revert_worm_old_data();
+}

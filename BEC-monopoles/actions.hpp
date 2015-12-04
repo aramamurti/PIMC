@@ -80,6 +80,7 @@ public:
     double get_action(int slice, int dist);
     double get_action_single_particle(int ptcl, int slice, int dist);
     double get_action_worm_head_tail(int head_col, int tail_col, int dist);
+    double get_action_pos(ddVector pair, int dist);
     
 private:
     double norm;

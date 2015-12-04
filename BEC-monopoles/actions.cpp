@@ -112,6 +112,30 @@ double Potential_Action::get_action_single_particle(int ptcl, int slice){
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         pot += (*it)->potential_value(dist);
                     }
+                if(path->worm_exists()){
+                    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+                    int worm_end_row = ht[1].first;
+                    
+                    int worm_start_col = (ht[0].second)%path->get_parameters()->get_num_timeslices();
+                    int worm_end_col = (ht[0].second+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+                    
+                    iVector rel_worm_rows;
+                    
+                    int cur_row = 0;
+                    if(worm_start_col > slice)
+                        cur_row++;
+                    while(cur_row < worm_end_row){
+                        rel_worm_rows.push_back(cur_row);
+                        cur_row++;
+                    }
+                    if(worm_end_col >= slice)
+                        rel_worm_rows.push_back(cur_row);
+                    for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
+                        dVector distvec = path->get_beads()->get_worm_path_separation(ptcl, *worm_it, slice);
+                        double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
+                        pot += (*it)->potential_value(dist);
+                    }
+                }
                 break;
             case 3:
                 break;
@@ -153,6 +177,14 @@ double Kinetic_Action::get_action_worm_head_tail(int head_col, int tail_col, int
     pair.push_back(head);
     pair.push_back(tail);
     
+    dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+    double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
+    kin += norm/dist*ipdist;
+    return kin;
+}
+
+double Kinetic_Action::get_action_pos(ddVector pair, int dist){
+    double kin = 0;
     dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
     double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
     kin += norm/dist*ipdist;

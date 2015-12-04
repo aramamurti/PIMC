@@ -66,6 +66,18 @@ void PIMC::set_up_moves(std::vector<bool> move_list){
                 case 2:
                     moves.push_back(new Perm_Bisection(path));
                     break;
+                case 3:
+                    moves.push_back(new Insert(path));
+                    moves.push_back(new Remove(path));
+                    moves.push_back(new Open(path));
+                    moves.push_back(new Close(path));
+                    moves.push_back(new Advance_Head(path));
+                    moves.push_back(new Advance_Tail(path));
+                    moves.push_back(new Recede_Head(path));
+                    moves.push_back(new Recede_Tail(path));
+                    moves.push_back(new Swap_Head(path));
+                    moves.push_back(new Swap_Tail(path));
+                    break;
             }
         i++;
     }
