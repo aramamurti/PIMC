@@ -26,9 +26,18 @@ iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleLi
             std::cout << path->get_processor_num() << ": " << step << ", " <<(estimators[0].estimate())[0] << std::endl;
         }
         
-        for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
-            it->attempt();
-        }
+        int num_updates = path->get_beads()->get_num_particles();
+        for(int i = 0; i < num_updates; i++)
+            for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
+                if(it->is_worm_move()){
+                    if(!it->is_worm_nec()&&!path->worm_exists())
+                        it->attempt();
+                    else if(it->is_worm_nec() && path->worm_exists())
+                        it->attempt();
+                }
+                else
+                    it->attempt();
+            }
         
         if(step % path->get_parameters()->get_skip() == 0 && step >= path->get_parameters()->get_equilibration()){
             dVector cycles_double = estimators[1].estimate();

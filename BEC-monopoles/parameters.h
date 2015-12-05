@@ -149,9 +149,9 @@ public:
             }
         }
         
-        set_timeslices(40);
-        mbar = 40;
-        skip = 100;
+        set_timeslices(100);
+        mbar = 20;
+        skip = 1;
         mu = -1;
         C0 = 7.5;
         

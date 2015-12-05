@@ -48,19 +48,23 @@ double Utility::randgaussian(double width){
 
 double Utility::vecavg(dVector v)
 {
-    double sum = accumulate(v.begin(), v.end(), 0.0);
-    double mean = sum / v.size();
-    
+    double mean = 0;
+    if(v.size()!=0){
+        double sum = accumulate(v.begin(), v.end(), 0.0);
+        mean = sum / v.size();
+    }
     return mean;
 }
 
 double Utility::vecstd(dVector v){
     double mean = vecavg(v);
-    dVector diff(v.size());
-    std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<double>(), mean));
-    double sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    double stdev = sqrt(sq_sum / v.size());
-    
+    double stdev = 0;
+    if(v.size() != 0){
+        dVector diff(v.size());
+        std::transform(v.begin(), v.end(), diff.begin(),bind2nd(std::minus<double>(), mean));
+        double sq_sum = inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+        stdev = sqrt(sq_sum / v.size());
+    }
     return stdev;
 }
 

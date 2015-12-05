@@ -99,6 +99,7 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
         
         //Make the beads a periodic chain
         beads->make_circular();
+        worm = false;
     }
         
     void Path::put_in_box(){

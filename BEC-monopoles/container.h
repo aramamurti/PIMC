@@ -25,8 +25,8 @@ private:
     public:
         typedef boost::shared_ptr<Node> node_ptr;
         
-        int row_number = 0;
-        int column_number = 0;
+        size_t row_number = 0;
+        size_t column_number = 0;
         size_t key;
         
         T data;
@@ -48,11 +48,11 @@ private:
     };
     
     typedef boost::shared_ptr<Node> node_ptr;
-    boost::hash<boost::tuple<int, int, int> > triple_hash;
+    boost::hash<boost::tuple<size_t, size_t, size_t> > triple_hash;
     
     bool circular = false;
     
-    int push_counter = 0;
+    size_t push_counter = 0;
     iVector size;
     std::vector<node_ptr> head;
     std::vector<node_ptr> tail;
@@ -238,9 +238,7 @@ public:
     }
     
     void set_key_add_sep(node_ptr node){
-        boost::tuple<int, int,int> rc(push_counter, node->row_number, node->column_number);
-        node->key = triple_hash(rc);
-        
+        node->key = push_counter;
         push_counter++;
         sep->add_bead(node->column_number, node->key, node->data);
     }
@@ -756,7 +754,7 @@ public:
             if(worm_tail_index.second < 0){
                 worm_tail_index.second = worm[worm_tail_index.first-1].size()-1;
                 worm_tail_index.first--;
-                worm.erase(worm.end());
+                worm.resize(worm_tail_index.first+1);
             }
             worm_size--;
             if(remove){
@@ -782,8 +780,10 @@ public:
             worm_head_index.second = 0;
             worm_size = 0;
             worm.resize(0);
-            if(remove)
+            if(remove){
                 sep->remove_bead(node->column_number, node->key);
+                nt->remove_bead(node);
+            }
             return node->data;
         }
         else{
@@ -798,7 +798,7 @@ public:
                 worm_tail_index.first--;
                 worm.erase(worm.begin());
                 node_ptr temp_node = worm_head;
-                for(int i = 0; i < worm_size-1; i++){
+                while(temp_node != NULL){
                     temp_node->row_number--;
                     temp_node = temp_node->right_node;
                 }
@@ -1072,6 +1072,7 @@ public:
             return;
         else{
             int swap_bead_index = (worm_tail_index.second+dist)%size[row];
+            
             for(int i = 0; i < dist - 1; i++)
                 worm_push_back(T(0));
             worm_push_back(list_map[row][swap_bead_index]->data, list_map[row][swap_bead_index]->key);
@@ -1110,21 +1111,11 @@ public:
     
     dVector get_worm_bead_data(int row, int slice){
         
-        if(slice < worm[row].size() && slice >= worm_head_index.second){
-            return worm[row][slice]->data;
+        if(slice >= worm[row].size()){
+            slice = slice % worm[row].size();
+            row ++;
         }
-        else if(row < worm.size()-2){
-            slice = slice%worm[row].size();
-            row += 1;
-            return worm[row][slice]->data;
-        }
-        else if(row == worm.size()-2 && slice%worm[row].size() <= worm_tail_index.second){
-            slice = slice%worm[row].size();
-            row += 1;
-            return worm[row][slice]->data;
-        }
-        else
-            return T(0);
+        return worm[row][slice]->data;
     }
     
     void set_worm_bead_data(int row, int slice, T data){
@@ -1144,7 +1135,9 @@ public:
         }
         else
             return;
+        
         sep->update_bead(slice, worm[row][slice]->key, data);
+        nt->update_bead(worm[row][slice]);
     }
     
     void remove_worm(){

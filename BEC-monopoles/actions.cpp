@@ -48,7 +48,7 @@ double Potential_Action::potential_helper_worm(int slice,int start_omit = 0, int
                     int worm_end_row = ht[1].first;
                     
                     int worm_start_col = (ht[0].second+start_omit)%path->get_parameters()->get_num_timeslices();
-                    int worm_end_col = (ht[0].second-end_omit+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+                    int worm_end_col = (ht[1].second-end_omit+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
                     
                     iVector rel_worm_rows;
                     
@@ -59,8 +59,10 @@ double Potential_Action::potential_helper_worm(int slice,int start_omit = 0, int
                         rel_worm_rows.push_back(cur_row);
                         cur_row++;
                     }
-                    if(worm_end_col >= slice)
+                    if(worm_end_col >= slice && worm_end_row >= cur_row)
                         rel_worm_rows.push_back(cur_row);
+                    
+                    
                     for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
                         for(int i = 0; i < num_particles; i++){
                             dVector distvec = path->get_beads()->get_worm_path_separation(i, *worm_it, slice);
@@ -117,7 +119,7 @@ double Potential_Action::get_action_single_particle(int ptcl, int slice){
                     int worm_end_row = ht[1].first;
                     
                     int worm_start_col = (ht[0].second)%path->get_parameters()->get_num_timeslices();
-                    int worm_end_col = (ht[0].second+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+                    int worm_end_col = (ht[1].second)%path->get_parameters()->get_num_timeslices();
                     
                     iVector rel_worm_rows;
                     
@@ -128,8 +130,10 @@ double Potential_Action::get_action_single_particle(int ptcl, int slice){
                         rel_worm_rows.push_back(cur_row);
                         cur_row++;
                     }
-                    if(worm_end_col >= slice)
+                    if(worm_end_col >= slice && worm_end_row >= cur_row)
                         rel_worm_rows.push_back(cur_row);
+                    
+                    
                     for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
                         dVector distvec = path->get_beads()->get_worm_path_separation(ptcl, *worm_it, slice);
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
@@ -172,7 +176,7 @@ double Kinetic_Action::get_action_worm_head_tail(int head_col, int tail_col, int
     double kin = 0;
     
     dVector head = path->get_beads()->get_worm_bead_data(0, head_col);
-    dVector tail = path->get_beads()->get_worm_bead_data(path->get_beads()->get_worm_dims()[1], tail_col);
+    dVector tail = path->get_beads()->get_worm_bead_data(path->get_beads()->get_worm_dims()[0]-1, tail_col);
     ddVector pair;
     pair.push_back(head);
     pair.push_back(tail);

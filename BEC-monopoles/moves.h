@@ -17,7 +17,7 @@ class Move_Base{
     
 public:
     Move_Base(boost::shared_ptr<Path> path);
-    ~Move_Base(){};
+    virtual ~Move_Base(){};
     
     virtual Move_Base* clone() const = 0;
     
@@ -32,6 +32,8 @@ public:
     
     std::string get_move_name(){return move_name;}
 
+    bool is_worm_move(){return worm_move;}
+    bool is_worm_nec(){return worm_nec;}
     
     
 protected:
@@ -44,6 +46,9 @@ protected:
     
     double old_action;
     double new_action;
+    
+    bool worm_move;
+    bool worm_nec;
     
     std::string move_name;
     
