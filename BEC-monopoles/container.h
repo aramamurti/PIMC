@@ -1014,6 +1014,26 @@ public:
         return true;
     }
     
+    bool check_data(){
+        for(int row = 0; row < size.size(); row++){
+            for(int slice = 0; slice < size[row]; slice++){
+                if(isnan(list_map[row][slice]->data[0])||isnan(list_map[row][slice]->data[1]))
+                    return false;
+            }
+        }
+        for(int row = 0; row < worm.size(); row++){
+            for(int slice = 0; slice < worm[row].size(); slice++){
+                if(row == 0 && slice < worm_head_index.second)
+                    slice = worm_head_index.second;
+                if(row == worm_tail_index.first && slice > worm_tail_index.second)
+                    break;
+                if(isnan(worm[row][slice]->data[0])||isnan(worm[row][slice]->data[1]))
+                    return false;
+            }
+        }
+        return true;
+    }
+    
     void set_old_worm(){
         ye_olde_worm = worm;
         old_worm_size = worm_size;
@@ -1181,12 +1201,7 @@ public:
             slice = slice%worm[0].size();
             row++;
         }
-    
-        if((row == 0 && slice >= worm_head_index.second)||(row > 0 && row < worm.size()-2)||(row == worm_tail_index.first && slice <= worm_tail_index.second))
-            worm[row][slice]->data = data;
-        else
-            return;
-        
+        worm[row][slice]->data = data;
         sep->update_bead(slice, worm[row][slice]->key, data);
         nt->update_bead(worm[row][slice]);
     }

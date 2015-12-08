@@ -34,9 +34,6 @@ void Move_Base::attempt(){
     old_action = 0.0;
     new_action = 0.0;
     
- /*   if(!path->get_beads()->check_indices())
-        getchar();*/
-    
 }
 
 bool Move_Base::check_move(){
@@ -67,7 +64,7 @@ Center_of_Mass::Center_of_Mass(boost::shared_ptr<Path> path) : Move_Base(path){
     if(path->get_parameters()->get_box_size() == -1)
         delta = 0.5;
     else{
-        delta = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
+        delta = 4.*sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
     }
     shift.resize(path->get_parameters()->get_ndim());
     worm_move = false;
@@ -84,23 +81,27 @@ void Center_of_Mass::attempt(){
     for(dVector::iterator it = shift.begin(); it != shift.end(); it++ )
         *it = path->get_util()->randgaussian(delta);
 
-    
-    for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        old_action += pa->get_action(slice,0, false);
+    changed_particles = path->get_beads()->shift_all(ptcl, dVector(path->get_parameters()->get_ndim(),0));
+
+    for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
+        for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
+            old_action += pa->get_action_single_particle(*it, slice);
+        }
     }
     
-    changed_particles = path->get_beads()->shift_all(ptcl, shift);
+    path->get_beads()->shift_all(ptcl, shift);
     
-    for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
-        new_action += pa->get_action(slice,0, false);
+    for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
+        for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
+            new_action += pa->get_action_single_particle(*it, slice);
+        }
     }
     
     if(check_move())
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
+
 }
 
 void Center_of_Mass::accept(){
@@ -166,8 +167,7 @@ void Bisection::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
+
 }
 
 void Bisection::level_move(int ptcl, int start, int m){
@@ -351,8 +351,6 @@ void Insert::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
 
     
 }
@@ -411,8 +409,6 @@ void Remove::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
 
     
 }
@@ -466,9 +462,26 @@ void Advance_Head::attempt(){
         old_action += pa->get_action(slice,0,true);
     }
     
+    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+    
+//    int dist;
+//    if(ht[1].second >= ht[0].second){
+//        dist = path->get_parameters()->get_num_timeslices()-(ht[1].second-ht[0].second) -1;
+//    }
+//    else{
+//        dist = ht[1].second-ht[0].second-1;
+//    }
+//    
+//    if(dist <= m){
+//        dist += path->get_parameters()->get_num_timeslices();
+//    }
+    
     dVector pos = path->get_beads()->get_worm_bead_data(0, start_slice);
+    dVector end_pos = path->get_beads()->get_worm_bead_data(ht[1].first, ht[1].second);
+    
     for(int i = 0; i < m; i++){
         dVector new_pos(0);
+
         double width = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             new_pos.push_back(pos[ndim] + path->get_util()->randgaussian(width));
@@ -502,9 +515,7 @@ void Advance_Head::attempt(){
     }
     else
         reject(m);
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
-    
+
     
 }
 bool Advance_Head::check_move(){
@@ -567,15 +578,11 @@ void Recede_Head::attempt(){
         new_action += pa->get_action(slice,0,true,m);
     }
     
-//    if(new_action != 0)
-//        getchar();
     
     if(check_move())
         accept(m);
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
 
     
     
@@ -631,9 +638,16 @@ void Advance_Tail::attempt(){
         old_action += pa->get_action(slice,0,true);
     }
     
+    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+
+
+    
     dVector pos = path->get_beads()->get_worm_bead_data(path->get_beads()->get_worm_indices()[1].first, start_slice);
+    dVector end_pos = path->get_beads()->get_worm_bead_data(ht[0].first, ht[0].second);
+
     for(int i = 0; i < m; i++){
         dVector new_pos(0);
+
         double width = sqrt(path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             new_pos.push_back(pos[ndim] + path->get_util()->randgaussian(width));
@@ -665,9 +679,7 @@ void Advance_Tail::attempt(){
     }
     else
         reject(m);
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
-    
+
     
 }
 bool Advance_Tail::check_move(){
@@ -731,9 +743,7 @@ void Recede_Tail::attempt(){
         accept(m);
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
-    
+
 }
 bool Recede_Tail::check_move(){
     if(path->get_util()->randnormed(1)<exp(-(new_action-old_action) - mu_shift*path->get_parameters()->get_tau()))
@@ -795,8 +805,7 @@ void Open::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
+
 }
 
 bool Open::check_move(){
@@ -928,8 +937,7 @@ void Close::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
+
 }
 
 bool Close::check_move(){
@@ -999,6 +1007,18 @@ void Swap_Head::attempt(){
         rho0s_I.push_back(std::pair<size_t, double>(it->first, rho0));
         sig_I += rho0;
     }
+    if(isnan(sig_I)){
+        sig_I = 0;
+        for(std::vector<std::pair<size_t, dVector> >::iterator it = L_I.begin(); it != L_I.end(); it++){
+            ddVector pair;
+            pair.push_back(path->get_beads()->get_worm_bead_data(head_row, head_col));
+            pair.push_back(it->second);
+            double rho0 = 1.0/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, path->get_parameters()->get_mbar()));
+            rho0s_I.push_back(std::pair<size_t, double>(it->first, rho0));
+            sig_I += rho0;
+        }
+
+    }
     
     double rn = path->get_util()->randnormed(sig_I);
     size_t choice = 0;
@@ -1032,6 +1052,16 @@ void Swap_Head::attempt(){
         pair.push_back(it->second);
         double rho0 = 1.0/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, m));
         sig_ksi += rho0;
+    }
+    if(isnan(sig_ksi)){
+        sig_ksi = 0;
+        for(std::vector<std::pair<size_t, dVector> >::iterator it = L_I.begin(); it != L_I.end(); it++){
+            ddVector pair;
+            pair.push_back(path->get_beads()->get_bead_data(path->get_beads()->get_bead_indices(ksi_key).first, path->get_beads()->get_bead_indices(ksi_key).second));
+            pair.push_back(it->second);
+            double rho0 = 1.0/pow((4*M_PI*path->get_parameters()->get_lambda()*path->get_parameters()->get_mbar()*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_pos(pair, m));
+            sig_ksi += rho0;
+        }
     }
     
     path->get_beads()->swap_into_worm_head(path->get_beads()->get_bead_indices(choice).first, m);
@@ -1088,7 +1118,7 @@ void Swap_Head::attempt(){
     }
     
     int counter = 0;
-    int moving_head_col = start_col;
+    int moving_head_col = start_col-1;
     int moving_head_row = start_row;
     while(counter < m-1){
         if(moving_head_col < 0){
@@ -1105,12 +1135,18 @@ void Swap_Head::attempt(){
         new_action += pa->get_action(slice,0, false);
     }
     
+    if(isnan(new_action)){
+        new_action = 0;
+        for(int a = 0; a < path->get_parameters()->get_mbar(); a++){
+            int slice = (start_col - a+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+            new_action += pa->get_action(slice,0, false);
+        }
+    }
+    
     if(check_move())
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
 
 }
 
@@ -1277,8 +1313,7 @@ void Swap_Tail::attempt(){
         accept();
     else
         reject();
-/*    if(!path->get_beads()->check_indices())
-        getchar();*/
+
 }
 
 bool Swap_Tail::check_move(){
