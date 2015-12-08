@@ -27,6 +27,9 @@ public:
     //methods
     void set_up_beads();
     void put_in_box();
+    void put_in_box(iVector changed_ptcls, int start_slice, int end_slice);
+    void put_worm_in_box();
+    void put_worm_in_box(iVector changed_rows, std::vector<std::pair<int, int> > start_end);
     
     //getter methods
     int get_multistep_dist(){return multistep_dist;}

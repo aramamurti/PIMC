@@ -47,12 +47,21 @@ double Potential_Action::potential_helper_worm(int slice,int start_omit = 0, int
                     std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
                     int worm_end_row = ht[1].first;
                     
-                    int worm_start_col = (ht[0].second+start_omit)%path->get_parameters()->get_num_timeslices();
-                    int worm_end_col = (ht[1].second-end_omit+path->get_parameters()->get_num_timeslices())%path->get_parameters()->get_num_timeslices();
+                    int cur_row = 0;
+
+                    int worm_start_col = (ht[0].second+start_omit);
+                    if(worm_start_col >= path->get_parameters()->get_num_timeslices()){
+                        worm_start_col = worm_start_col%path->get_parameters()->get_num_timeslices();
+                        cur_row++;
+                    }
+                    int worm_end_col = (ht[1].second-end_omit);
+                    if(worm_end_col < 0){
+                        worm_end_col += path->get_parameters()->get_num_timeslices();
+                        worm_end_row--;
+                    }
                     
                     iVector rel_worm_rows;
                     
-                    int cur_row = 0;
                     if(worm_start_col > slice)
                         cur_row++;
                     while(cur_row < worm_end_row){

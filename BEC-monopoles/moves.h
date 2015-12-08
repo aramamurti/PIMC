@@ -189,6 +189,9 @@ private:
     int start_slice;
     int m;
     std::vector<std::pair<int, int> > ht;
+    std::vector<std::pair<int, int> > start_end;
+
+
 };
 
 class Advance_Head: public Move_Base{
@@ -207,6 +210,7 @@ public:
     
 private:
     double mu_shift;
+    std::vector<std::pair<int, int> > start_end;
 
 };
 
@@ -226,6 +230,7 @@ public:
     
 private:
     double mu_shift;
+    std::vector<std::pair<int, int> > start_end;
 
 
 };
@@ -283,6 +288,8 @@ private:
     int m;
     double sig_I;
     double sig_ksi;
+    std::vector<std::pair<int, int> > start_end;
+
 };
 
 class Swap_Tail: public Move_Base{
@@ -302,6 +309,7 @@ private:
     int m;
     double sig_I;
     double sig_ksi;
+    std::vector<std::pair<int, int> > start_end;
     
 };
 

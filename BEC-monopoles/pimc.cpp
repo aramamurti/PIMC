@@ -22,7 +22,7 @@ iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleLi
     
     for(int step = 0; step < end_step; step++){
         
-        if(step % 100 == 0 && step < path->get_parameters()->get_equilibration()){
+        if(step < path->get_parameters()->get_equilibration()){
             std::cout << path->get_processor_num() << ": " << step << ", " <<(estimators[0].estimate())[0] << std::endl;
         }
         
@@ -77,15 +77,15 @@ void PIMC::set_up_moves(std::vector<bool> move_list){
                     break;
                 case 3:
                     moves.push_back(new Insert(path));
-                    moves.push_back(new Remove(path));
                     moves.push_back(new Open(path));
-                    moves.push_back(new Close(path));
                     moves.push_back(new Advance_Head(path));
                     moves.push_back(new Advance_Tail(path));
                     moves.push_back(new Recede_Head(path));
                     moves.push_back(new Recede_Tail(path));
                     moves.push_back(new Swap_Head(path));
                     moves.push_back(new Swap_Tail(path));
+                    moves.push_back(new Close(path));
+                    moves.push_back(new Remove(path));
                     break;
             }
         i++;

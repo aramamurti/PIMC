@@ -25,16 +25,19 @@ private:
     public:
         typedef boost::shared_ptr<Node> node_ptr;
         
-        size_t row_number = 0;
-        size_t column_number = 0;
+        int row_number = 0;
+        int column_number = 0;
+        
+        int old_row_number;
         size_t key;
         
         T data;
-        T olddat;
+        T old_data;
         
         node_ptr left_node;
         node_ptr right_node;
         node_ptr old_right_node;
+        node_ptr old_left_node;
         
         bool in_worm;
         
@@ -48,12 +51,14 @@ private:
     };
     
     typedef boost::shared_ptr<Node> node_ptr;
-    boost::hash<boost::tuple<size_t, size_t, size_t> > triple_hash;
+    //boost::hash<boost::tuple<size_t, size_t, size_t> > triple_hash;
     
     bool circular = false;
     
     size_t push_counter = 0;
     iVector size;
+    iVector old_size;
+    
     std::vector<node_ptr> head;
     std::vector<node_ptr> tail;
     
@@ -88,6 +93,7 @@ private:
     std::pair<int, int> old_worm_tail_index;
     
     boost::unordered_map<size_t, node_ptr> key_map;
+    boost::unordered_map<size_t, node_ptr> old_key_map;
     
     boost::shared_ptr<Separation_Table> sep;
     boost::shared_ptr<Neighbor_Table<node_ptr> > nt;
@@ -218,8 +224,9 @@ public:
             set_key_add_sep(node);
             nt->add_bead(node);
         }
-        else
+        else{
             node->key = key;
+        }
         
         update_key_map(node);
         
@@ -235,6 +242,7 @@ public:
         
         list_map[index][size[index]-1] = node;
         
+        node.reset();
     }
     
     void set_key_add_sep(node_ptr node){
@@ -272,8 +280,11 @@ public:
         
     }
     
-    void generate_separations(){
-        sep->initialize_sep_table();
+    void remove_from_key_map(node_ptr node){
+        size_t key = node->key;
+        auto it = key_map.find(key);
+        if(it != key_map.end())
+            key_map.erase(it);
     }
     
     void generate_neighbors(){
@@ -291,6 +302,7 @@ public:
             *it += shift[it-temp->data.begin()];
         }
         nt->update_bead(temp);
+        sep->update_bead(temp->column_number, temp->key, temp->data);
         
         new_locs.push_back(temp->data);
         key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
@@ -306,23 +318,24 @@ public:
                 shifted_rows.push_back(cur_row);
             }
             nt->update_bead(temp);
+            sep->update_bead(temp->column_number, temp->key, temp->data);
             
             new_locs.push_back(temp->data);
             key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
             
             temp = temp->right_node;
         }
-        
-        for(std::vector<std::pair<size_t, int> >::iterator it = key_list.begin(); it!= key_list.end(); it++){
-            sep->update_bead(it->second, it->first, new_locs[it-key_list.begin()]);
-        }
+    
         return shifted_rows;
     }
     
     void set_old_data(){
         for(int i = 0; i < size.size(); i++){
             for(int j = 0; j<size[i];j++){
-                list_map[i][j]->olddat = list_map[i][j]->data;
+                list_map[i][j]->old_data = list_map[i][j]->data;
+                list_map[i][j]->old_row_number = list_map[i][j]->row_number;
+                list_map[i][j]->old_right_node = list_map[i][j]->right_node;
+                list_map[i][j]->old_left_node = list_map[i][j]->left_node;
             }
         }
         sep->set_old_maps();
@@ -332,7 +345,11 @@ public:
     void revert_old_data(){
         for(int i = 0; i < size.size(); i++){
             for(int j = 0; j<size[i];j++){
-                list_map[i][j]->data = list_map[i][j]->olddat;
+                list_map[i][j]->data = list_map[i][j]->old_data;
+                list_map[i][j]->row_number = list_map[i][j]->old_row_number;
+                list_map[i][j]->right_node = list_map[i][j]->old_right_node;
+                list_map[i][j]->left_node = list_map[i][j]->old_left_node;
+
             }
         }
         sep->revert_maps();
@@ -632,8 +649,9 @@ public:
                 set_key_add_sep(node);
                 nt->add_bead(node);
             }
-            else
+            else{
                 node->key = key;
+            }
             
             node->in_worm = true;
 
@@ -647,6 +665,7 @@ public:
         node_ptr node(new Node(t));
         if(worm_size == 0){
             std::cout << "No worm exists! Can't push back!" << std::endl;
+            node.reset();
             return;
         }
         else{
@@ -670,8 +689,9 @@ public:
                 set_key_add_sep(node);
                 nt->add_bead(node);
             }
-            else
+            else{
                 node->key = key;
+            }
             
             update_key_map(node);
             
@@ -679,12 +699,14 @@ public:
             
             worm_size++;
         }
+        node.reset();
     }
     
     void worm_push_front(T t, size_t key = -1){
         node_ptr node(new Node(t));
         if(worm_size == 0){
             std::cout << "No worm exists! Can't push front!" << std::endl;
+            node.reset();
             return;
         }
         else{
@@ -714,8 +736,9 @@ public:
                 set_key_add_sep(node);
                 nt->add_bead(node);
             }
-            else
+            else{
                 node->key = key;
+            }
             
             node->in_worm = true;
             
@@ -723,6 +746,7 @@ public:
             
             worm_size++;
         }
+        node.reset();
     }
     
     T worm_pop_back(bool remove = false){
@@ -740,8 +764,11 @@ public:
             worm_tail_index.second = 0;
             worm_size = 0;
             worm.resize(0);
-            if(remove)
+            if(remove){
                 sep->remove_bead(node->column_number, node->key);
+                nt->remove_bead(node);
+                remove_from_key_map(node);
+            }
             return node->data;
         }
         else{
@@ -749,7 +776,7 @@ public:
             worm_tail = worm_tail->left_node;
             worm_tail->right_node.reset();
             node->left_node.reset();
-            worm[worm_tail_index.first][worm_tail_index.second] = NULL;
+            worm[worm_tail_index.first][worm_tail_index.second].reset();
             worm_tail_index.second--;
             if(worm_tail_index.second < 0){
                 worm_tail_index.second = worm[worm_tail_index.first-1].size()-1;
@@ -760,6 +787,7 @@ public:
             if(remove){
                 sep->remove_bead(node->column_number, node->key);
                 nt->remove_bead(node);
+                remove_from_key_map(node);
             }
             return node->data;
         }
@@ -774,7 +802,7 @@ public:
             node_ptr node = worm_head;
             worm_head.reset();
             worm_tail.reset();
-            worm[worm_tail_index.first][worm_tail_index.second] = NULL;
+            worm[worm_tail_index.first][worm_tail_index.second].reset();
             worm_tail_index.first = 0;
             worm_tail_index.second = 0;
             worm_head_index.second = 0;
@@ -783,6 +811,8 @@ public:
             if(remove){
                 sep->remove_bead(node->column_number, node->key);
                 nt->remove_bead(node);
+                remove_from_key_map(node);
+
             }
             return node->data;
         }
@@ -791,7 +821,7 @@ public:
             worm_head = worm_head->right_node;
             worm_head->left_node.reset();
             node->right_node.reset();
-            worm[worm_head_index.first][worm_head_index.second] = NULL;
+            worm[worm_head_index.first][worm_head_index.second].reset();
             worm_head_index.second++;
             if(worm_head_index.second >= worm[0].size()){
                 worm_head_index.second = 0;
@@ -807,6 +837,7 @@ public:
             if(remove){
                 sep->remove_bead(node->column_number, node->key);
                 nt->remove_bead(node);
+                remove_from_key_map(node);
             }
             return node->data;
         }
@@ -822,7 +853,7 @@ public:
         }
         else{
             initialize_worm();
-            int col_pos = head_col-1;
+            int col_pos = head_col+1;
             new_worm(list_map[row][head_col]->data, head_col,list_map[row][head_col]->key);
             node_ptr temp_node = list_map[row][head_col]->right_node;
             std::vector<int> rows_to_remove(1,row);
@@ -835,7 +866,6 @@ public:
                 temp_node = temp_node->right_node;
                 col_pos++;
             }
-            
             while(tail_dist_back != 0){
                 worm_pop_back(true);
                 tail_dist_back--;
@@ -844,13 +874,16 @@ public:
             auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
             rows_to_remove.erase(last, rows_to_remove.end());
             
+//            if(rows_to_remove.size()>1)
+//                getchar();
+            
             for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
                 *it = *it - (it-rows_to_remove.begin());
                 list_map.erase(list_map.begin()+ *it);
-                size.erase(size.begin()+* it);
+                size.erase(size.begin()+ *it);
             }
             
-            reset_indices(rows_to_remove);
+            reset_indices();
         }
     }
     
@@ -899,7 +932,7 @@ public:
                     push_back(worm[worm_tail_index.first][i]->data, row, worm[worm_tail_index.first][i]->key);
                 }
                 colpos++;
-                while(temp != NULL & temp->row_number != worm_tail_index.first){
+                while(temp != NULL && temp->row_number != worm_tail_index.first){
                     if(colpos > maxcol){
                         row++;
                         colpos = 0;
@@ -963,19 +996,22 @@ public:
     }
     
     
-    void reset_indices(iVector rtr){
-        std::vector<int> new_indices(size.size()+rtr.size(),0);
-        for(std::vector<int>::iterator it2 = new_indices.begin(); it2 != new_indices.end(); it2 ++)
-            *it2 = it2 - new_indices.begin();
-        
-        for(std::vector<int>::iterator it1= rtr.begin(); it1 != rtr.end(); it1++)
-            for(std::vector<int>::iterator it2 = new_indices.begin(); it2 != new_indices.end(); it2 ++)
-                if(*it2  > *it1)
-                    *it2 = *it2 - 1;
-        
-        for(typename std::vector<std::vector<node_ptr> >::iterator it = list_map.begin(); it != list_map.end(); it++)
-            for(typename std::vector<node_ptr>::iterator it2 = (*it).begin(); it2 != (*it).end(); it2++)
-                (*it2)->row_number = new_indices[(*it2)->row_number];
+    void reset_indices(){
+        for(int row = 0; row < size.size(); row++){
+            for(int slice = 0; slice < size[row]; slice++){
+                list_map[row][slice]->row_number = row;
+            }
+        }
+    }
+    
+    bool check_indices(){
+        for(int row = 0; row < size.size(); row++){
+            for(int slice = 0; slice < size[row]; slice++){
+                if(list_map[row][slice]->row_number != row)
+                    return false;
+            }
+        }
+        return true;
     }
     
     void set_old_worm(){
@@ -985,17 +1021,25 @@ public:
         old_worm_tail = worm_tail;
         old_worm_head_index = worm_head_index;
         old_worm_tail_index = worm_tail_index;
+        old_key_map = key_map;
     }
     
     void set_old_list(){
         old_list_map = list_map;
+        old_key_map = key_map;
+        old_size = size;
     }
     
     void set_old_worm_data(){
-        node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
-        while(temp != NULL){
-            temp->olddat = temp->data;
-            temp = temp->right_node;
+        if(worm_size != 0){
+            node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
+            while(temp != NULL){
+                temp->old_data = temp->data;
+                temp->old_row_number = temp->row_number;
+                temp->old_right_node = temp->right_node;
+                temp->old_left_node = temp->left_node;
+                temp = temp->right_node;
+            }
         }
         sep->set_old_maps();
         nt->set_old_table();
@@ -1004,7 +1048,10 @@ public:
     void revert_worm_old_data(){
         node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
         while(temp != NULL){
-            temp->data = temp->olddat;
+            temp->data = temp->old_data;
+            temp->row_number = temp->old_row_number;
+            temp->right_node = temp->old_right_node;
+            temp->left_node = temp->old_left_node;
             temp = temp->right_node;
         }
         sep->revert_maps();
@@ -1018,10 +1065,13 @@ public:
         worm_tail = old_worm_tail;
         worm_head_index = old_worm_head_index;
         worm_tail_index = old_worm_tail_index;
+        key_map = old_key_map;
     }
     
     void reset_list(){
+        size = old_size;
         list_map = old_list_map;
+        key_map = old_key_map;
         size.resize(list_map.size());
         for(typename std::vector<std::vector<node_ptr> >::iterator it = list_map.begin(); it != list_map.end(); it++)
             size[it-list_map.begin()] = (*it).size();
@@ -1057,12 +1107,16 @@ public:
             auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
             rows_to_remove.erase(last, rows_to_remove.end());
             
+            
+//            if(rows_to_remove.size()>1)
+//                getchar();
+
             for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
                 *it = *it - (it-rows_to_remove.begin());
                 list_map.erase(list_map.begin()+ *it);
                 size.erase(size.begin()+* it);
             }
-            reset_indices(rows_to_remove);
+            reset_indices();
             
         }
     }
@@ -1098,13 +1152,17 @@ public:
             auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
             rows_to_remove.erase(last, rows_to_remove.end());
             
+            
+//            if(rows_to_remove.size()>1)
+//                getchar();
+
             for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
                 *it = *it - (it-rows_to_remove.begin());
                 list_map.erase(list_map.begin()+ *it);
                 size.erase(size.begin()+ *it);
             }
             
-            reset_indices(rows_to_remove);
+            reset_indices();
             
         }
     }
@@ -1119,20 +1177,13 @@ public:
     }
     
     void set_worm_bead_data(int row, int slice, T data){
-        
-        if(slice < worm[row].size() && slice >= worm_head_index.second){
-            worm[row][slice]->data = data;
+        if(slice >= worm[0].size()){
+            slice = slice%worm[0].size();
+            row++;
         }
-        else if(row < worm.size()-2){
-            slice = slice%worm[row].size();
-            row += 1;
+    
+        if((row == 0 && slice >= worm_head_index.second)||(row > 0 && row < worm.size()-2)||(row == worm_tail_index.first && slice <= worm_tail_index.second))
             worm[row][slice]->data = data;
-        }
-        else if(row == worm.size()-2 && slice%worm[row].size() <= worm_tail_index.second){
-            slice = slice%worm[row].size();
-            row += 1;
-            worm[row][slice]->data = data;
-        }
         else
             return;
         

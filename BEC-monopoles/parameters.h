@@ -11,21 +11,44 @@
 
 #include "uni_header.h"
 
+/*************************************************************************************
+ 
+                                PARAMETERS CLASS
+ 
+ Class Description: This class takes parameters from a parameters map and sets the
+    appropriate values for the simulation (moves, potentials, box size, etc.). The
+    class also handles the getting of parameters by other objects in the simulation.
+ 
+ *************************************************************************************/
+
 class Parameters{
     
 private:
     
+    //Map of parameters that are read in from file. Key is name of parameter, and value is parameter value
     typedef boost::unordered_map<std::string, std::string> sectionmap;
     
+    //Simulation parameters
     double tau, T, kb, lambda, box_size, mu, C0;
     int ndim, timeslices, particles, skip, equilibration, end_step, charges, mbar;
     bool boson, per_bound_cond, charged;
-    std::vector<bool> potentials, move_list;
+    
     std::string particle_type;
+    
+    std::vector<bool> potentials, move_list;
 
     
 public:
     
+    /*****************************************************************************************
+
+                                        CONSTRUCTOR
+     
+     Method Description: This method takes a parameters map, finds the appropriate parameter 
+        values and sets the simulation parameters accordingly. If the parameter isn't found in
+        the map, a default value is set.
+     
+     *****************************************************************************************/
     Parameters(boost::unordered_map<std::string, boost::shared_ptr<sectionmap> > parameter_map){
         sectionmap consts = *(*parameter_map.find("Constants")).second;
         sectionmap moves = *(*parameter_map.find("Moves")).second;
@@ -33,50 +56,64 @@ public:
         
         sectionmap::iterator param_it;
         
+        //Number of dimensions
         param_it = consts.find("ndim");
         if(param_it != consts.end())
             ndim = std::stoi((*param_it).second);
         else
             ndim = 1;
+        
+        //Boltzmann constant
         param_it = consts.find("kb");
         if(param_it != consts.end())
             kb = std::stof((*param_it).second);
         else
             kb = 1;
         
+        //Number of particles
         param_it = simpars.find("particles");
         if(param_it != simpars.end())
             particles = std::stoi((*param_it).second);
         else
             particles = 1;
         
+        //Equilibration steps
         param_it = simpars.find("equilibration");
         if(param_it != simpars.end())
             equilibration = std::stoi((*param_it).second);
         else
             equilibration = 1000;
         
+        //Simulation end step
         param_it = simpars.find("end_step");
         if(param_it != simpars.end())
             end_step = std::stoi((*param_it).second);
         else
             end_step = 10000;
         
+        //Temperature
         param_it = simpars.find("temperature");
         if(param_it != simpars.end())
             T = std::stof((*param_it).second);
         else
             T = 1.0;
         
+        //Periodic boundary conditions
         param_it = simpars.find("periodic_boundary_conditions");
         per_bound_cond = false;
         if(param_it != simpars.end())
             per_bound_cond = ((*param_it).second == "true");
         
+        //Number of differebt charges
         charges = 0;
+        
+        //Default box size
         box_size = -1;
+        
+        //Possible potentials
         potentials.resize(4);
 
+        //Particle properties set by type
         param_it = simpars.find("particle_type");
         if(param_it != simpars.end()){
             if((*param_it).second == "boson_harmonic"){
@@ -125,6 +162,8 @@ public:
                 
         }
         
+        //Possible moves allowed
+        
         param_it = moves.find("Center_of_Mass");
         if(param_it != moves.end())
             move_list.push_back((*param_it).second == "true");
@@ -149,21 +188,40 @@ public:
             }
         }
         
+        //Other simulation properties
         set_timeslices(100);
-        mbar = 20;
+        mbar = 40;
         skip = 1;
         mu = -1;
         C0 = 7.5;
         
     }
     
+    /*************************************************************************
+     
+                                DESTRUCTOR
+     
+     *************************************************************************/
+    
     ~Parameters(){}
+    
+    /*************************************************************************
+     
+     Method Description: This method adjusts the number of timeslices for each
+        particle in the system, and adjusts tau accordingly.
+     
+     *************************************************************************/
     
     void set_timeslices(double newTS){
         timeslices = newTS;
-        tau = 1/(T*timeslices);
+        tau = 1.0/(T*timeslices);
     }
     
+    /*************************************************************************
+     
+                                GETTER METHODS
+     
+     *************************************************************************/
     int get_ndim(){return ndim;}
     double get_T(){return T;}
     double get_kb(){return kb;}

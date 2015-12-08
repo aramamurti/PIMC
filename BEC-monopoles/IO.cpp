@@ -29,7 +29,7 @@ void IO::set_up_outfiles(int world_rank){
     std::string result4 = sstm4.str();
     f4.open(result4.c_str());
     
-    f2 << "Step No." << ", " << "Energy/atom" << ", " << "KE/atom" << ", " << "PE/atom" << std::endl;
+    f2 << "Step No." << ", " << "Energy/atom" << ", " << "KE/atom" << ", " << "PE/atom" << ", "<< "Num. Particles" << std::endl;
 }
 
 void IO::write_final(double energy, double energystd, int num_particles, iiVector cycles, iVector accept){
@@ -66,7 +66,7 @@ void IO::write_final(double energy, double energystd, int num_particles, iiVecto
 
 
 void IO::write_step_state(int step, dVector energy, iVector cycles, int num_particles, iVector wnum){
-    f2 << step << ", " << energy[0]/num_particles << ", " << energy[1]/num_particles << ", " << energy[2]/num_particles << std::endl;
+    f2 << step << ", " << energy[0]/num_particles << ", " << energy[1]/num_particles << ", " << energy[2]/num_particles << ", " << num_particles << std::endl;
     for(iVector::iterator it = cycles.begin(); it != cycles.end(); it++){
         f3 << *it;
         if(cycles.size() - (it-cycles.begin()) != 1)
