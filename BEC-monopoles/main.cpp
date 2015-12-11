@@ -59,9 +59,12 @@ int main(int argc, const char * argv[]) {
     iVector accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
     
+    std::cout<< world_rank <<": Finished simulation. Writing results to file..."<< std::endl;
     //Write final results to file
     writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_beads()->get_num_particles(),cycles, accept);
     writer.close();
+    
+    std::cout<< world_rank <<": Done."<< std::endl;
     
     //MPI_Finalize();
     

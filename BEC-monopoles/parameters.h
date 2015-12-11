@@ -66,9 +66,16 @@ public:
         //Boltzmann constant
         param_it = consts.find("kb");
         if(param_it != consts.end())
-            kb = std::stof((*param_it).second);
+            kb = std::stod((*param_it).second);
         else
             kb = 1;
+        
+        //Worm Constant
+        param_it = consts.find("C0");
+        if(param_it != consts.end())
+            C0 = std::stod((*param_it).second);
+        else
+            C0 = 0;
         
         //Number of particles
         param_it = simpars.find("particles");
@@ -77,12 +84,14 @@ public:
         else
             particles = 1;
         
+        
         //Equilibration steps
         param_it = simpars.find("equilibration");
         if(param_it != simpars.end())
             equilibration = std::stoi((*param_it).second);
         else
             equilibration = 1000;
+        
         
         //Simulation end step
         param_it = simpars.find("end_step");
@@ -94,9 +103,24 @@ public:
         //Temperature
         param_it = simpars.find("temperature");
         if(param_it != simpars.end())
-            T = std::stof((*param_it).second);
+            T = std::stod((*param_it).second);
         else
             T = 1.0;
+        
+        //Time slices
+        param_it = simpars.find("time_slices");
+        if(param_it != simpars.end())
+            set_timeslices(std::stoi((*param_it).second));
+        else
+            set_timeslices(100);
+        
+        //Chemical Potential
+        param_it = simpars.find("mu");
+        if(param_it != simpars.end())
+            mu = std::stod((*param_it).second);
+        else
+            mu = 0;
+        
         
         //Periodic boundary conditions
         param_it = simpars.find("periodic_boundary_conditions");
@@ -104,7 +128,7 @@ public:
         if(param_it != simpars.end())
             per_bound_cond = ((*param_it).second == "true");
         
-        //Number of differebt charges
+        //Number of different charges
         charges = 0;
         
         //Default box size
@@ -188,12 +212,6 @@ public:
             }
         }
         
-        //Other simulation properties
-        set_timeslices(100);
-        mbar = 40;
-        skip = 1;
-        mu = -1;
-        C0 = 7.5;
         
     }
     
@@ -212,9 +230,26 @@ public:
      
      *************************************************************************/
     
-    void set_timeslices(double newTS){
-        timeslices = newTS;
-        tau = 1.0/(T*timeslices);
+    void set_timeslices(int new_ts){
+        timeslices = new_ts;
+        tau = 1.0/(T*timeslices);        
+        set_mbar(int(ceil(timeslices/5.)));
+    }
+    
+    void shift_timeslices(int shift){
+        set_timeslices(timeslices + shift);
+    }
+    
+    void set_mbar(int new_mbar){
+        mbar = new_mbar;
+    }
+    
+    void shift_mu(double shift){
+        mu += shift;
+    }
+    
+    void shift_C0(double shift){
+        C0 += shift*C0;
     }
     
     /*************************************************************************

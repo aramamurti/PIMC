@@ -18,90 +18,150 @@ public:
     Separation_Table(double boxsize = -1){
         util = boost::shared_ptr<Utility>(new Utility(0));
         this->boxsize = boxsize;
+        update = true;
     };
     ~Separation_Table(){};
     
     void add_bead(int slice, size_t key, std::vector<double> location){
         if(slice >= beads_map.size())
             beads_map.resize(slice+1);
-        beads_map[slice].insert(std::pair<size_t, std::vector<double> >(key, location));
-        // std::cout << key << "\t"<< slice << std::endl;
-        
+        if(slice >= update_beads_map.size())
+            update_beads_map.resize(slice+1);
+        if(update)
+            beads_map[slice].insert(std::pair<size_t, std::vector<double> >(key, location));
+        else
+            update_beads_map[slice].insert(std::pair<size_t, std::vector<double> >(key, location));
         update_bead(slice,key,location);
     }
     
     void remove_bead(int slice, size_t key){
-        auto bead = beads_map[slice].find(key);
-        for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[slice].begin(); it != beads_map[slice].end(); it++){
-            if(it != bead){
-                std::pair<size_t,size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
-                std::pair<size_t,size_t> bead_pair_id_2 = std::pair<size_t,size_t>(it->first,bead->first);
-                bead_pair_sep.erase(bead_pair_id_1);
-                bead_pair_sep.erase(bead_pair_id_2);
+        if(update){
+            auto bead = beads_map[slice].find(key);
+            for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[slice].begin(); it != beads_map[slice].end(); it++){
+                if(it != bead){
+                    std::pair<size_t,size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
+                    std::pair<size_t,size_t> bead_pair_id_2 = std::pair<size_t,size_t>(it->first,bead->first);
+                    bead_pair_sep.erase(bead_pair_id_1);
+                    bead_pair_sep.erase(bead_pair_id_2);
+                }
             }
+            beads_map[slice].erase(key);
         }
-        
-        // std::cout << key << std::endl;
-        beads_map[slice].erase(key);
+        else{
+            if(slice >= remove_beads_map.size())
+                remove_beads_map.resize(slice+1);
+            remove_beads_map[slice].push_back(key);
+            auto bead = beads_map[slice].find(key);
+            if(bead == beads_map[slice].end())
+                bead = update_beads_map[slice].find(key);
+            for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[slice].begin(); it != beads_map[slice].end(); it++){
+                if(it != bead){
+                    std::pair<size_t,size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
+                    std::pair<size_t,size_t> bead_pair_id_2 = std::pair<size_t,size_t>(it->first,bead->first);
+                    remove_pair_sep.push_back(bead_pair_id_1);
+                    remove_pair_sep.push_back(bead_pair_id_2);
+                }
+            }
+            
+        }
     }
     
     
     void update_bead(int slice, size_t key, dVector new_loc){
-        auto bead = beads_map[slice].find(key);
-        bead->second = new_loc;
-
+        boost::unordered_map<size_t, std::vector<double> >::iterator bead;
+        if(update){
+            beads_map[slice][key] = new_loc;
+            bead = beads_map[slice].find(key);
+        }
+        else{
+            if(slice >= update_beads_map.size())
+                update_beads_map.resize(slice+1);
+            update_beads_map[slice][key] = new_loc;
+            bead = update_beads_map[slice].find(key);
+        }
+        
         for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[slice].begin(); it != beads_map[slice].end(); it++){
-            if(it != bead){
+            if(it->first != bead->first){
                 ddVector bead_pair;
                 std::pair<size_t, size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
                 std::pair<size_t, size_t> bead_pair_id_2= std::pair<size_t,size_t>(it->first,bead->first);
-                bead_pair.push_back(bead->second);
-                bead_pair.push_back(it->second);
-                dVector dist = util->dist(bead_pair,boxsize);
                 
-                auto it2 = bead_pair_sep.find(bead_pair_id_1);
-                if(it2 == bead_pair_sep.end()){
-                    bead_pair_sep.insert(std::pair<std::pair<size_t,size_t>, dVector>(bead_pair_id_1,dist));
-                }
+                bead_pair.push_back(bead->second);
+                if(update_beads_map[slice].find(it->first) != update_beads_map[slice].end())
+                    bead_pair.push_back(update_beads_map[slice][it->first]);
                 else
-                   bead_pair_sep.find(bead_pair_id_1)->second = dist;
-
+                    bead_pair.push_back(it->second);
+                dVector dist = util->dist(bead_pair,boxsize);
+                if(update)
+                    bead_pair_sep[bead_pair_id_1] = dist;
+                else
+                    update_pair_sep[bead_pair_id_1] = dist;
+                
                 dVector neg_dist;
                 std::transform(dist.begin(), dist.end(), std::back_inserter(neg_dist), std::negate<double>());
-                   
-                it2 = bead_pair_sep.find(bead_pair_id_2);
-                if(it2 == bead_pair_sep.end()){
-                    bead_pair_sep.insert(std::pair<std::pair<size_t, size_t>, dVector>(bead_pair_id_2,neg_dist));
-                }
+                if(update)
+                    bead_pair_sep[bead_pair_id_2] = neg_dist;
                 else
-                    bead_pair_sep.find(bead_pair_id_2)->second = neg_dist;
+                    update_pair_sep[bead_pair_id_2] = neg_dist;
             }
         }
     }
     
     dVector get_separation(std::pair<size_t, size_t> bead_pair){
-        auto it = bead_pair_sep.find(bead_pair);
-        return it->second;
+        if(update_pair_sep.find(bead_pair) != update_pair_sep.end())
+            return update_pair_sep[bead_pair];
+        else
+            return bead_pair_sep[bead_pair];
     }
     
-    void set_old_maps(){
-        old_beads_map = beads_map;
-        old_bead_pair_sep = bead_pair_sep;
+    void confirm_update(){
+        for(int slice = 0; slice < remove_beads_map.size(); slice++)
+            for(std::vector<size_t>::iterator bead = remove_beads_map[slice].begin(); bead != remove_beads_map[slice].end(); bead++)
+                beads_map[slice].erase(*bead);
+
+        for(std::vector<std::pair<size_t, size_t> >::iterator bead_sep = remove_pair_sep.begin(); bead_sep != remove_pair_sep.end(); bead_sep++)
+            bead_pair_sep.erase(*bead_sep);
+        
+        for(int slice = 0; slice < update_beads_map.size(); slice++)
+            for(boost::unordered_map<size_t, std::vector<double> >::iterator bead = update_beads_map[slice].begin(); bead != update_beads_map[slice].end(); bead++)
+                beads_map[slice][bead->first] = bead->second;
+        
+        for(boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> >::iterator bead_sep = update_pair_sep.begin(); bead_sep!= update_pair_sep.end(); bead_sep++)
+            bead_pair_sep[bead_sep->first] = bead_sep->second;
+        
+        update_beads_map.resize(0);
+        update_pair_sep.clear();
+        remove_pair_sep.clear();
+        remove_beads_map.resize(0);
     }
-    void revert_maps(){
-        beads_map = old_beads_map;
-        bead_pair_sep = old_bead_pair_sep;
+    
+    void reject_update(){
+        update_beads_map.resize(0);
+        update_pair_sep.clear();
+        remove_pair_sep.clear();
+        remove_beads_map.resize(0);
+
+    }
+    
+    void set_update(bool status){
+        update = status;
     }
     
     
 private:
     
     std::vector<boost::unordered_map<size_t, std::vector<double> > > beads_map;
+    std::vector<boost::unordered_map<size_t, std::vector<double> > > update_beads_map;
+    std::vector<std::vector<size_t> > remove_beads_map;
+    
     boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > bead_pair_sep;
+    boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > update_pair_sep;
+    std::vector<std::pair<size_t,size_t> > remove_pair_sep;
     
     std::vector<boost::unordered_map<size_t, std::vector<double> > > old_beads_map;
     boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > old_bead_pair_sep;
     
+    bool update;
     
     boost::shared_ptr<Utility> util;
     
@@ -128,7 +188,7 @@ public:
     
     Neighbor_Table(double boxsize, int ndim){
         this->box_size = boxsize;
-        num_grid = int(ceil(box_size/4));
+        num_grid = 4;
         grid_step = boxsize/num_grid;
         this->ndim = ndim;
         util = boost::shared_ptr<Utility>(new Utility(0));
@@ -154,6 +214,10 @@ public:
                             for(iiVector::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); it++){
                                 neighbor_box_keys.push_back(triple_hash(boost::tuple<int,int,int>((*it)[0],(*it)[1],(*it)[2])));
                             }
+                            std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                            auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                            neighbor_box_keys.erase(last, neighbor_box_keys.end());
+                            
                             grid_neigbors.insert(std::pair<size_t, std::vector<size_t> >(grid_key, neighbor_box_keys));
                             
                         }
@@ -164,6 +228,10 @@ public:
                         for(iiVector::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); it++){
                             neighbor_box_keys.push_back(pair_hash(std::pair<int,int>((*it)[0],(*it)[1])));
                         }
+                        std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                        auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                        neighbor_box_keys.erase(last, neighbor_box_keys.end());
+                        
                         grid_neigbors.insert(std::pair<size_t, std::vector<size_t> >(grid_key, neighbor_box_keys));
                     }
                 }
@@ -173,6 +241,10 @@ public:
                 for(iiVector::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); it++){
                     neighbor_box_keys.push_back((*it)[0]);
                 }
+                std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
+                neighbor_box_keys.erase(last, neighbor_box_keys.end());
+                
                 grid_neigbors.insert(std::pair<size_t, std::vector<size_t> >(grid[0], neighbor_box_keys));
             }
         }
@@ -236,7 +308,7 @@ public:
     void add_bead(T reference){
         dVector data = reference->data;
         int col = reference->column_number;
-
+        
         if(data.size()!=0){
             iVector grid_num;
             for(int i = 0; i < ndim; i++){
@@ -272,9 +344,9 @@ public:
     void update_bead(T reference){
         dVector data = reference->data;
         dVector old_data = reference->old_data;
-       
+        
         iVector old_grid_num(0);
-
+        
         if(old_data.size()!=0){
             for(int i = 0; i < ndim; i++)
                 old_grid_num.push_back(util->per_bound_cond((int)(old_data[i]/grid_step),num_grid));
@@ -344,7 +416,7 @@ public:
         
         size_t grid_key = 0;
         int col = reference->column_number;
-
+        
         if(data.size() != 0){
             for(int i = 0; i < ndim; i++)
                 grid_num.push_back(util->per_bound_cond((int)(data[i]/grid_step),num_grid));
@@ -360,13 +432,13 @@ public:
                     grid_key = triple_hash(boost::tuple<int,int,int>(grid_num[0],grid_num[1],grid_num[2]));
                     break;
             }
-        
- 
-        auto it = grid_beads[col].find(grid_key);
-        if(it != grid_beads[col].end()){
-            auto it2 = std::find(it->second.begin(), it->second.end(), reference->key);
-            it->second.erase(it2);
-        }
+            
+            
+            auto it = grid_beads[col].find(grid_key);
+            if(it != grid_beads[col].end()){
+                auto it2 = std::find(it->second.begin(), it->second.end(), reference->key);
+                it->second.erase(it2);
+            }
         }
     }
     
@@ -453,6 +525,14 @@ public:
         if(it != grid_bead_col.end())
             bead_keys = it->second;
         return bead_keys;
+    }
+    
+    int num_beads_in_table(){
+        int num_beads = 0;
+        for(int i = 0; i < grid_beads.size(); i++)
+            for(boost::unordered_map<size_t, std::vector<size_t> >::iterator it = grid_beads[i].begin(); it != grid_beads[i].end(); it++)
+                num_beads += it->second.size();
+        return num_beads;
     }
     
     

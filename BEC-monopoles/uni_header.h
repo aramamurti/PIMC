@@ -21,10 +21,10 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <boost/bind.hpp>
-#include <boost/math/special_functions/bessel.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/any.hpp>
 #include <boost/tuple/tuple.hpp>

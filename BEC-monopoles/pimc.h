@@ -21,6 +21,7 @@ public:
     PIMC(boost::shared_ptr<Path> path);
     ~PIMC(){};
     iVector run(int end_step, IO &writer, dVector &energytr, iiVector &cycleList);
+    void equilibrate();
     void set_up_moves(std::vector<bool> move_list);
     void set_up_estimators(std::vector<bool> estimator_list);
     void attempt_moves();

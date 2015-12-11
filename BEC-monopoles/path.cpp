@@ -20,7 +20,7 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
     params = parameters;
     
     writer.write_parameters(params);
-    multistep_dist = 32;
+    multistep_dist = 16;
     last_start = 0;
     last_end = 0;
     pnum = procnum;
@@ -47,34 +47,42 @@ void Path::set_up_beads(){
         
     }
     else{
+//        offset.resize(0);
+//        unsigned int pps = (int)ceil(pow(params->get_num_particles(),1.0/((double)params->get_ndim())));
+//        double spacing = params->get_box_size()/pps;
+//        for(int i = 0; i < pps; i++){
+//            if(params->get_ndim() == 1){
+//                dVector pos;
+//                pos.push_back(i*spacing);
+//                offset.push_back(pos);
+//            }
+//            else{
+//                for(int j = 0; j < pps; j++){
+//                    if(params->get_ndim() == 1){
+//                        dVector pos;
+//                        pos.push_back(i*spacing);
+//                        pos.push_back(j*spacing);
+//                        offset.push_back(pos);
+//                    }
+//                    else{
+//                        for(int k = 0; k < pps; k++){
+//                            dVector pos;
+//                            pos.push_back(i*spacing);
+//                            pos.push_back(j*spacing);
+//                            pos.push_back(k*spacing);
+//                            offset.push_back(pos);
+//                        }
+//                    }
+//                }
+//            }
+//        }
         offset.resize(0);
-        unsigned int pps = (int)ceil(pow(params->get_num_particles(),1.0/((double)params->get_ndim())));
-        double spacing = params->get_box_size()/pps;
-        for(int i = 0; i < pps; i++){
-            if(params->get_ndim() == 1){
-                dVector pos;
-                pos.push_back(i*spacing);
-                offset.push_back(pos);
+        for(int i = 0; i < params->get_num_particles(); i++){
+            dVector pos(0);
+            for(int ndim = 0; ndim < params->get_ndim(); ndim++){
+                pos.push_back(util->randnormed(params->get_box_size()));
             }
-            else{
-                for(int j = 0; j < pps; j++){
-                    if(params->get_ndim() == 1){
-                        dVector pos;
-                        pos.push_back(i*spacing);
-                        pos.push_back(j*spacing);
-                        offset.push_back(pos);
-                    }
-                    else{
-                        for(int k = 0; k < pps; k++){
-                            dVector pos;
-                            pos.push_back(i*spacing);
-                            pos.push_back(j*spacing);
-                            pos.push_back(k*spacing);
-                            offset.push_back(pos);
-                        }
-                    }
-                }
-            }
+            offset.push_back(pos);
         }
     }
     
@@ -104,29 +112,25 @@ void Path::set_up_beads(){
 
 void Path::put_in_box(){
     
-    beads->set_old_data();
-    
     if(params->get_box_size() != -1)
         for(int ptcl = 0; ptcl < beads->get_num_particles(); ptcl++)
             for(int slice = 0; slice < params->get_num_timeslices(); slice++){
-                beads->set_bead_data(ptcl, slice, util->location(beads->get_bead_data(ptcl, slice), params->get_box_size()));
+                beads->set_bead_data(ptcl, slice, util->location(beads->get_bead_data(ptcl, slice), params->get_box_size()),beads->get_bead_data(ptcl, slice));
             }
+    
 }
 
 void Path::put_in_box(iVector changed_ptcls, int start_slice, int end_slice){
     
-    beads->set_old_data();
-    
     if(params->get_box_size() != -1)
         for(std::vector<int>::iterator it = changed_ptcls.begin(); it != changed_ptcls.end(); it++)
             for(int slice = start_slice; slice < end_slice; slice++){
-                beads->set_bead_data(*it, slice, util->location(beads->get_bead_data(*it, slice), params->get_box_size()));
+                beads->set_bead_data(*it, slice, util->location(beads->get_bead_data(*it, slice), params->get_box_size()),beads->get_bead_data(*it, slice));
             }
+    
 }
 
 void Path::put_worm_in_box(){
-    
-    beads->set_old_worm_data();
     
     std::vector<std::pair<int, int> > ht = beads->get_worm_indices();
     
@@ -140,7 +144,7 @@ void Path::put_worm_in_box(){
     
     if(params->get_box_size() != -1){
         while(!(row == end_row && slice == end_slice)){
-            beads->set_worm_bead_data(row, slice, util->location(beads->get_worm_bead_data(row, slice), params->get_box_size()));
+            beads->set_worm_bead_data(row, slice, util->location(beads->get_worm_bead_data(row, slice), params->get_box_size()),beads->get_worm_bead_data(row, slice));
             slice++;
             if(slice >= params->get_num_timeslices()){
                 slice = slice%params->get_num_timeslices();
@@ -148,18 +152,19 @@ void Path::put_worm_in_box(){
             }
         }
     }
+    
+    
 }
 
 void Path::put_worm_in_box(iVector changed_rows, std::vector<std::pair<int, int> > start_end){
-    
-    beads->set_old_worm_data();
-    
+        
     if(params->get_box_size() != -1){
         for(iVector::iterator row = changed_rows.begin(); row != changed_rows.end(); row++){
             for(int slice = start_end[row-changed_rows.begin()].first; slice <= start_end[row-changed_rows.begin()].second; slice++){
-                beads->set_worm_bead_data(*row, slice, util->location(beads->get_worm_bead_data(*row, slice), params->get_box_size()));
+                beads->set_worm_bead_data(*row, slice, util->location(beads->get_worm_bead_data(*row, slice), params->get_box_size()),beads->get_worm_bead_data(*row, slice));
             }
         }
-    
     }
+    
+
 }

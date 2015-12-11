@@ -61,7 +61,8 @@ public:
     double get_action(int slice, int dist, bool only_worm = false,int start_omit = 0, int end_omit = 0);
     double potential_helper(int slice, int ptcl);
     double potential_helper_worm(int slice,int start_omit, int end_omit);
-    double get_action_single_particle(int ptcl, int slice);
+    double get_action_single_particle(int ptcl, int slice, bool exclude_worm = false);
+    double get_action_multiple_particles(iVector ptcls, int slice, bool exclude_worm = false);
     
 private:
     std::vector<boost::shared_ptr<Potential_Functions> > pot_funcs;

@@ -23,6 +23,11 @@ public:
     
     virtual void attempt();
     
+    virtual double get_delta(){return 0;}
+    virtual void shift_delta(double shift){}
+    
+    void reset_acceptance_counters();
+    
     bool check_move();
     void accept();
     void reject();
@@ -43,6 +48,7 @@ protected:
     int num_accepts;
     
     int ptcl;
+    int num_particles;
     
     double old_action;
     double new_action;
@@ -67,6 +73,9 @@ public:
     ~Center_of_Mass(){};
     
     Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
+    
+    void shift_delta(double shift);
+    double get_delta(){return delta;}
     
     void attempt();
     void accept();
@@ -168,6 +177,7 @@ private:
     double mu_shift;
     int start_slice;
     int m;
+    iVector rows_to_remove;
     
 };
 
@@ -289,6 +299,8 @@ private:
     double sig_I;
     double sig_ksi;
     std::vector<std::pair<int, int> > start_end;
+    iVector rows_to_remove;
+
 
 };
 
@@ -310,6 +322,7 @@ private:
     double sig_I;
     double sig_ksi;
     std::vector<std::pair<int, int> > start_end;
+    iVector rows_to_remove;
     
 };
 
