@@ -1643,7 +1643,8 @@ public:
     iVector get_worm_dims(){
         iVector worm_dims;
         worm_dims.push_back(worm.size());
-        worm_dims.push_back(worm[0].size());
+        if(worm.size()!=0)
+            worm_dims.push_back(worm[0].size());
         return worm_dims;
     }
     

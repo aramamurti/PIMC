@@ -11,9 +11,9 @@
 
 PIMC::PIMC(boost::shared_ptr<Path> path){this->path = path;}
 
-iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleList){
+std::vector<boost::tuple<std::string, int, int> > PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleList, dVector &particles){
     
-    iVector accept;
+    std::vector<boost::tuple<std::string, int, int> > accept;
     
     std::vector<bool> estimator_list(3,true);
     
@@ -21,23 +21,20 @@ iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleLi
     set_up_estimators(estimator_list);
     
     std::cout << path->get_processor_num() <<":\tEquilibrating..." <<std::endl;
-    
+
     equilibrate();
     
     for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
         it->reset_acceptance_counters();
         if(it->get_move_name() == "Center of Mass"){
-            std::cout << path->get_processor_num() <<":\tCenter of Mass delta =\t"<<it->get_delta()<<std::endl;
-            std::cout << path->get_processor_num() <<":\tChemical Potential =\t"<<path->get_parameters()->get_mu()<<std::endl;
-            std::cout << path->get_processor_num() <<":\tWorm Constant =\t"<<path->get_parameters()->get_C0()<<std::endl;
-
+            writer.write_equil_parameters(path->get_parameters(), it->get_delta());
         }
     }
     
     std::cout << path->get_processor_num() <<":\tStarting simulation..." << std::endl;
     for(int step = 0; step < end_step; step++){
         
-        int num_updates = std::max(1,path->get_beads()->get_num_particles());
+        int num_updates = std::max(1,path->get_beads()->get_num_particles()+path->get_beads()->get_worm_size()/path->get_parameters()->get_num_timeslices());
         for(int i = 0; i < num_updates; i++)
             for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
                 if(it->is_worm_move()){
@@ -61,13 +58,14 @@ iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleLi
             
             energytr.push_back(energy[0]);
             cycleList.push_back(cycles);
+            particles.push_back(path->get_beads()->get_num_particles());
             
             writer.write_step_state(step, energy, cycles, path->get_beads()->get_num_particles(), winding);
         }
     }
     
     for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
-        accept.push_back((*it).get_num_accepts());
+        accept.push_back(boost::tuple<std::string, int, int>(it->get_move_name(), it->get_num_accepts(), it->get_num_attempts()));
     }
     return accept;
     
@@ -92,7 +90,7 @@ void PIMC::equilibrate(){
     for(int step = 0; step < end_step; step++){
         std::cout << path->get_processor_num()<<":\t" << step <<"\t"<<estimators[0].estimate()[0] <<std::endl;
         if(double(step)/end_step < 1/4.){
-            for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()); i++)
+            for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()+path->get_beads()->get_worm_size()/path->get_parameters()->get_num_timeslices()); i++)
                 for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
                     if(!it->is_worm_move()){
                         it->attempt();
@@ -120,7 +118,7 @@ void PIMC::equilibrate(){
                 }
         }
         else{
-            for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()); i++){
+            for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()+path->get_beads()->get_worm_size()/path->get_parameters()->get_num_timeslices()); i++){
                 for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
                     if(it->is_worm_move()){
                         if(!it->is_worm_nec()&&!path->worm_exists())

@@ -141,6 +141,7 @@ public:
         param_it = simpars.find("particle_type");
         if(param_it != simpars.end()){
             if((*param_it).second == "boson_harmonic"){
+                particle_type = (*param_it).second;
                 lambda = 0.5;
                 charged = false;
                 boson = true;
@@ -150,6 +151,7 @@ public:
 
             }
             else if((*param_it).second == "boltzmannon_harmonic"){
+                particle_type = (*param_it).second;
                 lambda = 0.5;
                 charged = false;
                 boson = false;
@@ -158,6 +160,7 @@ public:
                 potentials[0] = true;
             }
             else if((*param_it).second == "he4"){
+                particle_type = (*param_it).second;
                 lambda = 6.0596;
                 charged = false;
                 boson = true;
@@ -166,6 +169,7 @@ public:
                 potentials[2] = true;
             }
             else if((*param_it).second == "boson_coulomb"){
+                particle_type = (*param_it).second;
                 lambda = 0.5;
                 charged = true;
                 charges = 1;
@@ -175,6 +179,7 @@ public:
                 potentials[3] = true;
             }
             else if((*param_it).second == "monopole_liquid"){
+                particle_type = (*param_it).second;
                 lambda = 0.5;
                 charged = true;
                 charges = 2;
@@ -278,6 +283,7 @@ public:
     double get_mu(){return mu;}
     double get_C0(){return C0;}
     int get_mbar(){return mbar;}
+    std::string get_particle_type(){return particle_type;}
     std::vector<bool> get_potentials(){return potentials;}
     std::vector<bool> get_move_list(){return move_list;}
 };

@@ -58,16 +58,16 @@ int main(int argc, const char * argv[]) {
     
     //Initialize energy vector and permutation cycles vector. (Results to be used in analysis)
     dVector energy(0);
-    iiVector cycles;
+    iiVector cycles(0);
+    dVector particles(0);
     
     //Run algorithm and get acceptance ratios of moves
     std::cout<< world_rank << ":\tStarting algorithm..." <<std::endl;
-    iVector accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles);
-    accept.push_back(path->get_parameters()->get_end_step());
+    std::vector<boost::tuple<std::string, int, int> > accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles, particles);
     
     std::cout<< world_rank <<":\tFinished simulation. Writing results to file..."<< std::endl;
     //Write final results to file
-    writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_beads()->get_num_particles(),cycles, accept);
+    writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_beads()->get_num_particles(),cycles, accept,path->get_util()->vecavg(particles));
     writer.close();
     
     std::cout<< world_rank <<":\tDone."<< std::endl;
