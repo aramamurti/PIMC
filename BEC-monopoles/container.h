@@ -53,7 +53,6 @@ private:
     };
     
     typedef boost::shared_ptr<Node> node_ptr;
-    //boost::hash<boost::tuple<size_t, size_t, size_t> > triple_hash;
     
     bool circular = false;
     

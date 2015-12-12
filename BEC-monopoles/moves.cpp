@@ -1018,12 +1018,12 @@ void Close::reject(){
 
 void Close::accept(){
     
+    path->put_worm_in_box(changed_particles, start_end);
     path->get_beads()->move_worm_to_path();
     path->get_beads()->remove_old_worm_references();
 
     path->set_worm(false);
     Move_Base::accept();
-    path->put_worm_in_box(changed_particles, start_end);
 
 
     

@@ -20,14 +20,21 @@ iVector PIMC::run(int end_step, IO &writer, dVector &energytr, iiVector &cycleLi
     set_up_moves(path->get_parameters()->get_move_list());
     set_up_estimators(estimator_list);
     
-    std::cout << path->get_processor_num() <<": Equilibrating..." <<std::endl;
+    std::cout << path->get_processor_num() <<":\tEquilibrating..." <<std::endl;
     
     equilibrate();
     
-    for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++)
+    for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
         it->reset_acceptance_counters();
+        if(it->get_move_name() == "Center of Mass"){
+            std::cout << path->get_processor_num() <<":\tCenter of Mass delta =\t"<<it->get_delta()<<std::endl;
+            std::cout << path->get_processor_num() <<":\tChemical Potential =\t"<<path->get_parameters()->get_mu()<<std::endl;
+            std::cout << path->get_processor_num() <<":\tWorm Constant =\t"<<path->get_parameters()->get_C0()<<std::endl;
+
+        }
+    }
     
-    std::cout << path->get_processor_num() <<": Starting simulation..." << std::endl;
+    std::cout << path->get_processor_num() <<":\tStarting simulation..." << std::endl;
     for(int step = 0; step < end_step; step++){
         
         int num_updates = std::max(1,path->get_beads()->get_num_particles());
@@ -72,7 +79,7 @@ void PIMC::equilibrate(){
     int com_att = 200;
     int com_acc = 0;
     
-    int off_diag_att = 1000;
+    int off_diag_att = 2000;
     int off_diag_att_ctr = 0;
     
     int conf_att = 200;
@@ -84,7 +91,7 @@ void PIMC::equilibrate(){
     
     for(int step = 0; step < end_step; step++){
         std::cout << path->get_processor_num()<<":\t" << step <<"\t"<<estimators[0].estimate()[0] <<std::endl;
-        if(double(step)/end_step < 1/3.){
+        if(double(step)/end_step < 1/4.){
             for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()); i++)
                 for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
                     if(!it->is_worm_move()){
@@ -106,7 +113,7 @@ void PIMC::equilibrate(){
                                 else if (com_acc_rat > 0.8)
                                     it->shift_delta(0.6);
                                 com_acc = it->get_num_accepts();
-                                std::cout << "CoM equil. -- Acceptance:\t"<<com_acc_rat <<"\t--\tDelta:\t"<<it->get_delta() << std::endl;
+                                std::cout << path->get_processor_num() <<":\tCenter of Mass equil. -- Acceptance:\t"<<com_acc_rat <<"\t--\tDelta:\t"<<it->get_delta() << std::endl;
                             }
                         }
                     }
@@ -127,7 +134,7 @@ void PIMC::equilibrate(){
                 
                 
                 if(double(step)/end_step < 2/3.){
-                    cum_part += path->get_beads()->get_num_particles();
+                    cum_part += path->get_beads()->get_num_particles() + path->get_beads()->get_worm_dims()[0];
                     off_diag_att_ctr++;
                     conf_counter++;
                     if(!path->worm_exists())
@@ -140,7 +147,7 @@ void PIMC::equilibrate(){
                         cum_part = 0;
                         off_diag_att_ctr = 0;
                         
-                        std::cout << "Chem pot. equil. -- Avg. particles:\t" << avg_part <<"\t--\tmu:\t" << path->get_parameters()->get_mu() << std::endl;
+                        std::cout << path->get_processor_num() <<":\tChemical pot. equil. -- Avg. particles:\t" << avg_part <<"\t--\tmu:\t" << path->get_parameters()->get_mu() << std::endl;
                         
                     }
                     if(conf_counter == conf_att){
@@ -171,7 +178,7 @@ void PIMC::equilibrate(){
                         
                         conf_counter = 0;
                         diag_counter = 0;
-                        std::cout << "Worm equil. -- Diagonal:Total ratio:\t"<< diag_frac <<"\t--\tC0:\t" << path->get_parameters()->get_C0() << std::endl;
+                        std::cout << path->get_processor_num()<<":\tWorm equil. -- Diagonal:Total ratio:\t"<< diag_frac <<"\t--\tC0:\t" << path->get_parameters()->get_C0() << std::endl;
                     }
                 }
             }

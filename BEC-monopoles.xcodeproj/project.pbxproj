@@ -57,7 +57,6 @@
 		B9477D691BF5553600A8CDB4 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
 		B9713B851BFAC83B0056CA61 /* lookuptable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; lineEnding = 0; path = lookuptable.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		B98249C01B17A441003B0DC6 /* BEC-monopoles */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "BEC-monopoles"; sourceTree = BUILT_PRODUCTS_DIR; };
-		B99691DB1BF66FA20094B5D7 /* parameters.cfg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = parameters.cfg; path = ../../../../../Desktop/Output1/parameters.cfg; sourceTree = "<group>"; };
 		B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi_cxx.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi_cxx.1.dylib"; sourceTree = "<group>"; };
 		B9E526231BF39DA100768B84 /* libmpi.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libmpi.1.dylib; path = "../../../../../../usr/local/Cellar/open-mpi/1.8.1/lib/libmpi.1.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -118,7 +117,6 @@
 				B9477D681BF5553600A8CDB4 /* utility.cpp */,
 				B9477D691BF5553600A8CDB4 /* utility.h */,
 				B9477D671BF5553600A8CDB4 /* uni_header.h */,
-				B99691DB1BF66FA20094B5D7 /* parameters.cfg */,
 			);
 			path = "BEC-monopoles";
 			sourceTree = "<group>";

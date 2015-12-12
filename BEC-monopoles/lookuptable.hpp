@@ -169,8 +169,9 @@ private:
     
 };
 
+namespace boost{
 template<typename A, typename B, typename C>
-struct boost::hash<boost::tuple<A,B,C> >{
+struct hash<boost::tuple<A,B,C> >{
     size_t operator()(const boost::tuple<A,B,C> &t) const{
         size_t seed = 0;
         boost::hash_combine(seed, t.template get<0>());
@@ -179,7 +180,7 @@ struct boost::hash<boost::tuple<A,B,C> >{
         return seed;
     }
 };
-
+}
 template<class T>
 
 class Neighbor_Table{

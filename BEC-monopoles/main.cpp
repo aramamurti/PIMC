@@ -11,7 +11,7 @@
  
 #include "uni_header.h"
 #include "path.h"
-#include "mpi.h"
+//#include "mpi.h"
 #include "pimc.h"
 #include "IO.hpp"
 
@@ -29,17 +29,23 @@ int main(int argc, const char * argv[]) {
     
     //Set parameters file
     std::string parameters_file;
-    if(argc == 2)
+    
+    int world_rank = 0;
+    if(argc == 3){
+        std::string parameters_file_dir = argv[1];
+        world_rank = std::stoi(argv[2]);
+        std::stringstream sstm;
+        sstm << parameters_file_dir << "parameters_" << world_rank <<".cfg";
+        parameters_file = sstm.str();
+    }
+    else if(argc == 2)
         parameters_file = argv[1];
     else
         parameters_file = "parameters.cfg";
-        
-    //MPI_Init(NULL, NULL);
+
     
-    int world_rank = 0;
-    //MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     
-    std::cout << world_rank << ": Setting up..." << std::endl;
+    std::cout << world_rank << ":\tSetting up..." << std::endl;
     
     //IO object which reads and writes to file
     IO writer(world_rank);
@@ -55,18 +61,16 @@ int main(int argc, const char * argv[]) {
     iiVector cycles;
     
     //Run algorithm and get acceptance ratios of moves
-    std::cout<< world_rank << ": Starting algorithm..." <<std::endl;
+    std::cout<< world_rank << ":\tStarting algorithm..." <<std::endl;
     iVector accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles);
     accept.push_back(path->get_parameters()->get_end_step());
     
-    std::cout<< world_rank <<": Finished simulation. Writing results to file..."<< std::endl;
+    std::cout<< world_rank <<":\tFinished simulation. Writing results to file..."<< std::endl;
     //Write final results to file
     writer.write_final(path->get_util()->vecavg(energy), path->get_util()->vecstd(energy)/sqrt(energy.size()), path->get_beads()->get_num_particles(),cycles, accept);
     writer.close();
     
-    std::cout<< world_rank <<": Done."<< std::endl;
-    
-    //MPI_Finalize();
+    std::cout<< world_rank <<":\tDone."<< std::endl;
     
     return 0;
 }

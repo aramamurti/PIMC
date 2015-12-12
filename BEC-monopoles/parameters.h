@@ -233,7 +233,11 @@ public:
     void set_timeslices(int new_ts){
         timeslices = new_ts;
         tau = 1.0/(T*timeslices);        
-        set_mbar(int(ceil(timeslices/5.)));
+        int mbar_try = timeslices/2;
+        if(mbar_try%2)
+            mbar_try++;
+        set_mbar(mbar_try);
+            
     }
     
     void shift_timeslices(int shift){
