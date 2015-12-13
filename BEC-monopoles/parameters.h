@@ -29,7 +29,7 @@ private:
     typedef boost::unordered_map<std::string, std::string> sectionmap;
     
     //Simulation parameters
-    double tau, T, kb, lambda, box_size, mu, C0;
+    double tau, T, kb, lambda, box_size, mu, C0, coupling;
     int ndim, timeslices, particles, skip, equilibration, end_step, charges, mbar;
     bool boson, per_bound_cond, charged;
     
@@ -170,12 +170,12 @@ public:
             }
             else if((*param_it).second == "boson_coulomb"){
                 particle_type = (*param_it).second;
-                lambda = 0.5;
+                lambda = 6.062; //mass = 4 amu
                 charged = true;
                 charges = 1;
                 boson = true;
                 if(per_bound_cond)
-                    box_size = (particles)^(1/ndim);
+                    box_size = pow(particles, 1./ndim)/pow(0.022,1./ndim);
                 potentials[3] = true;
             }
             else if((*param_it).second == "monopole_liquid"){
@@ -185,11 +185,17 @@ public:
                 charges = 2;
                 boson = true;
                 if(per_bound_cond)
-                    box_size = (particles)^(1/ndim);
+                    box_size = pow(particles,1./ndim)/pow(0.022,1./ndim);
                 potentials[3] = true;
             }
-                
         }
+        
+        param_it = simpars.find("coupling");
+        if(param_it != simpars.end())
+            coupling = std::stod((*param_it).second);
+        else
+            coupling = 0;
+        
         
         //Possible moves allowed
         
@@ -283,6 +289,7 @@ public:
     double get_mu(){return mu;}
     double get_C0(){return C0;}
     int get_mbar(){return mbar;}
+    double get_coupling(){return coupling;}
     std::string get_particle_type(){return particle_type;}
     std::vector<bool> get_potentials(){return potentials;}
     std::vector<bool> get_move_list(){return move_list;}

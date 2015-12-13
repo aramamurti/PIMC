@@ -41,6 +41,19 @@ double Energy_Estimator::potential_energy(){
                         }
                 break;
             case 3:
+                for(int slice = 0; slice < num_timeslices; slice ++)
+                    for(int ptcl = 0; ptcl < num_particles; ptcl ++)
+                        for(int i = 0; i < num_particles; i++){
+                            dVector distvec;
+                            if(i != ptcl)
+                                distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                            else
+                                distvec = dVector(path->get_parameters()->get_ndim(),0);
+                            int chgi = path->get_beads()->get_charge(ptcl);
+                            int chgj = path->get_beads()->get_charge(i);
+                            pe += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                        }
+                pe = pe/2;
                 break;
         }
     }

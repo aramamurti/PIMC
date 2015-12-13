@@ -47,35 +47,6 @@ void Path::set_up_beads(){
         
     }
     else{
-//        offset.resize(0);
-//        unsigned int pps = (int)ceil(pow(params->get_num_particles(),1.0/((double)params->get_ndim())));
-//        double spacing = params->get_box_size()/pps;
-//        for(int i = 0; i < pps; i++){
-//            if(params->get_ndim() == 1){
-//                dVector pos;
-//                pos.push_back(i*spacing);
-//                offset.push_back(pos);
-//            }
-//            else{
-//                for(int j = 0; j < pps; j++){
-//                    if(params->get_ndim() == 1){
-//                        dVector pos;
-//                        pos.push_back(i*spacing);
-//                        pos.push_back(j*spacing);
-//                        offset.push_back(pos);
-//                    }
-//                    else{
-//                        for(int k = 0; k < pps; k++){
-//                            dVector pos;
-//                            pos.push_back(i*spacing);
-//                            pos.push_back(j*spacing);
-//                            pos.push_back(k*spacing);
-//                            offset.push_back(pos);
-//                        }
-//                    }
-//                }
-//            }
-//        }
         offset.resize(0);
         for(int i = 0; i < params->get_num_particles(); i++){
             dVector pos(0);
@@ -94,7 +65,6 @@ void Path::set_up_beads(){
         }
     }
     
-    //beads->generate_separations();
     beads->generate_neighbors();
     
     
@@ -103,6 +73,10 @@ void Path::set_up_beads(){
         for(int i = 0; i < params->get_num_particles();i++){
             charge_list.push_back(2*(i%numcharges)-1);
         }
+    }
+    
+    for(int i = 0; i < charge_list.size(); i++){
+        beads->set_charge(i, charge_list[i]);
     }
     
     //Make the beads a periodic chain

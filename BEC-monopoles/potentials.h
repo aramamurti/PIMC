@@ -23,10 +23,8 @@ public:
     
     virtual double potential_value(double){return 0;}
     virtual double potential_value(dVector){return 0;}
+    virtual double potential_value(dVector, int, int, double){return 0;}
     
-    virtual double real_coulomb(double, int, int){return 0;}
-    virtual double reci_coulomb(dVector, int, double, int, int){return 0;}
-
 private:
 
 };
@@ -87,7 +85,7 @@ private:
 class Coulomb: public Potential_Functions{
     
 public:
-    Coulomb(int initna, double initvol){
+    Coulomb(int initna, double initvol, double coupling){
         L = pow(initvol,1/3.);
         numatoms = initna;
         volume = initvol;
@@ -96,6 +94,7 @@ public:
         kcut = 2.*alpha*sqrt(p);
         nmax = floor(coulcut/L);
         kmax = ceil(kcut/(2.*M_PI*L));
+        this->coupling = coupling;
     }
     
     ~Coulomb(){};
@@ -114,16 +113,78 @@ public:
         return real;
     }
     
-    inline double reci_coulomb(dVector kx, int sfac, double box_size, int chgi, int chgj){
-        double kfac = 2* M_PI / box_size;
+    inline double reci_coulomb(iVector kVec, dVector dVec, double sfac, double box_size, int chgi, int chgj){
+        double kfac = 2*M_PI/box_size;
         double efac = 1;
         double k2 = 0;
-        for(dVector::iterator it = kx.begin(); it != kx.end(); it++){
-            efac = efac * cos(kfac * *it);
+        for(iVector::iterator it = kVec.begin(); it != kVec.end(); it++){
+            efac = efac * cos(kfac * (*it) * dVec[it-kVec.begin()]);
             k2 += pow(kfac * *it,2);
         }
-        double reci = sfac/k2*exp(-k2*1/(4*alpha*alpha))*chgi *chgj*efac;
+        double reci = sfac*(4*M_PI)/pow(box_size,3)*chgi*chgj*efac*exp(-k2*1/(4*alpha*alpha))/k2;
         return reci;
+    }
+    
+    inline double self_coulomb(int chg, double box_size){
+        return 2*alpha/sqrt(M_PI) * pow(chg,2);
+    }
+    
+    double potential_value(dVector dist, int chgi, int chgj, double box_size){
+        if(coupling == 0)
+            return 0;
+        
+        double val = 0;
+        for(int nx = -nmax; nx <= nmax; nx++)
+            for(int ny = -nmax; ny <= nmax; ny++)
+                for(int nz = -nmax; nz <= nmax; nz++){
+                    double rSq = pow(dist[0] + nx*box_size, 2) + pow(dist[1] + ny*box_size, 2) + pow(dist[2] + nz*box_size, 2);
+                    double r = sqrt(rSq);
+                    if(rSq != 0){
+                        val += real_coulomb(r, chgi, chgj);
+                    }
+                }
+        
+        for(int kx = 0; kx <= kmax; kx++)
+            for(int ky = 0; ky <= kmax; ky++)
+                for(int kz = 0; kz <= kmax; kz++){
+                    iVector kVec(0);
+                    kVec.push_back(kx);
+                    kVec.push_back(ky);
+                    kVec.push_back(kz);
+                    double k2 = 0;
+                    double kfac = 2*M_PI/box_size;
+                    for(iVector::iterator it = kVec.begin(); it != kVec.end(); it++){
+                        k2 += pow(kfac * *it,2);
+                    }
+                    if(k2 < pow(kcut,2) && (k2  != 0)){
+                        int zeros = 0;
+                        if(kx == 0)
+                            zeros++;
+                        if(ky == 0)
+                            zeros++;
+                        if(kz == 0)
+                            zeros++;
+                        
+                        double sfac = 0.0;
+                        switch(zeros){
+                            case 1:
+                                sfac = 8;
+                                break;
+                            case 2:
+                                sfac = 4;
+                                break;
+                            case 3:
+                                sfac = 2;
+                                break;
+                        }
+                        val += reci_coulomb(kVec, dist, sfac, box_size, chgi, chgj);
+                    }
+                }
+        
+        if(dist[0] == 0 && dist[1] == 0 && dist[2] == 0)
+            val -= self_coulomb(chgi, box_size);
+        
+        return coupling*val;
     }
     
     double getcoulcut(){return coulcut;}
@@ -136,14 +197,15 @@ public:
 private:
     int numatoms;
     double volume;
-    double ewaldError = 10E-7;
-    double p = log(ewaldError);
+    double ewaldError = 1E-16;
+    double p = -log(ewaldError);
     double alpha;
     double coulcut;
     double kcut;
     int nmax;
     int kmax;
     double L;
+    double coupling;
 };
 
 #endif /* defined(__PIMC__potentials__) */

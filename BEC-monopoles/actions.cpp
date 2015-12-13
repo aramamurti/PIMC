@@ -26,10 +26,20 @@ double Potential_Action::potential_helper(int slice, int ptcl){
                 }
                 break;
             case 3:
+                for(int i = 0; i < num_particles; i++){
+                    dVector distvec;
+                    if(i != ptcl)
+                        distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                    else
+                        distvec = dVector(path->get_parameters()->get_ndim(),0);
+                    int chgi = path->get_beads()->get_charge(ptcl);
+                    int chgj = path->get_beads()->get_charge(i);
+                    pe += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                }
+                pe = pe/2;
                 break;
         }
     }
-    
     return pe;
 }
 
@@ -87,10 +97,57 @@ double Potential_Action::potential_helper_worm(int slice,int start_omit = 0, int
                 }
                 break;
             case 3:
+                
+                if(path->worm_exists()){
+                    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+                    int worm_end_row = ht[1].first;
+                    
+                    int cur_row = 0;
+                    
+                    int worm_start_col = (ht[0].second+start_omit);
+                    if(worm_start_col >= path->get_parameters()->get_num_timeslices()){
+                        worm_start_col = worm_start_col%path->get_parameters()->get_num_timeslices();
+                        cur_row++;
+                    }
+                    int worm_end_col = (ht[1].second-end_omit);
+                    if(worm_end_col < 0){
+                        worm_end_col += path->get_parameters()->get_num_timeslices();
+                        worm_end_row--;
+                    }
+                    
+                    iVector rel_worm_rows;
+                    
+                    if(worm_start_col > slice)
+                        cur_row++;
+                    while(cur_row < worm_end_row){
+                        rel_worm_rows.push_back(cur_row);
+                        cur_row++;
+                    }
+                    if(worm_end_col >= slice && worm_end_row >= cur_row)
+                        rel_worm_rows.push_back(cur_row);
+                    
+                    for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
+                        for(int i = 0; i < num_particles; i++){
+                            dVector distvec = path->get_beads()->get_worm_path_separation(i, *worm_it, slice);
+                            int chgj = path->get_beads()->get_worm_charge();
+                            int chgi = path->get_beads()->get_charge(i);
+                            pe += 2*(*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                        }
+                        for(iVector::iterator worm_it2 = rel_worm_rows.begin(); worm_it2 != rel_worm_rows.end(); worm_it2++){
+                            dVector distvec;
+                            if(worm_it2 != worm_it)
+                                distvec = path->get_beads()->get_worm_separation(*worm_it, *worm_it2, slice);
+                            else
+                                distvec = dVector(path->get_parameters()->get_box_size(),0);
+                            int chgi = path->get_beads()->get_worm_charge();
+                            pe += (*it)->potential_value(distvec, chgi, chgi, path->get_parameters()->get_box_size());
+                        }
+                    }
+                }
+                pe = pe/2;
                 break;
         }
     }
-    
     return pe;
 }
 
@@ -103,7 +160,6 @@ double Potential_Action::get_action(int slice, int dist, bool only_worm, int sta
         }
     }
     pot += potential_helper_worm(slice, start_omit, end_omit);
-    
     return path->get_parameters()->get_tau()*pot;
 }
 
@@ -151,11 +207,45 @@ double Potential_Action::get_action_single_particle(int ptcl, int slice, bool ex
                 }
                 break;
             case 3:
+                for(int i = 0; i < num_particles; i++){
+                    dVector distvec;
+                    if(i != ptcl)
+                        distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                    else
+                        distvec = dVector(path->get_parameters()->get_ndim(),0);
+                    int chgi = path->get_beads()->get_charge(ptcl);
+                    int chgj = path->get_beads()->get_charge(i);
+                    pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                }
+                if(path->worm_exists() && !exclude_worm){
+                    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+                    int worm_end_row = ht[1].first;
+                    
+                    int worm_start_col = (ht[0].second)%path->get_parameters()->get_num_timeslices();
+                    int worm_end_col = (ht[1].second)%path->get_parameters()->get_num_timeslices();
+                    
+                    iVector rel_worm_rows;
+                    
+                    int cur_row = 0;
+                    if(worm_start_col > slice)
+                        cur_row++;
+                    while(cur_row < worm_end_row){
+                        rel_worm_rows.push_back(cur_row);
+                        cur_row++;
+                    }
+                    if(worm_end_col >= slice && worm_end_row >= cur_row)
+                        rel_worm_rows.push_back(cur_row);
+                    
+                    for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
+                        dVector distvec = path->get_beads()->get_worm_path_separation(ptcl, *worm_it, slice);
+                        int chgj = path->get_beads()->get_worm_charge();
+                        int chgi = path->get_beads()->get_charge(ptcl);
+                        pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                    }
+                }
                 break;
         }
     }
-    
-    
     return path->get_parameters()->get_tau()*pot;
 }
 
@@ -215,11 +305,58 @@ double Potential_Action::get_action_multiple_particles(iVector ptcls, int slice,
                 }
                 break;
             case 3:
+                for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
+                    for(int i = 0; i < num_particles; i++){
+                        dVector distvec;
+                        if(i != *ptcl)
+                            distvec = path->get_beads()->get_path_separation(*ptcl, i, slice);
+                        else
+                            distvec = dVector(path->get_parameters()->get_ndim(),0);
+                        int chgi = path->get_beads()->get_charge(*ptcl);
+                        int chgj = path->get_beads()->get_charge(i);
+                        pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                    }
+                }
+                for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
+                    for(iVector::iterator ptcl2 = ptcl+1; ptcl2 != ptcls.end(); ptcl2++){
+                        dVector distvec = path->get_beads()->get_path_separation(*ptcl, *ptcl2, slice);
+                        int chgi = path->get_beads()->get_charge(*ptcl);
+                        int chgj = path->get_beads()->get_charge(*ptcl2);
+                        pot -= (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                    }
+                }
+                
+                if(path->worm_exists() && !exclude_worm){
+                    std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
+                    int worm_end_row = ht[1].first;
+                    
+                    int worm_start_col = (ht[0].second)%path->get_parameters()->get_num_timeslices();
+                    int worm_end_col = (ht[1].second)%path->get_parameters()->get_num_timeslices();
+                    
+                    iVector rel_worm_rows;
+                    
+                    int cur_row = 0;
+                    if(worm_start_col > slice)
+                        cur_row++;
+                    while(cur_row < worm_end_row){
+                        rel_worm_rows.push_back(cur_row);
+                        cur_row++;
+                    }
+                    if(worm_end_col >= slice && worm_end_row >= cur_row)
+                        rel_worm_rows.push_back(cur_row);
+                    
+                    for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
+                        for(iVector::iterator worm_it = rel_worm_rows.begin(); worm_it != rel_worm_rows.end(); worm_it++){
+                            dVector distvec = path->get_beads()->get_worm_path_separation(*ptcl, *worm_it, slice);
+                            int chgi = path->get_beads()->get_charge(*ptcl);
+                            int chgj = path->get_beads()->get_worm_charge();
+                            pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
+                        }
+                    }
+                }
                 break;
         }
     }
-    
-    
     return path->get_parameters()->get_tau()*pot;
 }
 

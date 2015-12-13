@@ -49,7 +49,7 @@ public:
                         this->potentials.push_back(i);
                         break;
                     case 3:
-                        pot_funcs.push_back(boost::shared_ptr<Coulomb>(new Coulomb(path->get_parameters()->get_num_particles(), pow(path->get_parameters()->get_box_size(),3))));
+                        pot_funcs.push_back(boost::shared_ptr<Coulomb>(new Coulomb(path->get_parameters()->get_num_particles(), pow(path->get_parameters()->get_box_size(),3),path->get_parameters()->get_coupling())));
                         this->potentials.push_back(i);
                         break;
                 }

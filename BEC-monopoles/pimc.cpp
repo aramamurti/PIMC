@@ -132,7 +132,7 @@ void PIMC::equilibrate(){
                 
                 
                 if(double(step)/end_step < 2/3.){
-                    cum_part += path->get_beads()->get_num_particles() + path->get_beads()->get_worm_dims()[0];
+                    cum_part += path->get_beads()->get_num_particles() + path->get_beads()->get_worm_size()/path->get_parameters()->get_num_timeslices();
                     off_diag_att_ctr++;
                     conf_counter++;
                     if(!path->worm_exists())

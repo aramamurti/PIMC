@@ -9,6 +9,7 @@
 #ifndef BEC_monopoles_beadContainer_h
 #define BEC_monopoles_beadContainer_h
 #include "lookuptable.hpp"
+#include "utility.h"
 #include <iterator>
 
 template<class T>
@@ -33,6 +34,8 @@ private:
         
         T data;
         T old_data;
+        
+        int charge;
         
         node_ptr left_node;
         node_ptr right_node;
@@ -84,6 +87,7 @@ private:
     node_ptr worm_head;
     node_ptr worm_tail;
     int worm_size = 0;
+    int worm_charge = 0;
     std::pair<int, int> worm_head_index;
     std::pair<int, int> worm_tail_index;
     
@@ -93,18 +97,24 @@ private:
     std::pair<int, int> old_worm_head_index;
     std::pair<int, int> old_worm_tail_index;
     
+    int num_charges;
+    
     boost::unordered_map<size_t, node_ptr> key_map;
     boost::unordered_map<size_t, node_ptr> old_key_map;
     
     boost::shared_ptr<Separation_Table> sep;
     boost::shared_ptr<Neighbor_Table<node_ptr> > nt;
     
+    boost::shared_ptr<Utility> util;
+    
 public:
     
-    PathList(int ndim, double boxsize = -1) {
+    PathList(int ndim, double boxsize = -1, int num_charges = 0) {
         size.resize(0);
         sep = boost::shared_ptr<Separation_Table>(new Separation_Table(boxsize));
         nt = boost::shared_ptr<Neighbor_Table<node_ptr> >(new Neighbor_Table<node_ptr>(boxsize, ndim));
+        util = boost::shared_ptr<Utility>(new Utility(0));
+        this->num_charges = num_charges;
     }
     
     PathList(std::string infile)
@@ -253,6 +263,29 @@ public:
         node->key = push_counter;
         push_counter++;
         sep->add_bead(node->column_number, node->key, node->data);
+    }
+    
+    void set_charge(int ptcl, int charge){
+        for(int slice = 0; slice < size[0]; slice++)
+            list_map[ptcl][slice]->charge = charge;
+    }
+    
+    int get_charge(int ptcl){
+        return list_map[ptcl][0]->charge;
+    }
+    
+    void set_worm_charge(int charge){
+        int slice = worm_head_index.second;
+        for(int i = 0; i < worm_size; i++){
+            if(slice >= worm[0].size())
+                slice = slice%worm[0].size();
+            worm[0][slice]->charge = charge;
+            slice++;
+        }
+    }
+    
+    int get_worm_charge(){
+        return worm[0][worm_head_index.second]->charge;
     }
     
     void make_circular(bool circ = true){
@@ -701,6 +734,17 @@ public:
         worm.resize(1);
         worm[0].resize(size[0]);
         worm_size = 0;
+        if(num_charges == 0)
+            worm_charge = 0;
+        else if(num_charges == 1)
+            worm_charge = -1;
+        else if(num_charges == 2){
+            if(util->randnormed(1) >= 0.5)
+                worm_charge = 1;
+            else
+                worm_charge = -1;
+        }
+        
     }
     
     void new_worm(T t, int slice, size_t key = -1){
@@ -708,6 +752,7 @@ public:
             node_ptr node(new Node(t));
             node->row_number = 0;
             node->column_number = slice;
+            node->charge = worm_charge;
             worm_head_index.second = worm_tail_index.second = slice;
             worm_head_index.first = worm_tail_index.first = 0;
             worm_head = worm_tail = node;
@@ -739,6 +784,7 @@ public:
             worm_tail->right_node = node;
             node->left_node = worm_tail;
             worm_tail = node;
+            worm_tail->charge = worm_charge;
             
             worm_tail_index.second++;
             if(worm_tail_index.second >= worm[0].size()){
@@ -780,6 +826,7 @@ public:
             worm_head->left_node = node;
             node->right_node = worm_head;
             worm_head = node;
+            worm_head->charge = worm_charge;
             
             worm_head_index.second--;
             if(worm_head_index.second < 0){
@@ -1304,10 +1351,6 @@ public:
             auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
             rows_to_remove.erase(last, rows_to_remove.end());
             
-            
-            //            if(rows_to_remove.size()>1)
-            //                getchar();
-            
             for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
                 *it = *it - (it-rows_to_remove.begin());
                 list_map.erase(list_map.begin()+ *it);
@@ -1375,7 +1418,7 @@ public:
         std::vector<node_ptr> bead_list;
         for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
             node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm){
+            if(!node->in_worm && node->charge == worm_charge){
                 bead_list.push_back(node);
             }
         }
@@ -1394,7 +1437,7 @@ public:
         std::vector<node_ptr> bead_list;
         for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
             node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm){
+            if(!node->in_worm && node->charge == worm_charge){
                 bead_list.push_back(node);
             }
         }
@@ -1434,7 +1477,7 @@ public:
         std::vector<node_ptr> bead_list;
         for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
             node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm){
+            if(!node->in_worm && node->charge == worm_charge){
                 bead_list.push_back(node);
             }
         }

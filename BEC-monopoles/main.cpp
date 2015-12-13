@@ -42,8 +42,6 @@ int main(int argc, const char * argv[]) {
         parameters_file = argv[1];
     else
         parameters_file = "parameters.cfg";
-
-    
     
     std::cout << world_rank << ":\tSetting up..." << std::endl;
     

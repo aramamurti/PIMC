@@ -32,7 +32,6 @@ void Permutation_Table::set_up_perms(){
     else
         k = maxPtcls;
     
-    
     iiVector init_perm_list(0);
     iota(d.begin(),d.end(),0);
     
