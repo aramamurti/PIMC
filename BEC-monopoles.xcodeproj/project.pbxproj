@@ -7,15 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B9477D6A1BF5553600A8CDB4 /* actions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D551BF5553600A8CDB4 /* actions.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D6B1BF5553600A8CDB4 /* estimators.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D581BF5553600A8CDB4 /* estimators.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D6C1BF5553600A8CDB4 /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5A1BF5553600A8CDB4 /* IO.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D6D1BF5553600A8CDB4 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5C1BF5553600A8CDB4 /* main.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D6E1BF5553600A8CDB4 /* moves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5D1BF5553600A8CDB4 /* moves.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D6F1BF5553600A8CDB4 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D601BF5553600A8CDB4 /* path.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D701BF5553600A8CDB4 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D621BF5553600A8CDB4 /* pimc.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D711BF5553600A8CDB4 /* permtable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D651BF5553600A8CDB4 /* permtable.cpp */; settings = {ASSET_TAGS = (); }; };
-		B9477D721BF5553600A8CDB4 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D681BF5553600A8CDB4 /* utility.cpp */; settings = {ASSET_TAGS = (); }; };
+		B9477D6A1BF5553600A8CDB4 /* actions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D551BF5553600A8CDB4 /* actions.cpp */; };
+		B9477D6B1BF5553600A8CDB4 /* estimators.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D581BF5553600A8CDB4 /* estimators.cpp */; };
+		B9477D6C1BF5553600A8CDB4 /* IO.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5A1BF5553600A8CDB4 /* IO.cpp */; };
+		B9477D6D1BF5553600A8CDB4 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5C1BF5553600A8CDB4 /* main.cpp */; };
+		B9477D6E1BF5553600A8CDB4 /* moves.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D5D1BF5553600A8CDB4 /* moves.cpp */; };
+		B9477D6F1BF5553600A8CDB4 /* path.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D601BF5553600A8CDB4 /* path.cpp */; };
+		B9477D701BF5553600A8CDB4 /* pimc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D621BF5553600A8CDB4 /* pimc.cpp */; };
+		B9477D711BF5553600A8CDB4 /* permtable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D651BF5553600A8CDB4 /* permtable.cpp */; };
+		B9477D721BF5553600A8CDB4 /* utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B9477D681BF5553600A8CDB4 /* utility.cpp */; };
+		B94D5CBA1C1E279100C81814 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = B94D5CB91C1E279100C81814 /* README.md */; };
 		B9E526241BF39DA100768B84 /* libmpi_cxx.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526221BF39DA100768B84 /* libmpi_cxx.1.dylib */; };
 		B9E526251BF39DA100768B84 /* libmpi.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B9E526231BF39DA100768B84 /* libmpi.1.dylib */; };
 /* End PBXBuildFile section */
@@ -55,6 +56,7 @@
 		B9477D671BF5553600A8CDB4 /* uni_header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uni_header.h; sourceTree = "<group>"; };
 		B9477D681BF5553600A8CDB4 /* utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utility.cpp; sourceTree = "<group>"; };
 		B9477D691BF5553600A8CDB4 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
+		B94D5CB91C1E279100C81814 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		B9679A861C1D2F8B00A24A17 /* parameters_0.cfg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = parameters_0.cfg; path = ../../../../../Desktop/Output/parameters/parameters_0.cfg; sourceTree = "<group>"; };
 		B9713B851BFAC83B0056CA61 /* lookuptable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; lineEnding = 0; path = lookuptable.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		B98249C01B17A441003B0DC6 /* BEC-monopoles */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "BEC-monopoles"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,6 +121,7 @@
 				B9477D691BF5553600A8CDB4 /* utility.h */,
 				B9477D671BF5553600A8CDB4 /* uni_header.h */,
 				B9679A861C1D2F8B00A24A17 /* parameters_0.cfg */,
+				B94D5CB91C1E279100C81814 /* README.md */,
 			);
 			path = "BEC-monopoles";
 			sourceTree = "<group>";
@@ -181,6 +184,7 @@
 			files = (
 				B9477D721BF5553600A8CDB4 /* utility.cpp in Sources */,
 				B9477D6B1BF5553600A8CDB4 /* estimators.cpp in Sources */,
+				B94D5CBA1C1E279100C81814 /* README.md in Sources */,
 				B9477D6E1BF5553600A8CDB4 /* moves.cpp in Sources */,
 				B9477D701BF5553600A8CDB4 /* pimc.cpp in Sources */,
 				B9477D6F1BF5553600A8CDB4 /* path.cpp in Sources */,
