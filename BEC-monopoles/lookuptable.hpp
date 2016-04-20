@@ -189,7 +189,7 @@ public:
     
     Neighbor_Table(double boxsize, int ndim){
         this->box_size = boxsize;
-        num_grid = 4;
+        num_grid = floor(boxsize/3.7);
         grid_step = boxsize/num_grid;
         this->ndim = ndim;
         util = boost::shared_ptr<Utility>(new Utility(0));

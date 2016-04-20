@@ -39,6 +39,7 @@ public:
 
     bool is_worm_move(){return worm_move;}
     bool is_worm_nec(){return worm_nec;}
+    bool is_perm_move(){return perm_move;}
     
     
 protected:
@@ -55,6 +56,7 @@ protected:
     
     bool worm_move;
     bool worm_nec;
+    bool perm_move;
     
     std::string move_name;
     

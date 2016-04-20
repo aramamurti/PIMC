@@ -76,6 +76,7 @@ Center_of_Mass::Center_of_Mass(boost::shared_ptr<Path> path) : Move_Base(path){
     shift.resize(path->get_parameters()->get_ndim());
     worm_move = false;
     worm_nec = false;
+    perm_move = false;
     
     move_name = "Center of Mass";
 }
@@ -145,6 +146,7 @@ Bisection::Bisection(boost::shared_ptr<Path> path) : Move_Base(path){
     multistep_dist = path->get_multistep_dist();
     worm_move = false;
     worm_nec = false;
+    perm_move = false;
     
     move_name = "Bisection";
 }
@@ -248,6 +250,7 @@ Perm_Bisection::Perm_Bisection(boost::shared_ptr<Path> path) : Bisection(path){
     ptable = boost::shared_ptr<Permutation_Table>(new Permutation_Table(path));
     worm_move = false;
     worm_nec = false;
+    perm_move = true;
     
     move_name = "Permutation Bisection";
     
@@ -318,7 +321,7 @@ void Perm_Bisection::accept(){
     path->set_last_changed(changed_particles);
     path->set_last_start_end(start, start + multistep_dist);
     path->get_beads()->set_prev_perm();
-    
+    path->get_beads()->reset_indices();
     Move_Base::accept();
     
 }
@@ -339,6 +342,7 @@ Insert::Insert(boost::shared_ptr<Path> path) : Move_Base(path){
     
     worm_move = true;
     worm_nec = false;
+    perm_move = false;
     
     move_name = "Insert";
     
@@ -419,6 +423,7 @@ void Insert::reject(){
 Remove::Remove(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Remove";
     
@@ -480,6 +485,7 @@ void Remove::reject(){
 Advance_Head::Advance_Head(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Advance Head";
     
@@ -503,18 +509,6 @@ void Advance_Head::attempt(){
     }
     
     std::vector<std::pair<int, int> > ht = path->get_beads()->get_worm_indices();
-    
-    //    int dist;
-    //    if(ht[1].second >= ht[0].second){
-    //        dist = path->get_parameters()->get_num_timeslices()-(ht[1].second-ht[0].second) -1;
-    //    }
-    //    else{
-    //        dist = ht[1].second-ht[0].second-1;
-    //    }
-    //
-    //    if(dist <= m){
-    //        dist += path->get_parameters()->get_num_timeslices();
-    //    }
     
     dVector pos = path->get_beads()->get_worm_bead_data(0, start_slice);
     dVector end_pos = path->get_beads()->get_worm_bead_data(ht[1].first, ht[1].second);
@@ -589,6 +583,7 @@ void Advance_Head::reject(int m){
 Recede_Head::Recede_Head(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Recede Head";
 }
@@ -665,6 +660,7 @@ void Recede_Head::reject(){
 Advance_Tail::Advance_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Advance Tail";
 }
@@ -760,6 +756,7 @@ void Advance_Tail::reject(int m){
 Recede_Tail::Recede_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Recede Tail";
 }
@@ -827,6 +824,7 @@ void Recede_Tail::reject(){
 Open::Open(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = false;
+    perm_move = false;
     
     move_name = "Open";
     
@@ -866,7 +864,7 @@ void Open::attempt(){
 }
 
 bool Open::check_move(){
-    double norm = path->get_parameters()->get_C0()*(num_particles-changed_particles.size())/pow(path->get_parameters()->get_box_size(),3);
+    double norm = path->get_parameters()->get_C0()*(num_particles)/pow(path->get_parameters()->get_box_size(),3);
     double rho0 = 1.0/pow((4*M_PI*path->get_parameters()->get_lambda()*m*path->get_parameters()->get_tau()),path->get_parameters()->get_ndim()/2.)*exp(-ka->get_action_single_particle(ptcl, start_slice, m));
     if(path->get_util()->randnormed(1)<(norm/rho0*exp(old_action - mu_shift*path->get_parameters()->get_tau())))
         return true;
@@ -892,6 +890,7 @@ void Open::accept(){
 Close::Close(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Close";
 }
@@ -1038,6 +1037,7 @@ void Close::accept(){
 Swap_Head::Swap_Head(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Swap Head";
 }
@@ -1288,6 +1288,7 @@ void Swap_Head::reject(){
 Swap_Tail::Swap_Tail(boost::shared_ptr<Path> path) : Move_Base(path){
     worm_move = true;
     worm_nec = true;
+    perm_move = false;
     
     move_name = "Swap Tail";
 }

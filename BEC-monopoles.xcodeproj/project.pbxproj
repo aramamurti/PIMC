@@ -120,8 +120,8 @@
 				B9477D681BF5553600A8CDB4 /* utility.cpp */,
 				B9477D691BF5553600A8CDB4 /* utility.h */,
 				B9477D671BF5553600A8CDB4 /* uni_header.h */,
-				B9679A861C1D2F8B00A24A17 /* parameters_0.cfg */,
 				B94D5CB91C1E279100C81814 /* README.md */,
+				B9679A861C1D2F8B00A24A17 /* parameters_0.cfg */,
 			);
 			path = "BEC-monopoles";
 			sourceTree = "<group>";
@@ -236,6 +236,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-fopenmp",
+				);
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -271,6 +275,10 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-fopenmp",
+				);
 				SDKROOT = macosx;
 			};
 			name = Release;

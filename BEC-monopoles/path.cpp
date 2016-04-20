@@ -20,7 +20,7 @@ Path::Path(int procnum, IO &writer, boost::shared_ptr<Parameters> parameters)
     params = parameters;
     
     writer.write_parameters(params);
-    multistep_dist = 16;
+    multistep_dist = 8;
     last_start = 0;
     last_end = 0;
     pnum = procnum;

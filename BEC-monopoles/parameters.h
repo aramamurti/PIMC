@@ -31,7 +31,7 @@ private:
     //Simulation parameters
     double tau, T, kb, lambda, box_size, mu, C0, coupling;
     int ndim, timeslices, particles, skip, equilibration, end_step, charges, mbar;
-    bool boson, per_bound_cond, charged;
+    bool boson, per_bound_cond, charged, worm_on;
     
     std::string particle_type;
     
@@ -216,10 +216,12 @@ public:
             else if((*param_it).second == "true"){
                 move_list.push_back(false);
                 move_list.push_back(true);
+                worm_on = true;
             }
             else{
                 move_list.push_back(true);
                 move_list.push_back(false);
+                worm_on = false;
             }
         }
         
@@ -251,6 +253,12 @@ public:
             
     }
     
+    /***************************************************************************
+     
+     Other setter/shift methods, which are self explanatory.
+     
+     ***************************************************************************/
+    
     void shift_timeslices(int shift){
         set_timeslices(timeslices + shift);
     }
@@ -272,11 +280,13 @@ public:
                                 GETTER METHODS
      
      *************************************************************************/
+    
     int get_ndim(){return ndim;}
     double get_T(){return T;}
     double get_kb(){return kb;}
     bool is_boson(){return boson;}
     bool is_charged(){return charged;}
+    bool worm(){return worm_on;}
     int get_num_chgs(){return charges;}
     double get_tau(){return tau;}
     double get_lambda(){return lambda;}

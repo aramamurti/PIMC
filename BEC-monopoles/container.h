@@ -511,7 +511,6 @@ public:
                         temps[*it]->right_node->left_node = temps[*it];
                     }
                 }
-                list_map = old_list_map;
             }
         }
     }
@@ -1213,6 +1212,7 @@ public:
         old_key_map = key_map;
         old_size = size;
         set_old_data();
+        
         ye_olde_worm = worm;
         old_worm_size = worm_size;
         old_worm_head = worm_head;
@@ -1221,6 +1221,7 @@ public:
         old_worm_tail_index = worm_tail_index;
         old_key_map = key_map;
         set_old_worm_data();
+        
         sep->set_update(false);
         nt->set_old_table();
     }
