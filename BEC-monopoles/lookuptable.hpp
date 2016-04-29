@@ -169,6 +169,148 @@ private:
     
 };
 
+class Permutation_Separation_Table{
+    
+public:
+    
+    Permutation_Separation_Table(int multistep_dist, double boxsize = -1){
+        util = boost::shared_ptr<Utility>(new Utility(0));
+        this->multistep_dist = multistep_dist;
+        this->boxsize = boxsize;
+        update = true;
+    };
+    ~Permutation_Separation_Table(){};
+    
+    void add_bead(int slice, size_t key, std::vector<double> location){
+        if(slice >= beads_map.size())
+            beads_map.resize(slice+1);
+        if(slice >= update_beads_map.size())
+            update_beads_map.resize(slice+1);
+        if(update)
+            beads_map[slice].insert(std::pair<size_t, std::vector<double> >(key, location));
+        else
+            update_beads_map[slice].insert(std::pair<size_t, std::vector<double> >(key, location));
+    }
+    
+    std::vector<double> get_bead(int slice, size_t key){
+        if(update_beads_map[slice].find(key) != update_beads_map[slice].end())
+            return update_beads_map[slice][key];
+        else
+            return beads_map[slice][key];
+    }
+    
+    void update_bead(int slice, size_t key, dVector new_loc){
+        boost::unordered_map<size_t, std::vector<double> >::iterator bead;
+        if(update){
+            beads_map[slice][key] = new_loc;
+            bead = beads_map[slice].find(key);
+        }
+        else{
+            if(slice >= update_beads_map.size())
+                update_beads_map.resize(slice+1);
+            update_beads_map[slice][key] = new_loc;
+            bead = update_beads_map[slice].find(key);
+        }
+        
+        for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[(slice+multistep_dist)%beads_map.size()].begin(); it != beads_map[(slice+multistep_dist)%beads_map.size()].end(); it++){
+            if(it->first != bead->first){
+                ddVector bead_pair;
+                std::pair<size_t, size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
+                std::pair<size_t, size_t> bead_pair_id_2 = std::pair<size_t,size_t>(it->first,bead->first);
+                
+                bead_pair.push_back(bead->second);
+                if(update_beads_map[(slice+multistep_dist)%beads_map.size()].find(it->first) != update_beads_map[slice].end())
+                    bead_pair.push_back(update_beads_map[(slice+multistep_dist)%beads_map.size()][it->first]);
+                else
+                    bead_pair.push_back(it->second);
+                dVector dist = util->dist(bead_pair,boxsize);
+                if(update){
+                    bead_pair_sep[bead_pair_id_1] = dist;
+                    bead_pair_sep[bead_pair_id_2] = dist;
+                }
+                else{
+                    update_pair_sep[bead_pair_id_1] = dist;
+                    update_pair_sep[bead_pair_id_2] = dist;
+                }
+            }
+        }
+        for(boost::unordered_map<size_t, std::vector<double> >::iterator it = beads_map[(slice-multistep_dist+beads_map.size())%beads_map.size()].begin(); it != beads_map[(slice-multistep_dist+beads_map.size())%beads_map.size()].end(); it++){
+            if(it->first != bead->first){
+                ddVector bead_pair;
+                std::pair<size_t, size_t> bead_pair_id_1 = std::pair<size_t,size_t>(bead->first,it->first);
+                std::pair<size_t, size_t> bead_pair_id_2= std::pair<size_t,size_t>(it->first,bead->first);
+                
+                bead_pair.push_back(bead->second);
+                if(update_beads_map[(slice-multistep_dist+beads_map.size())%beads_map.size()].find(it->first) != update_beads_map[slice].end())
+                    bead_pair.push_back(update_beads_map[(slice-multistep_dist+beads_map.size())%beads_map.size()][it->first]);
+                else
+                    bead_pair.push_back(it->second);
+                dVector dist = util->dist(bead_pair,boxsize);
+                if(update){
+                    bead_pair_sep[bead_pair_id_1] = dist;
+                    bead_pair_sep[bead_pair_id_2] = dist;
+                }
+                else{
+                    update_pair_sep[bead_pair_id_1] = dist;
+                    update_pair_sep[bead_pair_id_2] = dist;
+                }
+            }
+        }
+    }
+    
+    dVector get_separation(std::pair<size_t, size_t> bead_pair){
+        if(update_pair_sep.find(bead_pair) != update_pair_sep.end())
+            return update_pair_sep[bead_pair];
+        else
+            return bead_pair_sep[bead_pair];
+    }
+    
+    void confirm_update(){
+        
+        for(int slice = 0; slice < update_beads_map.size(); slice++)
+            for(boost::unordered_map<size_t, std::vector<double> >::iterator bead = update_beads_map[slice].begin(); bead != update_beads_map[slice].end(); bead++){
+                beads_map[slice][bead->first] = bead->second;
+            }
+        
+        for(boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> >::iterator bead_sep = update_pair_sep.begin(); bead_sep!= update_pair_sep.end(); bead_sep++)
+            bead_pair_sep[bead_sep->first] = bead_sep->second;
+        
+        update_beads_map.resize(0);
+        update_pair_sep.clear();
+    }
+    
+    void reject_update(){
+        update_beads_map.resize(0);
+        update_pair_sep.clear();
+    }
+    
+    void set_update(bool status){
+        update = status;
+    }
+    
+    
+private:
+    
+    std::vector<boost::unordered_map<size_t, std::vector<double> > > beads_map;
+    std::vector<boost::unordered_map<size_t, std::vector<double> > > update_beads_map;
+    
+    boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > bead_pair_sep;
+    boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > update_pair_sep;
+    
+    std::vector<boost::unordered_map<size_t, std::vector<double> > > old_beads_map;
+    boost::unordered_map<std::pair<size_t,size_t>, std::vector<double> > old_bead_pair_sep;
+    
+    bool update;
+    int multistep_dist;
+    
+    boost::shared_ptr<Utility> util;
+    
+    double boxsize;
+    
+};
+
+
+
 namespace boost{
 template<typename A, typename B, typename C>
 struct hash<boost::tuple<A,B,C> >{

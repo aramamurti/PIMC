@@ -112,8 +112,6 @@ void IO::write_parameters(boost::shared_ptr<Parameters> params){
 void IO::write_equil_parameters(boost::shared_ptr<Parameters> params, double delta){
     f1 << "[Equilibration Parameters]\n";
     f1 << std::left << std::setw(25) << "Cent. of Mass delta" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << delta << "\n";
-    f1 << std::left << std::setw(25) << "Chemical Potential" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params->get_mu() <<"\n";
-    f1 << std::left << std::setw(25) << "Worm Constant" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params->get_C0() << "\n" << std::endl;
 }
 
 boost::shared_ptr<Parameters> IO::read_parameters(std::string infile){

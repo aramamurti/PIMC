@@ -28,8 +28,6 @@ public:
     void set_up_beads();
     void put_in_box();
     void put_in_box(iVector changed_ptcls, int start_slice, int end_slice);
-    void put_worm_in_box();
-    void put_worm_in_box(iVector changed_rows, std::vector<std::pair<int, int> > start_end);
     
     //getter methods
     int get_multistep_dist(){return multistep_dist;}
@@ -38,12 +36,15 @@ public:
     list_ptr get_beads(){return beads;}
     iVector get_last_changed(){return last_chd_parts;}
     iVector get_last_start_end(){iVector se; se.push_back(last_start); se.push_back(last_end); return se;}
-    void set_last_changed(iVector lc){last_chd_parts = lc;}
+    void set_last_changed(iVector lc){last_chd_parts.resize(0); last_chd_parts = lc;}
+    void push_last_changed(int ptcl){
+        last_chd_parts.push_back(ptcl);
+        std::sort(last_chd_parts.begin(), last_chd_parts.end() );
+        last_chd_parts.erase( std::unique( last_chd_parts.begin(), last_chd_parts.end() ), last_chd_parts.end() );
+    }
     void set_last_start_end(int s, int e){last_start = s; last_end = e;}
     int get_processor_num(){return pnum;}
     iVector get_charge_list(){return charge_list;}
-    bool worm_exists(){return worm;}
-    void set_worm(bool new_worm_status){worm = new_worm_status;}
     
     double multvec[4];
     
@@ -64,8 +65,6 @@ private:
     
     int multistep_dist;
     int pnum;
-    
-    bool worm;
 };
 
 

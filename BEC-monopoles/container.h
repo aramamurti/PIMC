@@ -42,8 +42,6 @@ private:
         node_ptr old_right_node;
         node_ptr old_left_node;
         
-        bool in_worm;
-        
         Node(T e) {
             this->data = e;
             left_node = node_ptr();
@@ -81,22 +79,6 @@ private:
     std::vector<std::vector<node_ptr> > list_map;
     std::vector<std::vector<node_ptr> > old_list_map;
     
-    std::vector<std::vector<node_ptr> > worm;
-    std::vector<std::vector<node_ptr> > ye_olde_worm;
-    
-    node_ptr worm_head;
-    node_ptr worm_tail;
-    int worm_size = 0;
-    int worm_charge = 0;
-    std::pair<int, int> worm_head_index;
-    std::pair<int, int> worm_tail_index;
-    
-    node_ptr old_worm_head;
-    node_ptr old_worm_tail;
-    int old_worm_size = 0;
-    std::pair<int, int> old_worm_head_index;
-    std::pair<int, int> old_worm_tail_index;
-    
     int num_charges;
     
     boost::unordered_map<size_t, node_ptr> key_map;
@@ -104,14 +86,16 @@ private:
     
     boost::shared_ptr<Separation_Table> sep;
     boost::shared_ptr<Neighbor_Table<node_ptr> > nt;
+    boost::shared_ptr<Permutation_Separation_Table> perm_sep;
     
     boost::shared_ptr<Utility> util;
     
 public:
     
-    PathList(int ndim, double boxsize = -1, int num_charges = 0) {
+    PathList(int ndim, int multistep_dist, double boxsize = -1, int num_charges = 0) {
         size.resize(0);
         sep = boost::shared_ptr<Separation_Table>(new Separation_Table(boxsize));
+        perm_sep = boost::shared_ptr<Permutation_Separation_Table>(new Permutation_Separation_Table(multistep_dist,boxsize));
         nt = boost::shared_ptr<Neighbor_Table<node_ptr> >(new Neighbor_Table<node_ptr>(boxsize, ndim));
         util = boost::shared_ptr<Utility>(new Utility(0));
         this->num_charges = num_charges;
@@ -244,7 +228,6 @@ public:
         
         update_key_map(node);
         
-        node->in_worm = false;
         
         if (size[index] == 1) {
             list_map[index][size[index]-1] = node;
@@ -263,6 +246,7 @@ public:
         node->key = push_counter;
         push_counter++;
         sep->add_bead(node->column_number, node->key, node->data);
+        perm_sep->add_bead(node->column_number, node->key, node->data);
     }
     
     void set_charge(int ptcl, int charge){
@@ -272,20 +256,6 @@ public:
     
     int get_charge(int ptcl){
         return list_map[ptcl][0]->charge;
-    }
-    
-    void set_worm_charge(int charge){
-        int slice = worm_head_index.second;
-        for(int i = 0; i < worm_size; i++){
-            if(slice >= worm[0].size())
-                slice = slice%worm[0].size();
-            worm[0][slice]->charge = charge;
-            slice++;
-        }
-    }
-    
-    int get_worm_charge(){
-        return worm[0][worm_head_index.second]->charge;
     }
     
     void make_circular(bool circ = true){
@@ -329,6 +299,12 @@ public:
         nt->set_up_neighbor_table();
     }
     
+    void generate_perm_seps(){
+        for(int i = 0 ;i < list_map.size(); i++)
+            for(int j = 0; j <list_map[i].size(); j++)
+                perm_sep->update_bead(list_map[i][j]->column_number,list_map[i][j]->key,list_map[i][j]->data);
+    }
+    
     iVector shift_all(int row, T shift){
         node_ptr temp = list_map[row][0];
         std::vector<std::pair<size_t, int> > key_list;
@@ -341,6 +317,7 @@ public:
         }
         nt->update_bead(temp);
         sep->update_bead(temp->column_number, temp->key, temp->data);
+        perm_sep->update_bead(temp->column_number, temp->key, temp->data);
         
         new_locs.push_back(temp->data);
         key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
@@ -357,6 +334,7 @@ public:
             }
             nt->update_bead(temp);
             sep->update_bead(temp->column_number, temp->key, temp->data);
+            perm_sep->update_bead(temp->column_number, temp->key, temp->data);
             
             new_locs.push_back(temp->data);
             key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
@@ -368,15 +346,15 @@ public:
     }
     
     iVector get_changed_ptcls(int row){
-        node_ptr temp = list_map[row][size[row]-1];
         iVector shifted_rows(1,row);
-        temp = temp->right_node;
-        temp = list_map[temp->row_number][size[row]-1];
-        while(temp != list_map[row][size[row]-1]){
-            shifted_rows.push_back(temp->row_number);
-            temp = temp->right_node;
-            temp = list_map[temp->row_number][size[row]-1];
+        int start_row = row;
+        while(list_map[row][size[row]-1]->right_node->row_number != row){
+            row = list_map[row][size[row]-1]->right_node->row_number;
+            if(row == start_row)
+                break;
+            shifted_rows.push_back(row);
         }
+        
         return shifted_rows;
     }
     
@@ -393,22 +371,16 @@ public:
     
     void confirm_sep_update(){
         sep->confirm_update();
+        perm_sep->confirm_update();
         sep->set_update(true);
+        perm_sep->set_update(true);
     }
-        
+    
     void clear_old_nodes(){
         for(int i = 0; i < size.size(); i++){
             for(int j = 0; j<size[i];j++){
                 list_map[i][j]->old_right_node.reset();
                 list_map[i][j]->old_left_node.reset();
-            }
-        }
-        if(worm_size != 0){
-            node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
-            while(temp != NULL){
-                temp->old_right_node.reset();
-                temp->old_left_node.reset();
-                temp = temp->right_node;
             }
         }
     }
@@ -490,6 +462,8 @@ public:
                     }
                 }
                 
+                reset_indices();
+                
             }
         }
         else{
@@ -511,6 +485,11 @@ public:
                         temps[*it]->right_node->left_node = temps[*it];
                     }
                 }
+                
+                list_map = old_list_map;
+                
+                reset_indices();
+                
             }
         }
     }
@@ -533,6 +512,37 @@ public:
         reperms.push_back(nlc);
         reperms.push_back(nend);
         return reperms;
+    }
+    
+    std::vector<std::pair<double, double> > get_perm_seps(iVector i, iVector j, int pos, int dist = 0){
+        
+        iVector ip;
+        iVector jp;
+        
+        
+        if(pos+dist > size[0]){
+            iiVector perms = circular_perm(i,j);
+            ip = perms[0];
+            jp = perms[1];
+        }
+        else{
+            ip = i;
+            jp = j;
+        }
+        
+        std::vector<std::pair<double, double> > pair_dists(0);
+        int end = (pos+dist)%size[0];
+        for(iVector::iterator it = i.begin(); it!=i.end(); it++){
+            if(*it != j[it-i.begin()]){
+                std::pair<size_t,size_t> pair_1(list_map[*it][pos]->key, list_map[jp[it-i.begin()]][end]->key);
+                std::pair<size_t,size_t> pair_2(list_map[*it][pos]->key, list_map[ip[it-i.begin()]][end]->key);
+                dVector sep1 = perm_sep->get_separation(pair_1);
+                dVector sep2 = perm_sep->get_separation(pair_2);
+                pair_dists.push_back(std::pair<double, double>(inner_product(sep1.begin(),sep1.end(),sep1.begin(),0.0),inner_product(sep2.begin(),sep2.end(),sep2.begin(),0.0)));
+            }
+        }
+        
+        return pair_dists;
     }
     
     dVector get_bead_data(int row, int slice){
@@ -559,6 +569,8 @@ public:
         list_map[row][slice]->data = data;
         
         sep->update_bead(slice, list_map[row][slice]->key, data);
+        perm_sep->update_bead(slice, list_map[row][slice]->key, data);
+        
         if(old_data.size() != 0)
             list_map[row][slice]->old_data = old_data;
         nt->update_bead(list_map[row][slice]);
@@ -645,44 +657,6 @@ public:
         return sep->get_separation(std::pair<size_t,size_t>(list_map[row1][slice]->key,list_map[row2][slice]->key));
     }
     
-    T get_worm_separation(int worm_row1, int worm_row2, int slice){
-        if(worm_row1 == worm_head_index.first || worm_row2 == worm_head_index.first){
-            if(slice < worm_head_index.second)
-                return T(0);
-        }
-        if(worm_row1 == worm_tail_index.first || worm_row2 == worm_tail_index.first){
-            if(slice > worm_tail_index.second)
-                return T(0);
-        }
-        return sep->get_separation(std::pair<size_t,size_t>(worm[worm_row1][slice]->key,worm[worm_row2][slice]->key));
-    }
-    
-    T get_worm_path_separation(int path_row, int worm_row, int slice){
-        if(worm_row == worm_head_index.first){
-            if(slice < worm_head_index.second)
-                return T(0);
-        }
-        if(worm_row == worm_tail_index.first){
-            if(slice > worm_tail_index.second)
-                return T(0);
-        }
-        
-        return sep->get_separation(std::pair<size_t,size_t>(list_map[path_row][slice]->key,worm[worm_row][slice]->key));
-    }
-    
-    std::vector<std::pair<int, int> > get_worm_indices(){
-        std::vector<std::pair<int, int> > inds;
-        inds.push_back(worm_head_index);
-        inds.push_back(worm_tail_index);
-        return inds;
-    }
-    
-    std::vector<std::pair<int, int> > get_old_worm_indices(){
-        std::vector<std::pair<int, int> > inds;
-        inds.push_back(old_worm_head_index);
-        inds.push_back(old_worm_tail_index);
-        return inds;
-    }
     
     iVector get_cycles(){
         iVector cyclenum(size.size(),0);
@@ -725,450 +699,6 @@ public:
     }
     
     
-    /******************
-     Worm methods
-     ******************/
-    
-    void initialize_worm(){
-        worm.resize(1);
-        worm[0].resize(size[0]);
-        worm_size = 0;
-        if(num_charges == 0)
-            worm_charge = 0;
-        else if(num_charges == 1)
-            worm_charge = -1;
-        else if(num_charges == 2){
-            if(util->randnormed(1) >= 0.5)
-                worm_charge = 1;
-            else
-                worm_charge = -1;
-        }
-        
-    }
-    
-    void new_worm(T t, int slice, size_t key = -1){
-        if(worm_size == 0){
-            node_ptr node(new Node(t));
-            node->row_number = 0;
-            node->column_number = slice;
-            node->charge = worm_charge;
-            worm_head_index.second = worm_tail_index.second = slice;
-            worm_head_index.first = worm_tail_index.first = 0;
-            worm_head = worm_tail = node;
-            worm[0][slice] = worm_head;
-            if(key == -1){
-                set_key_add_sep(node);
-                nt->add_bead(node);
-            }
-            else{
-                node->key = key;
-            }
-            
-            node->in_worm = true;
-            
-            update_key_map(node);
-            
-            worm_size++;
-        }
-    }
-    
-    void worm_push_back(T t, size_t key = -1){
-        node_ptr node(new Node(t));
-        if(worm_size == 0){
-            std::cout << "No worm exists! Can't push back!" << std::endl;
-            node.reset();
-            return;
-        }
-        else{
-            worm_tail->right_node = node;
-            node->left_node = worm_tail;
-            worm_tail = node;
-            worm_tail->charge = worm_charge;
-            
-            worm_tail_index.second++;
-            if(worm_tail_index.second >= worm[0].size()){
-                worm_tail_index.first++;
-                worm_tail_index.second = 0;
-            }
-            if(worm_tail_index.first >= worm.size()){
-                worm.resize(worm_tail_index.first+1);
-                worm[worm_tail_index.first].resize(worm[0].size());
-            }
-            worm[worm_tail_index.first][worm_tail_index.second] = worm_tail;
-            worm_tail->row_number = worm_tail_index.first;
-            worm_tail->column_number = worm_tail_index.second;
-            if(key == -1){
-                set_key_add_sep(node);
-                nt->add_bead(node);
-            }
-            else{
-                node->key = key;
-            }
-            
-            update_key_map(node);
-            
-            node->in_worm = true;
-            
-            worm_size++;
-        }
-        node.reset();
-    }
-    
-    void worm_push_front(T t, size_t key = -1){
-        node_ptr node(new Node(t));
-        if(worm_size == 0){
-            std::cout << "No worm exists! Can't push front!" << std::endl;
-            node.reset();
-            return;
-        }
-        else{
-            worm_head->left_node = node;
-            node->right_node = worm_head;
-            worm_head = node;
-            worm_head->charge = worm_charge;
-            
-            worm_head_index.second--;
-            if(worm_head_index.second < 0){
-                worm_tail_index.first++;
-                worm_head_index.second = worm[0].size()-1;
-                worm.insert(worm.begin(),std::vector<node_ptr>(worm[0].size()));
-                worm[worm_head_index.first][worm_head_index.second] = node;
-                node_ptr temp_node = node->right_node;
-                for(int i = 0; i < worm_size; i++){
-                    temp_node->row_number++;
-                    temp_node = temp_node->right_node;
-                }
-            }
-            else{
-                worm[worm_head_index.first][worm_head_index.second] = node;
-            }
-            
-            worm_head->row_number = worm_head_index.first;
-            worm_head->column_number = worm_head_index.second;
-            if(key == -1){
-                set_key_add_sep(node);
-                nt->add_bead(node);
-            }
-            else{
-                node->key = key;
-            }
-            
-            node->in_worm = true;
-            
-            update_key_map(node);
-            
-            worm_size++;
-        }
-        
-        node.reset();
-    }
-    
-    T worm_pop_back(bool remove = false){
-        if(worm_size == 0){
-            std::cout << "No worm exists! Can't pop back!" << std::endl;
-            return T(0);
-        }
-        else if(worm_size == 1){
-            node_ptr node = worm_head;
-            worm_head.reset();
-            worm_tail.reset();
-            worm[worm_tail_index.first][worm_tail_index.second] = NULL;
-            worm_tail_index.first = 0;
-            worm_head_index.second = 0;
-            worm_tail_index.second = 0;
-            worm_size = 0;
-            worm.resize(0);
-            if(remove){
-                sep->remove_bead(node->column_number, node->key);
-                nt->remove_bead(node);
-                remove_from_key_map(node);
-            }
-            T data = node->data;
-            // std::cout<< node.use_count() << std::endl;
-            node.reset();
-            return data;
-        }
-        else{
-            node_ptr node = worm_tail;
-            worm_tail = worm_tail->left_node;
-            worm_tail->right_node.reset();
-            node->left_node.reset();
-            worm[worm_tail_index.first][worm_tail_index.second].reset();
-            worm_tail_index.second--;
-            if(worm_tail_index.second < 0){
-                worm_tail_index.second = worm[worm_tail_index.first-1].size()-1;
-                worm_tail_index.first--;
-                worm.resize(worm_tail_index.first+1);
-            }
-            worm_size--;
-            if(remove){
-                sep->remove_bead(node->column_number, node->key);
-                nt->remove_bead(node);
-                remove_from_key_map(node);
-                worm_tail->old_right_node.reset();
-            }
-            T data = node->data;
-            //            std::cout<< node.use_count() << std::endl;
-            //            if(node.use_count()>4)
-            //                getchar();
-            node.reset();
-            return data;
-        }
-    }
-    
-    T old_worm_pop_back(){
-        if(old_worm_size == 0){
-            std::cout << "No worm exists! Can't pop back!" << std::endl;
-            return T(0);
-        }
-        else if(worm_size == 1){
-            node_ptr node = old_worm_head;
-            old_worm_head.reset();
-            old_worm_tail.reset();
-            ye_olde_worm[old_worm_tail_index.first][old_worm_tail_index.second] = NULL;
-            old_worm_tail_index.first = 0;
-            old_worm_head_index.second = 0;
-            old_worm_tail_index.second = 0;
-            old_worm_size = 0;
-            ye_olde_worm.resize(0);
-            T data = node->data;
-            // std::cout<< node.use_count() << std::endl;
-            node.reset();
-            return data;
-        }
-        else{
-            node_ptr node = old_worm_tail;
-            old_worm_tail = worm_tail->old_left_node;
-            old_worm_tail->old_right_node.reset();
-            node->old_left_node.reset();
-            ye_olde_worm[old_worm_tail_index.first][old_worm_tail_index.second].reset();
-            old_worm_tail_index.second--;
-            if(old_worm_tail_index.second < 0){
-                old_worm_tail_index.second = ye_olde_worm[old_worm_tail_index.first-1].size()-1;
-                old_worm_tail_index.first--;
-                ye_olde_worm.resize(old_worm_tail_index.first+1);
-            }
-            old_worm_size--;
-            T data = node->data;
-            //            std::cout<< node.use_count() << std::endl;
-            //            if(node.use_count()>4)
-            //                getchar();
-            node.reset();
-            return data;
-        }
-    }
-    
-    T worm_pop_front(bool remove = false){
-        if(worm_size == 0){
-            std::cout << "No worm exists! Can't pop front!" << std::endl;
-            return T(0);
-        }
-        else if(worm_size == 1){
-            node_ptr node = worm_head;
-            worm_head.reset();
-            worm_tail.reset();
-            worm[worm_tail_index.first][worm_tail_index.second].reset();
-            worm_tail_index.first = 0;
-            worm_tail_index.second = 0;
-            worm_head_index.second = 0;
-            worm_size = 0;
-            worm.resize(0);
-            if(remove){
-                sep->remove_bead(node->column_number, node->key);
-                nt->remove_bead(node);
-                remove_from_key_map(node);
-            }
-            T data = node->data;
-            node.reset();
-            return data;
-        }
-        else{
-            node_ptr node = worm_head;
-            worm_head = worm_head->right_node;
-            worm_head->left_node.reset();
-            node->right_node.reset();
-            worm[worm_head_index.first][worm_head_index.second].reset();
-            worm_head_index.second++;
-            if(worm_head_index.second >= worm[0].size()){
-                worm_head_index.second = 0;
-                worm_tail_index.first--;
-                worm.erase(worm.begin());
-                node_ptr temp_node = worm_head;
-                while(temp_node != NULL){
-                    temp_node->row_number--;
-                    temp_node = temp_node->right_node;
-                }
-            }
-            worm_size--;
-            if(remove){
-                sep->remove_bead(node->column_number, node->key);
-                nt->remove_bead(node);
-                remove_from_key_map(node);
-                worm_head->old_left_node.reset();
-            }
-            
-            T data = node->data;
-            //            if(node.use_count()>4)
-            //                getchar();
-            node.reset();
-            
-            return data;
-        }
-    }
-    
-    iVector move_path_to_worm(int row, int head_col, int tail_dist_back){
-        
-        if(worm_size != 0){
-            std::cout << "Worm exists! Cannot move a path into the worm." << std::endl;
-            return iVector(0);
-        }
-        else{
-            initialize_worm();
-            int col_pos = head_col+1;
-            new_worm(list_map[row][head_col]->data, head_col,list_map[row][head_col]->key);
-            node_ptr temp_node = list_map[row][head_col]->right_node;
-            std::vector<int> rows_to_remove(1,row);
-            while(temp_node != list_map[row][head_col]){
-                if(col_pos == size[row]){
-                    col_pos = 0;
-                    rows_to_remove.push_back(temp_node->row_number);
-                }
-                worm_push_back(temp_node->data, temp_node->key);
-                temp_node = temp_node->right_node;
-                col_pos++;
-            }
-            while(tail_dist_back != 0){
-                worm_pop_back(true);
-                tail_dist_back--;
-            }
-            std::sort(rows_to_remove.begin(), rows_to_remove.end());
-            auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
-            rows_to_remove.erase(last, rows_to_remove.end());
-            
-            //            if(rows_to_remove.size()>1)
-            //                getchar();
-            
-            for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
-                *it = *it - (it-rows_to_remove.begin());
-                list_map.erase(list_map.begin()+ *it);
-                size.erase(size.begin()+ *it);
-            }
-            
-            reset_indices();
-            return rows_to_remove;
-        }
-    }
-    
-    void move_worm_to_path(){
-        
-        if(worm_size == 0){
-            std::cout << "No worm exists." << std::endl;
-            return;
-        }
-        else{
-            int first_row = size.size();
-            int row = size.size();
-            
-            if(worm_tail_index.second>=worm_head_index.second){
-                while(worm_head_index.second != 0)
-                    worm_push_front(T(0));
-                while(worm_tail_index.second != worm[0].size()-1)
-                    worm_push_back(T(0));
-                int colpos = 0;
-                int maxcol = size[0]-1;
-                node_ptr temp = worm[0][0];
-                while(temp != NULL){
-                    if(colpos > maxcol){
-                        row++;
-                        colpos = 0;
-                    }
-                    push_back(temp->data, row, temp->key);
-                    temp = temp->right_node;
-                    colpos++;
-                    worm_pop_front();
-                    
-                }
-                temp.reset();
-            }
-            else{
-                int difference = worm_head_index.second - worm_tail_index.second;
-                difference--;
-                while(difference != 0){
-                    worm_push_front(T(0));
-                    difference--;
-                }
-                int maxcol = size[0]-1;
-                node_ptr temp = worm_head;
-                int colpos = worm_head_index.second-1;
-                for(int i = 0; i <= colpos; i++){
-                    push_back(worm[worm_tail_index.first][i]->data, row, worm[worm_tail_index.first][i]->key);
-                }
-                colpos++;
-                while(temp != NULL && temp->row_number != worm_tail_index.first){
-                    if(colpos > maxcol){
-                        row++;
-                        colpos = 0;
-                    }
-                    push_back(temp->data, row, temp->key);
-                    // std::cout << temp.use_count() << std::endl;
-                    temp = temp->right_node;
-                    colpos++;
-                    worm_pop_front();
-                }
-                while(temp != NULL){
-                    // std::cout << temp.use_count() << std::endl;
-                    temp = temp->right_node;
-                    worm_pop_front();
-                }
-                temp.reset();
-            }
-            
-            list_map[first_row][0]->left_node = list_map[row][size[row]-1];
-            list_map[first_row][0]->left_node->right_node = list_map[first_row][0];
-            for(row = first_row; row < size.size()-1; row++){
-                list_map[row][size[row]-1]->right_node = list_map[row+1][0];
-                list_map[row][size[row]-1]->right_node->left_node = list_map[row][size[row]-1];
-            }
-        }
-        
-    }
-    
-    std::vector<std::pair<int, int> > temporarily_close_worm(){
-        if(worm_size == 0){
-            std::cout << "No worm exists." << std::endl;
-            return std::vector<std::pair<int, int> >(0);
-        }
-        else{
-            if(worm_tail_index.second>=worm_head_index.second){
-                while(worm_head_index.second != 0)
-                    worm_push_front(T(0));
-                while(worm_tail_index.second != worm[0].size()-1)
-                    worm_push_back(T(0));
-            }
-            else{
-                int difference = worm_head_index.second - worm_tail_index.second;
-                difference--;
-                while(difference != 0){
-                    worm_push_front(T(0));
-                    difference--;
-                }
-            }
-        }
-        
-        std::vector<std::pair<int, int> > old_ht;
-        old_ht.push_back(old_worm_head_index);
-        old_ht.push_back(old_worm_tail_index);
-        return old_ht;
-    }
-    
-    void reopen_temp_closed_worm(){
-        while(worm_head_index.second != old_worm_head_index.second)
-            worm_pop_front(true);
-        while(worm_tail_index.second != old_worm_tail_index.second)
-            worm_pop_back(true);
-    }
-    
-    
     void reset_indices(){
         for(int row = 0; row < size.size(); row++){
             for(int slice = 0; slice < size[row]; slice++){
@@ -1194,16 +724,6 @@ public:
                     return false;
             }
         }
-        for(int row = 0; row < worm.size(); row++){
-            for(int slice = 0; slice < worm[row].size(); slice++){
-                if(row == 0 && slice < worm_head_index.second)
-                    slice = worm_head_index.second;
-                if(row == worm_tail_index.first && slice > worm_tail_index.second)
-                    break;
-                if(isnan(worm[row][slice]->data[0])||isnan(worm[row][slice]->data[1]))
-                    return false;
-            }
-        }
         return true;
     }
     
@@ -1213,46 +733,13 @@ public:
         old_size = size;
         set_old_data();
         
-        ye_olde_worm = worm;
-        old_worm_size = worm_size;
-        old_worm_head = worm_head;
-        old_worm_tail = worm_tail;
-        old_worm_head_index = worm_head_index;
-        old_worm_tail_index = worm_tail_index;
         old_key_map = key_map;
-        set_old_worm_data();
         
         sep->set_update(false);
+        perm_sep->set_update(false);
         nt->set_old_table();
     }
     
-    void set_old_worm_data(){
-        if(worm_size != 0){
-            node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
-            while(temp != NULL){
-                temp->old_data = temp->data;
-                temp->old_row_number = temp->row_number;
-                temp->old_right_node = temp->right_node;
-                temp->old_left_node = temp->left_node;
-                temp = temp->right_node;
-            }
-        }
-    }
-    
-    void revert_worm_old_data(){
-        if(worm.size() != 0){
-            node_ptr temp = worm[worm_head_index.first][worm_head_index.second];
-            while(temp != NULL){
-                temp->data = temp->old_data;
-                temp->row_number = temp->old_row_number;
-                temp->right_node = temp->old_right_node;
-                temp->left_node = temp->old_left_node;
-                temp->old_right_node.reset();
-                temp->old_left_node.reset();
-                temp = temp->right_node;
-            }
-        }
-    }
     
     void revert_old(){
         revert_old_data();
@@ -1262,106 +749,11 @@ public:
         size.resize(list_map.size());
         for(typename std::vector<std::vector<node_ptr> >::iterator it = list_map.begin(); it != list_map.end(); it++)
             size[it-list_map.begin()] = (*it).size();
-        revert_worm_old_data();
-        worm = ye_olde_worm;
-        worm_size = old_worm_size;
-        if(worm_size != 0){
-            worm_head = old_worm_head;
-            worm_tail = old_worm_tail;
-            worm_head_index = old_worm_head_index;
-            worm_tail_index = old_worm_tail_index;
-            worm_head->left_node.reset();
-            worm_tail->right_node.reset();
-        }
         nt->reset_old_table();
         sep->reject_update();
+        perm_sep->reject_update();
     }
     
-    iVector swap_into_worm_head(int row, int dist){
-        if(worm_size == 0)
-            return iVector(0);
-        else{
-            int swap_bead_index = (worm_head_index.second-dist+size[row])%size[row];
-            for(int i = 0; i < dist - 1; i++)
-                worm_push_front(T(0));
-            worm_push_front(list_map[row][swap_bead_index]->data, list_map[row][swap_bead_index]->key);
-            int col_pos = (worm_tail_index.second-dist+size[row])%size[row];
-            node_ptr temp_node = list_map[row][swap_bead_index]->left_node;
-            std::vector<int> rows_to_remove(1,row);
-            while(temp_node != list_map[row][swap_bead_index]){
-                if(col_pos == 0){
-                    col_pos = size[row];
-                    rows_to_remove.push_back(temp_node->row_number);
-                }
-                worm_push_front(temp_node->data, temp_node->key);
-                temp_node = temp_node->left_node;
-                col_pos--;
-            }
-            
-            dist--;
-            while(dist != 0){
-                worm_pop_front(true);
-                dist--;
-            }
-            std::sort(rows_to_remove.begin(), rows_to_remove.end());
-            auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
-            rows_to_remove.erase(last, rows_to_remove.end());
-            
-            
-            //            if(rows_to_remove.size()>1)
-            //                getchar();
-            
-            for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
-                *it = *it - (it-rows_to_remove.begin());
-                list_map.erase(list_map.begin()+ *it);
-                size.erase(size.begin()+* it);
-            }
-            reset_indices();
-            return rows_to_remove;
-        }
-    }
-    
-    iVector swap_into_worm_tail(int row, int dist){
-        if(worm_size == 0)
-            return iVector(0);
-        else{
-            int swap_bead_index = (worm_tail_index.second+dist)%size[row];
-            
-            for(int i = 0; i < dist - 1; i++)
-                worm_push_back(T(0));
-            worm_push_back(list_map[row][swap_bead_index]->data, list_map[row][swap_bead_index]->key);
-            int col_pos = (worm_tail_index.second+dist)%size[row];
-            node_ptr temp_node = list_map[row][swap_bead_index]->right_node;
-            std::vector<int> rows_to_remove(1,row);
-            while(temp_node != list_map[row][swap_bead_index]){
-                if(col_pos == size[row]){
-                    col_pos = 0;
-                    rows_to_remove.push_back(temp_node->row_number);
-                }
-                worm_push_back(temp_node->data, temp_node->key);
-                temp_node = temp_node->right_node;
-                col_pos++;
-            }
-            
-            dist--;
-            while(dist != 0){
-                worm_pop_back(true);
-                dist--;
-            }
-            std::sort(rows_to_remove.begin(), rows_to_remove.end());
-            auto last = std::unique(rows_to_remove.begin(), rows_to_remove.end());
-            rows_to_remove.erase(last, rows_to_remove.end());
-            
-            for(std::vector<int>::iterator it = rows_to_remove.begin(); it != rows_to_remove.end(); it++){
-                *it = *it - (it-rows_to_remove.begin());
-                list_map.erase(list_map.begin()+ *it);
-                size.erase(size.begin()+ *it);
-            }
-            
-            reset_indices();
-            return rows_to_remove;
-        }
-    }
     
     void remove_old_list_references(iVector rows_to_remove){
         for(iVector::iterator row = rows_to_remove.begin(); row != rows_to_remove.end(); row++){
@@ -1372,84 +764,6 @@ public:
                 old_list_map[*row][slice]->old_left_node.reset();
             }
         }
-    }
-    
-    void remove_old_worm_references(){
-        node_ptr node = old_worm_head;
-        while(node != NULL){
-            node_ptr node_2 = node->right_node;
-            node->right_node.reset();
-            node->left_node.reset();
-            node->right_node.reset();
-            node->old_left_node.reset();
-            node = node_2;
-        }
-        node.reset();
-    }
-    
-    dVector get_worm_bead_data(int row, int slice){
-        
-        if(slice >= worm[row].size()){
-            slice = slice % worm[row].size();
-            row ++;
-        }
-        return worm[row][slice]->data;
-    }
-    
-    void set_worm_bead_data(int row, int slice, T data, T old_data = T(0)){
-        if(slice >= worm[0].size()){
-            slice = slice%worm[0].size();
-            row++;
-        }
-        worm[row][slice]->data = data;
-        sep->update_bead(slice, worm[row][slice]->key, data);
-        if(old_data.size() != 0)
-            worm[row][slice]->old_data = old_data;
-        nt->update_bead(worm[row][slice]);
-    }
-    
-    void remove_worm(){
-        while(worm_size != 0){
-            worm_pop_back(true);
-        }
-    }
-    
-    std::vector<std::pair<size_t, dVector> > get_worm_tail_neighbors(int distance){
-        std::vector<size_t> bead_keys = nt->get_neighboring_beads(worm[worm_tail_index.first][worm_tail_index.second],(worm_tail_index.second+distance)%size[0]);
-        std::vector<node_ptr> bead_list;
-        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
-            node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm && node->charge == worm_charge){
-                bead_list.push_back(node);
-            }
-        }
-        std::vector<std::pair<size_t, dVector> > bead_ret;
-        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
-            std::pair<size_t, dVector> bead_desc;
-            bead_desc.first = (*it)->key;
-            bead_desc.second = (*it)->data;
-            bead_ret.push_back(bead_desc);
-        }
-        return bead_ret;
-    }
-    
-    std::vector<std::pair<size_t, dVector> > get_worm_head_neighbors(int distance){
-        std::vector<size_t> bead_keys = nt->get_neighboring_beads(worm[worm_head_index.first][worm_head_index.second],(worm_head_index.second-distance+size[0])%size[0]);
-        std::vector<node_ptr> bead_list;
-        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
-            node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm && node->charge == worm_charge){
-                bead_list.push_back(node);
-            }
-        }
-        std::vector<std::pair<size_t, dVector> > bead_ret;
-        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
-            std::pair<size_t, dVector> bead_desc;
-            bead_desc.first = (*it)->key;
-            bead_desc.second = (*it)->data;
-            bead_ret.push_back(bead_desc);
-        }
-        return bead_ret;
     }
     
     bool check_if_neighbor(size_t key1, size_t key2){
@@ -1465,7 +779,7 @@ public:
     }
     
     void check_key_map(){
-        int num_beads = size.size()*size[0] + worm_size;
+        int num_beads = size.size()*size[0];
         int num_stored = key_map.size();
         int num_nt = nt->num_beads_in_table();
         if((num_beads != num_stored) || (num_beads != num_nt))
@@ -1478,9 +792,6 @@ public:
         std::vector<node_ptr> bead_list;
         for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
             node_ptr node = key_map.find(*it)->second;
-            if(!node->in_worm && node->charge == worm_charge){
-                bead_list.push_back(node);
-            }
         }
         std::vector<std::pair<size_t, dVector> > bead_ret;
         for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
@@ -1532,9 +843,6 @@ public:
         return list_map[row][col]->key;
     }
     
-    size_t get_worm_key(int row, int col){
-        return worm[row][col]->key;
-    }
     
     
     /************
@@ -1605,36 +913,6 @@ public:
         std::cout << std::endl;
         
     }
-    void print_worm_data(){
-        if(worm_size == 0){
-            std::cout<< "Worm is empty!" << std::endl;
-            return;
-        }
-        else
-            for(int row = 0; row <= worm_tail_index.first; row++){
-                for(int col = 0; col < worm[0].size(); col++){
-                    if(worm[row][col] == NULL){
-                        std::cout << "NULL";
-                    }
-                    else{
-                        T data = worm[row][col]->data;
-                        for(typename T::iterator it2 = data.begin(); it2 != data.end(); it2++){
-                            if(it2 == data.begin())
-                                std::cout<<"(";
-                            std::cout << *it2;
-                            if(it2 != data.end()-1)
-                                std::cout <<", ";
-                            
-                        }
-                        std::cout <<")";
-                    }
-                    if(col != worm[0].size() -1)
-                        std::cout << ",\t";
-                }
-                std::cout << std::endl;
-            }
-    }
-    
     void print_list_next_indices(int index = 0){
         node_ptr temp = list_map[index][0];
         if(circular){
@@ -1684,17 +962,6 @@ public:
         return size;
     }
     
-    iVector get_worm_dims(){
-        iVector worm_dims;
-        worm_dims.push_back(worm.size());
-        if(worm.size()!=0)
-            worm_dims.push_back(worm[0].size());
-        return worm_dims;
-    }
-    
-    int get_worm_size(){
-        return worm_size;
-    }
     
     void check_print_neighbor_table(){
         for(int row = 0; row < size.size(); row ++){
@@ -1705,60 +972,8 @@ public:
             }
             std::cout << std::endl;
         }
-        
-        if(worm_size == 0){
-            std::cout<< "Worm is empty!" << std::endl;
-            return;
-        }
-        else
-            for(int row = 0; row <= worm_tail_index.first; row++){
-                for(int col = 0; col < worm[0].size(); col++){
-                    if(worm[row][col] == NULL){
-                        std::cout << "NULL";
-                    }
-                    else{
-                        std::cout << nt->get_bead_grid_num(worm[row][col]);
-                    }
-                    if(col != worm[0].size() -1)
-                        std::cout << ", ";
-                }
-                std::cout << std::endl;
-            }
     }
     
-    void check_if_in_worm(){
-        for(int row = 0; row < size.size(); row ++){
-            for(int col = 0; col < size[row]; col ++){
-                if(list_map[row][col]->in_worm)
-                    std::cout<< "yes" << ", ";
-                else
-                    std::cout << "no" << ", ";
-            }
-            std::cout << std::endl;
-        }
-        
-        if(worm_size == 0){
-            std::cout<< "Worm is empty!" << std::endl;
-            return;
-        }
-        else
-            for(int row = 0; row <= worm_tail_index.first; row++){
-                for(int col = 0; col < worm[0].size(); col++){
-                    if(worm[row][col] == NULL){
-                        std::cout << "NULL";
-                    }
-                    else{
-                        if(worm[row][col]->in_worm)
-                            std::cout<< "yes";
-                        else
-                            std::cout << "no";
-                    }
-                    if(col != worm[0].size() -1)
-                        std::cout << ", ";
-                }
-                std::cout << std::endl;
-            }
-    }
     
     void check_refs(){
         std::cout << "___________________________________" <<std::endl;
@@ -1775,25 +990,6 @@ public:
             std::cout << std::endl;
         }
         std::cout<<std::endl;
-        std::cout<< "Worm: " <<std::endl;
-        if(worm_size == 0){
-            std::cout<< "Empty!" << std::endl;
-        }
-        else
-            for(int row = 0; row <= worm_tail_index.first; row++){
-                for(int col = 0; col < worm[0].size(); col++){
-                    if(worm[row][col] == NULL){
-                        std::cout << "N";
-                    }
-                    else{
-                        std::cout << worm[row][col].use_count();
-                    }
-                    if(col != worm[0].size() -1)
-                        std::cout << "\t";
-                }
-                std::cout << std::endl;
-            }
-        std::cout<<std::endl;
         std::cout<< "Old Beads: " <<std::endl;
         if(old_size.size() == 0){
             std::cout<< "Empty!" << std::endl;
@@ -1807,24 +1003,6 @@ public:
             std::cout << std::endl;
         }
         std::cout<<std::endl;
-        std::cout<< "Old Worm: " <<std::endl;
-        if(old_worm_size == 0){
-            std::cout<< "Empty!" << std::endl;
-        }
-        else
-            for(int row = 0; row <= old_worm_tail_index.first; row++){
-                for(int col = 0; col < ye_olde_worm[0].size(); col++){
-                    if(ye_olde_worm[row][col] == NULL){
-                        std::cout << "N";
-                    }
-                    else{
-                        std::cout << ye_olde_worm[row][col].use_count();
-                    }
-                    if(col != ye_olde_worm[0].size() -1)
-                        std::cout << "\t";
-                }
-                std::cout << std::endl;
-            }
         
         std::cout << "___________________________________" <<std::endl;
         

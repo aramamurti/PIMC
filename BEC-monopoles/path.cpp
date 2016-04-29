@@ -57,7 +57,7 @@ void Path::set_up_beads(){
         }
     }
     
-    beads = list_ptr(new PathList<dVector>(params->get_ndim(), params->get_box_size()));
+    beads = list_ptr(new PathList<dVector>(params->get_ndim(), multistep_dist, params->get_box_size()));
     
     for(int slice = 0; slice < params->get_num_timeslices(); slice++){
         for(int ptcl = 0; ptcl < params->get_num_particles(); ptcl++){
@@ -66,6 +66,7 @@ void Path::set_up_beads(){
     }
     
     beads->generate_neighbors();
+    beads->generate_perm_seps();
     
     
     if(params->is_charged()){
@@ -81,7 +82,6 @@ void Path::set_up_beads(){
     
     //Make the beads a periodic chain
     beads->make_circular();
-    worm = false;
 }
 
 void Path::put_in_box(){
@@ -102,43 +102,4 @@ void Path::put_in_box(iVector changed_ptcls, int start_slice, int end_slice){
                 beads->set_bead_data(*it, slice, util->location(beads->get_bead_data(*it, slice), params->get_box_size()),beads->get_bead_data(*it, slice));
             }
     
-}
-
-void Path::put_worm_in_box(){
-    
-    std::vector<std::pair<int, int> > ht = beads->get_worm_indices();
-    
-    int start_row = ht[0].first;
-    int start_slice = ht[0].second;
-    int end_row = ht[1].first;
-    int end_slice = ht[1].second;
-    
-    int slice = start_slice;
-    int row = start_row;
-    
-    if(params->get_box_size() != -1){
-        while(!(row == end_row && slice == end_slice)){
-            beads->set_worm_bead_data(row, slice, util->location(beads->get_worm_bead_data(row, slice), params->get_box_size()),beads->get_worm_bead_data(row, slice));
-            slice++;
-            if(slice >= params->get_num_timeslices()){
-                slice = slice%params->get_num_timeslices();
-                row++;
-            }
-        }
-    }
-    
-    
-}
-
-void Path::put_worm_in_box(iVector changed_rows, std::vector<std::pair<int, int> > start_end){
-        
-    if(params->get_box_size() != -1){
-        for(iVector::iterator row = changed_rows.begin(); row != changed_rows.end(); row++){
-            for(int slice = start_end[row-changed_rows.begin()].first; slice <= start_end[row-changed_rows.begin()].second; slice++){
-                beads->set_worm_bead_data(*row, slice, util->location(beads->get_worm_bead_data(*row, slice), params->get_box_size()),beads->get_worm_bead_data(*row, slice));
-            }
-        }
-    }
-    
-
 }

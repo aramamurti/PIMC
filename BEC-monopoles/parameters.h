@@ -29,9 +29,9 @@ private:
     typedef boost::unordered_map<std::string, std::string> sectionmap;
     
     //Simulation parameters
-    double tau, T, kb, lambda, box_size, mu, C0, coupling;
+    double tau, T, kb, lambda, box_size, coupling;
     int ndim, timeslices, particles, skip, equilibration, end_step, charges, mbar;
-    bool boson, per_bound_cond, charged, worm_on;
+    bool boson, per_bound_cond, charged;
     
     std::string particle_type;
     
@@ -70,12 +70,6 @@ public:
         else
             kb = 1;
         
-        //Worm Constant
-        param_it = consts.find("C0");
-        if(param_it != consts.end())
-            C0 = std::stod((*param_it).second);
-        else
-            C0 = 0;
         
         //Number of particles
         param_it = simpars.find("particles");
@@ -113,13 +107,6 @@ public:
             set_timeslices(std::stoi((*param_it).second));
         else
             set_timeslices(100);
-        
-        //Chemical Potential
-        param_it = simpars.find("mu");
-        if(param_it != simpars.end())
-            mu = std::stod((*param_it).second);
-        else
-            mu = 0;
         
         
         //Periodic boundary conditions
@@ -207,23 +194,15 @@ public:
         if(param_it != moves.end())
             move_list.push_back((*param_it).second == "true");
         
-        param_it = moves.find("Worm");
-        if(param_it != moves.end()){
-            if(!boson){
-                move_list.push_back(false);
-                move_list.push_back(false);
-            }
-            else if((*param_it).second == "true"){
-                move_list.push_back(false);
-                move_list.push_back(true);
-                worm_on = true;
-            }
-            else{
-                move_list.push_back(true);
-                move_list.push_back(false);
-                worm_on = false;
-            }
+        if(!boson){
+            move_list.push_back(false);
+            move_list.push_back(false);
         }
+        else{
+            move_list.push_back(true);
+            move_list.push_back(false);
+        }
+        
         
         
     }
@@ -267,14 +246,6 @@ public:
         mbar = new_mbar;
     }
     
-    void shift_mu(double shift){
-        mu += shift;
-    }
-    
-    void shift_C0(double shift){
-        C0 += shift*C0;
-    }
-    
     /*************************************************************************
      
                                 GETTER METHODS
@@ -286,7 +257,6 @@ public:
     double get_kb(){return kb;}
     bool is_boson(){return boson;}
     bool is_charged(){return charged;}
-    bool worm(){return worm_on;}
     int get_num_chgs(){return charges;}
     double get_tau(){return tau;}
     double get_lambda(){return lambda;}
@@ -296,8 +266,6 @@ public:
     int get_num_timeslices(){return timeslices;}
     int get_num_particles(){return particles;}
     double get_box_size(){return box_size;}
-    double get_mu(){return mu;}
-    double get_C0(){return C0;}
     int get_mbar(){return mbar;}
     double get_coupling(){return coupling;}
     std::string get_particle_type(){return particle_type;}

@@ -26,7 +26,7 @@ void Permutation_Table::set_up_perms(){
     prob_list.resize(path->get_parameters()->get_num_timeslices());
     
     iVector d(path->get_beads()->get_num_particles());
-    int k, maxPtcls = 3;
+    int k, maxPtcls = 4;
     if(path->get_beads()->get_num_particles() <= maxPtcls)
         k = path->get_beads()->get_num_particles();
     else
@@ -123,30 +123,24 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
     it = std::unique (recomp_perms.begin(), recomp_perms.end());
     recomp_perms.erase(it, recomp_perms.end());
     
-    
     double perm_tot = 0.0;
     iVector identity(path->get_beads()->get_num_particles());
     iota(identity.begin(),identity.end(),0);
     
-    double old_action = 0.0;
-    for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
-        old_action += ka->get_action(slice,multistep_dist);
-    }
+    double norm = 1.0/(4.0*path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
     
     prob_list[slice][0] = 1;
     
     for(int j = 0; j < recomp_perms.size(); j++){
         int i = recomp_perms[j];
         iVector oneperm = perm_list[i];
-        int chdptcl = 0;
-        path->get_beads()->set_permutation(identity,oneperm, slice, multistep_dist);
-        path->get_beads()->permute();
-        
-        chdptcl = (int)permed_parts[i].size();
-        
-        double new_action = 0.0;
-        for(int ptcl = 0; ptcl < path->get_beads()->get_num_particles(); ptcl++){
-            new_action += ka->get_action(slice,multistep_dist);
+        int chdptcl = (int)permed_parts[i].size();
+                std::vector<std::pair<double, double> > perm_bead_seps = path->get_beads()->get_perm_seps(identity,oneperm, slice, multistep_dist);
+        double new_action = 0;
+        double old_action = 0;
+        for(std::vector<std::pair<double, double> >::iterator it = perm_bead_seps.begin(); it != perm_bead_seps.end(); it++){
+            new_action += norm/multistep_dist* it->first;
+            old_action += norm/multistep_dist* it->second;
         }
         
         double multfac = 1.0;
@@ -155,8 +149,6 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
         
         double kFac = multfac * exp(-(new_action - old_action));
         prob_list[slice][i] = kFac;
-        
-        path->get_beads()->permute(true);
     }
     
     for(dVector::iterator it = prob_list[slice].begin(); it != prob_list[slice].end(); it++)
