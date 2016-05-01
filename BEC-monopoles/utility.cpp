@@ -89,6 +89,14 @@ dVector Utility::location(dVector bead, double box_size){
     }
     return loc;
 }
+
+void Utility::put_in_box(dVector &bead, double box_size){
+    for(int i = 0; i < bead.size(); i++){
+        if(box_size != -1)
+            bead[i] = per_bound_cond(bead[i],box_size);
+    }
+}
+
 dVector Utility::dist(ddVector beads, double box_size){
     int ndim = (int)beads[0].size();
     dVector dist;
@@ -101,6 +109,17 @@ dVector Utility::dist(ddVector beads, double box_size){
         dist.push_back(dimdist);
     }
     return dist;
+}
+
+void Utility::dist(dVector &bead1, dVector &bead2, dVector &dist, double box_size){
+    int ndim = bead1.size();
+    dist.resize(ndim);
+    for(int i = 0; i < ndim; i++){
+        double dimdist = bead2[i]-bead1[i];
+        if(box_size != -1)
+            dimdist = per_bound_cond(dimdist+box_size/2, box_size)-box_size/2;
+        dist[i] = dimdist;
+    }
 }
 
 dVector Utility::avedist(ddVector beads, double box_size){

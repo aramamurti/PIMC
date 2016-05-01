@@ -65,8 +65,8 @@ void Path::set_up_beads(){
         }
     }
     
-    beads->generate_neighbors();
     beads->generate_perm_seps();
+    beads->generate_bead_seps();
     
     
     if(params->is_charged()){
@@ -82,24 +82,4 @@ void Path::set_up_beads(){
     
     //Make the beads a periodic chain
     beads->make_circular();
-}
-
-void Path::put_in_box(){
-    
-    if(params->get_box_size() != -1)
-        for(int ptcl = 0; ptcl < beads->get_num_particles(); ptcl++)
-            for(int slice = 0; slice < params->get_num_timeslices(); slice++){
-                beads->set_bead_data(ptcl, slice, util->location(beads->get_bead_data(ptcl, slice), params->get_box_size()),beads->get_bead_data(ptcl, slice));
-            }
-    
-}
-
-void Path::put_in_box(iVector changed_ptcls, int start_slice, int end_slice){
-    
-    if(params->get_box_size() != -1)
-        for(std::vector<int>::iterator it = changed_ptcls.begin(); it != changed_ptcls.end(); it++)
-            for(int slice = start_slice; slice < end_slice; slice++){
-                beads->set_bead_data(*it, slice, util->location(beads->get_bead_data(*it, slice), params->get_box_size()),beads->get_bead_data(*it, slice));
-            }
-    
 }

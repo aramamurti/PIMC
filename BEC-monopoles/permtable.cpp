@@ -16,7 +16,6 @@
 
 Permutation_Table::Permutation_Table(boost::shared_ptr<Path> path){
     this->path = path;
-    ka = boost::shared_ptr<Kinetic_Action>(new Kinetic_Action(this->path));
 
     multistep_dist = path->get_multistep_dist();
     set_up_perms();
@@ -26,7 +25,7 @@ void Permutation_Table::set_up_perms(){
     prob_list.resize(path->get_parameters()->get_num_timeslices());
     
     iVector d(path->get_beads()->get_num_particles());
-    int k, maxPtcls = 4;
+    int k, maxPtcls = 3;
     if(path->get_beads()->get_num_particles() <= maxPtcls)
         k = path->get_beads()->get_num_particles();
     else
@@ -135,7 +134,7 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
         int i = recomp_perms[j];
         iVector oneperm = perm_list[i];
         int chdptcl = (int)permed_parts[i].size();
-                std::vector<std::pair<double, double> > perm_bead_seps = path->get_beads()->get_perm_seps(identity,oneperm, slice, multistep_dist);
+        std::vector<std::pair<double, double> > perm_bead_seps = path->get_beads()->get_perm_seps(identity,oneperm, slice, multistep_dist);
         double new_action = 0;
         double old_action = 0;
         for(std::vector<std::pair<double, double> >::iterator it = perm_bead_seps.begin(); it != perm_bead_seps.end(); it++){
@@ -157,33 +156,19 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
     return perm_tot;
 }
 
-iVector Permutation_Table::pick_permutation(int ptcl, int start){
+iVector Permutation_Table::pick_permutation(int start){
     dVector perm_weight = prob_list[start];
-    iVector perm_loc = perm_part_loc[ptcl];
+    double sum = 0.0;
+    for(dVector::iterator it = perm_weight.begin(); it != perm_weight.end(); it++)
+        sum += *it;
     
-    double sum = perm_weight[0];
-    for(iVector::iterator it = perm_loc.begin(); it != perm_loc.end(); it++)
-        sum += perm_weight[*it];
-    
-    int choice = 0;
     double rn = path->get_util()->randnormed(sum);
     double probsum = 0.0;
-    for(int i = 0; i < perm_loc.size()+1; i++){
-        if(i == 0)
-            probsum += perm_weight[0];
-        else
-            probsum += perm_weight[perm_loc[i-1]];
+    for(int i = 0; i < perm_weight.size(); i++){
+        probsum += perm_weight[i];
         if(rn<=probsum){
-            if(i == 0)
-                choice = 0;
-            else
-                choice = perm_loc[i-1];
-            break;
+            return perm_list[i];
         }
     }
-    
-    iVector chosenPerm = perm_list[choice];
-    
-    return chosenPerm;
-
+    return perm_list[0];
 }

@@ -60,7 +60,6 @@ int main(int argc, const char * argv[]) {
     dVector particles(0);
     
     //Run algorithm and get acceptance ratios of moves
-    std::cout<< world_rank << ":\tStarting algorithm..." <<std::endl;
     std::vector<boost::tuple<std::string, int, int> > accept = sim->run(path->get_parameters()->get_end_step(), writer, energy, cycles, particles);
     
     std::cout<< world_rank <<":\tFinished simulation. Writing results to file..."<< std::endl;

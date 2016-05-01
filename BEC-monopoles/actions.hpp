@@ -70,20 +70,4 @@ private:
 
 };
 
-class Kinetic_Action: public Action_Base{
-public:
-    Kinetic_Action(boost::shared_ptr<Path> path): Action_Base(path){
-        norm = 1.0/(4.0*path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
-    }
-    ~Kinetic_Action(){};
-    
-    double get_action(int slice, int dist);
-    double get_action_single_particle(int ptcl, int slice, int dist);
-    double get_action_pos(ddVector pair, int dist);
-    
-private:
-    double norm;
-};
-
-
 #endif /* actions_hpp */

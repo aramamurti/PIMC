@@ -85,10 +85,11 @@ private:
     boost::unordered_map<size_t, node_ptr> old_key_map;
     
     boost::shared_ptr<Separation_Table> sep;
-    boost::shared_ptr<Neighbor_Table<node_ptr> > nt;
     boost::shared_ptr<Permutation_Separation_Table> perm_sep;
     
     boost::shared_ptr<Utility> util;
+    
+    double boxsize;
     
 public:
     
@@ -96,9 +97,9 @@ public:
         size.resize(0);
         sep = boost::shared_ptr<Separation_Table>(new Separation_Table(boxsize));
         perm_sep = boost::shared_ptr<Permutation_Separation_Table>(new Permutation_Separation_Table(multistep_dist,boxsize));
-        nt = boost::shared_ptr<Neighbor_Table<node_ptr> >(new Neighbor_Table<node_ptr>(boxsize, ndim));
         util = boost::shared_ptr<Utility>(new Utility(0));
         this->num_charges = num_charges;
+        this->boxsize = boxsize;
     }
     
     PathList(std::string infile)
@@ -220,7 +221,6 @@ public:
         
         if(key == -1){
             set_key_add_sep(node);
-            nt->add_bead(node);
         }
         else{
             node->key = key;
@@ -295,53 +295,39 @@ public:
             key_map.erase(it);
     }
     
-    void generate_neighbors(){
-        nt->set_up_neighbor_table();
-    }
-    
     void generate_perm_seps(){
         for(int i = 0 ;i < list_map.size(); i++)
             for(int j = 0; j <list_map[i].size(); j++)
-                perm_sep->update_bead(list_map[i][j]->column_number,list_map[i][j]->key,list_map[i][j]->data);
+                perm_sep->update_bead(list_map[i][j]->column_number,list_map[i][j]->key);
     }
     
-    iVector shift_all(int row, T shift){
-        node_ptr temp = list_map[row][0];
-        std::vector<std::pair<size_t, int> > key_list;
-        std::vector<T> new_locs;
+    void generate_bead_seps(){
+        for(int i = 0 ;i < list_map.size(); i++)
+            for(int j = 0; j <list_map[i].size(); j++)
+                sep->update_bead_separations(list_map[i][j]->column_number,list_map[i][j]->key);
+    }
+    
+    iVector shift_all(int row, T shift, double box_size){
         
+        int times_through = 0;
         iVector shifted_rows(1,row);
         
-        for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
-            *it += shift[it-temp->data.begin()];
-        }
-        nt->update_bead(temp);
-        sep->update_bead(temp->column_number, temp->key, temp->data);
-        perm_sep->update_bead(temp->column_number, temp->key, temp->data);
-        
-        new_locs.push_back(temp->data);
-        key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
-        
-        temp = temp->right_node;
         int cur_row = row;
-        while(temp != list_map[row][0]){
-            for(typename T::iterator it = temp->data.begin(); it != temp->data.end(); it++){
-                *it += shift[it-temp->data.begin()];
+        while(!(cur_row == row && times_through != 0)){
+            for(int i = 0; i < size[cur_row]; i++){
+                std::transform(list_map[cur_row][i]->data.begin(), list_map[cur_row][i]->data.end(), shift.begin(),
+                               list_map[cur_row][i]->data.begin(), std::plus<double>());
+                util->put_in_box(list_map[cur_row][i]->data, box_size);
+                sep->update_bead_separations(i, list_map[cur_row][i]->key);
+                perm_sep->update_bead(i, list_map[cur_row][i]->key);
+
             }
-            if(temp->column_number == 0 && temp->row_number != cur_row){
-                cur_row = temp->row_number;
-                shifted_rows.push_back(cur_row);
-            }
-            nt->update_bead(temp);
-            sep->update_bead(temp->column_number, temp->key, temp->data);
-            perm_sep->update_bead(temp->column_number, temp->key, temp->data);
-            
-            new_locs.push_back(temp->data);
-            key_list.push_back(std::pair<size_t, int>(temp->key, temp->column_number));
-            
-            temp = temp->right_node;
+            cur_row = list_map[cur_row][size[cur_row]-1]->right_node->row_number;
+            times_through++;
+            shifted_rows.push_back(cur_row);
         }
         
+        shifted_rows.pop_back();
         return shifted_rows;
     }
     
@@ -495,17 +481,12 @@ public:
     }
     
     iiVector circular_perm(iVector lc, iVector end){
-        
-        std::vector<node_ptr> temps;
-        
-        for(int ptc = 0; ptc < size.size(); ptc ++)
-            temps.push_back(list_map[ptc][size[ptc]-1]);
-        
         iVector nlc;
         iVector nend;
         for(iVector::iterator it = lc.begin(); it != lc.end(); it++){
-            nlc.push_back(temps[*it]->right_node->row_number);
-            nend.push_back(temps[end[it-lc.begin()]]->right_node->row_number);
+            nlc.push_back(list_map[*it][size[*it]-1]->right_node->row_number);
+            nend.push_back(list_map[end[it-lc.begin()]][size[*it]-1]->right_node->row_number);
+
         }
         
         iiVector reperms;
@@ -536,9 +517,7 @@ public:
             if(*it != j[it-i.begin()]){
                 std::pair<size_t,size_t> pair_1(list_map[*it][pos]->key, list_map[jp[it-i.begin()]][end]->key);
                 std::pair<size_t,size_t> pair_2(list_map[*it][pos]->key, list_map[ip[it-i.begin()]][end]->key);
-                dVector sep1 = perm_sep->get_separation(pair_1);
-                dVector sep2 = perm_sep->get_separation(pair_2);
-                pair_dists.push_back(std::pair<double, double>(inner_product(sep1.begin(),sep1.end(),sep1.begin(),0.0),inner_product(sep2.begin(),sep2.end(),sep2.begin(),0.0)));
+                pair_dists.push_back(std::pair<double, double>(perm_sep->get_perm_separation(pair_1),perm_sep->get_perm_separation(pair_2)));
             }
         }
         
@@ -559,21 +538,21 @@ public:
             return T(0);
     }
     
-    void set_bead_data(int row, int slice, T data, T old_data = T(0)){
+    void set_bead_data(int row, int slice, double box_size, T data, T old_data = T(0)){
         if(slice < size[row]){
         }
         else if(circular){
             slice = slice%size[row];
             row = list_map[row][size[row]-1]->right_node->row_number;
         }
+        util->put_in_box(data, box_size);
         list_map[row][slice]->data = data;
         
-        sep->update_bead(slice, list_map[row][slice]->key, data);
-        perm_sep->update_bead(slice, list_map[row][slice]->key, data);
+        sep->update_bead_separations(slice, list_map[row][slice]->key);
+        perm_sep->update_bead(slice, list_map[row][slice]->key);
         
         if(old_data.size() != 0)
             list_map[row][slice]->old_data = old_data;
-        nt->update_bead(list_map[row][slice]);
     }
     
     std::vector<T> get_pair_same_path(int row, int start, int dist){
@@ -653,8 +632,8 @@ public:
         
     }
     
-    T get_path_separation(int row1, int row2, int slice){
-        return sep->get_separation(std::pair<size_t,size_t>(list_map[row1][slice]->key,list_map[row2][slice]->key));
+    const T& get_path_separation(int row1, int row2, int slice){
+        return sep->get_bead_separation(std::pair<size_t,size_t>(list_map[row1][slice]->key,list_map[row2][slice]->key));
     }
     
     
@@ -737,7 +716,6 @@ public:
         
         sep->set_update(false);
         perm_sep->set_update(false);
-        nt->set_old_table();
     }
     
     
@@ -749,7 +727,6 @@ public:
         size.resize(list_map.size());
         for(typename std::vector<std::vector<node_ptr> >::iterator it = list_map.begin(); it != list_map.end(); it++)
             size[it-list_map.begin()] = (*it).size();
-        nt->reset_old_table();
         sep->reject_update();
         perm_sep->reject_update();
     }
@@ -764,43 +741,6 @@ public:
                 old_list_map[*row][slice]->old_left_node.reset();
             }
         }
-    }
-    
-    bool check_if_neighbor(size_t key1, size_t key2){
-        std::vector<std::pair<size_t, dVector> > neighbors = get_neighbors(key1, 0);
-        std::vector<size_t> neighbor_keys;
-        for(std::vector<std::pair<size_t, dVector> >::iterator it = neighbors.begin(); it != neighbors.end(); it++)
-            neighbor_keys.push_back(it->first);
-        auto it = std::find(neighbor_keys.begin(), neighbor_keys.end(), key2);
-        if(it != neighbor_keys.end())
-            return true;
-        else
-            return false;
-    }
-    
-    void check_key_map(){
-        int num_beads = size.size()*size[0];
-        int num_stored = key_map.size();
-        int num_nt = nt->num_beads_in_table();
-        if((num_beads != num_stored) || (num_beads != num_nt))
-            getchar();
-        std::cout << num_beads << "\t" << num_stored << "\t" << num_nt << std::endl;
-    }
-    
-    std::vector<std::pair<size_t, dVector> > get_neighbors(size_t key, int distance){
-        std::vector<size_t> bead_keys = nt->get_neighboring_beads(key_map.find(key)->second, (key_map.find(key)->second->column_number+distance+size[0])%size[0]);
-        std::vector<node_ptr> bead_list;
-        for(std::vector<size_t>::iterator it = bead_keys.begin(); it != bead_keys.end(); it++){
-            node_ptr node = key_map.find(*it)->second;
-        }
-        std::vector<std::pair<size_t, dVector> > bead_ret;
-        for(typename std::vector<node_ptr>::iterator it = bead_list.begin(); it != bead_list.end(); it++){
-            std::pair<size_t, dVector> bead_desc;
-            bead_desc.first = (*it)->key;
-            bead_desc.second = (*it)->data;
-            bead_ret.push_back(bead_desc);
-        }
-        return bead_ret;
     }
     
     std::pair<int, int> get_bead_indices(size_t key){
@@ -841,172 +781,6 @@ public:
     
     size_t get_bead_key(int row, int col){
         return list_map[row][col]->key;
-    }
-    
-    
-    
-    /************
-     Printing Methods
-     ***********/
-    
-    void print_separation(int row1, int row2, int slice){
-        dVector dist = sep->get_separation(std::pair<size_t,size_t>(list_map[row1][slice]->key,list_map[row2][slice]->key));
-        for(dVector::iterator it = dist.begin(); it != dist.end(); it++)
-            std::cout << *it <<"\t";
-        std::cout<<std::endl;
-    }
-    
-    void print_list_map(int index = 0){
-        std::vector<node_ptr> list = list_map[index];
-        for(typename std::vector<node_ptr>::iterator it = list.begin(); it != list.end(); it++){
-            node_ptr node = *it;
-            T data = node->data;
-            for(typename T::iterator it2 = data.begin(); it2 != data.end(); it2++){
-                if(it2 == data.begin())
-                    std::cout<<"(";
-                std::cout << *it2;
-                if(it2 != data.end()-1)
-                    std::cout <<", ";
-                
-            }
-            std::cout <<")";
-            if(it != list.end()-1)
-                std::cout << ",\t";
-            
-        }
-        std::cout<<std::endl;
-    }
-    
-    void print_list_keys(int index = 0){
-        std::vector<node_ptr> list = list_map[index];
-        for(typename std::vector<node_ptr>::iterator it = list.begin(); it != list.end(); it++){
-            node_ptr node = *it;
-            std::cout << node->key;
-            if(it != list.end()-1)
-                std::cout << ",\t";
-        }
-        std::cout<<std::endl;
-    }
-    
-    void print_list_indices(int index = 0){
-        node_ptr temp = list_map[index][0];
-        if(circular){
-            bool headprint = false;
-            int numPrint = 0;
-            while (!headprint || numPrint < size[index]) {
-                if(temp == list_map[index][0])
-                    headprint = true;
-                std::cout << "("<<temp->row_number<<", "<<temp->column_number<<")";
-                temp = temp->right_node;
-                numPrint++;
-                if(numPrint < size[index])
-                    std::cout<< ",\t";
-            }
-            
-        }
-        else{
-            while (temp != NULL) {
-                std::cout << "("<<temp->row_number<<", "<<temp->column_number<<"), " << ", ";
-                temp = temp->right_node;
-            }
-        }
-        std::cout << std::endl;
-        
-    }
-    void print_list_next_indices(int index = 0){
-        node_ptr temp = list_map[index][0];
-        if(circular){
-            bool headprint = false;
-            int numPrint = 0;
-            while (!headprint || numPrint < size[index]) {
-                if(temp == list_map[index][0])
-                    headprint = true;
-                std::cout << "("<<temp->right_node->row_number<<", "<<temp->right_node->column_number<<")";
-                temp = temp->right_node;
-                numPrint++;
-                if(numPrint < size[index])
-                    std::cout<< ",\t";
-            }
-            
-        }
-        else{
-            while (temp != NULL) {
-                std::cout << "("<<temp->right_node->row_number<<", "<<temp->right_node->column_number<<"), " << ", ";
-                temp = temp->right_node;
-            }
-        }
-        std::cout << std::endl;
-    }
-    
-    void print_list_file(int step){
-        int numrows = size.size();
-        std::stringstream sstm;
-        sstm << "config_step_" << step <<".txt";
-        std::string result = sstm.str();
-        
-        std::ofstream out(result.c_str());
-        std::streambuf *coutbuf = std::cout.rdbuf();
-        std::cout.rdbuf(out.rdbuf());
-        for(int j = 0; j < numrows; j++)
-            print_list_map(j);
-        std::cout << "\n";
-        for(int j = 0; j < numrows; j++)
-            print_list_indices(j);
-        std::cout << "\n";
-        for(int j = 0; j < numrows; j++)
-            print_list_next_indices(j);
-        std::cout.rdbuf(coutbuf);
-    }
-    
-    iVector get_size(){
-        return size;
-    }
-    
-    
-    void check_print_neighbor_table(){
-        for(int row = 0; row < size.size(); row ++){
-            for(int col = 0; col < size[row]; col ++){
-                if(nt->check_bead(list_map[row][col])){
-                    std::cout << nt->get_bead_grid_num(list_map[row][col]) << ", ";
-                }
-            }
-            std::cout << std::endl;
-        }
-    }
-    
-    
-    void check_refs(){
-        std::cout << "___________________________________" <<std::endl;
-        std::cout<< "Beads: " <<std::endl;
-        if(size.size() == 0){
-            std::cout<< "Empty!" << std::endl;
-        }
-        for(int row = 0; row < size.size(); row ++){
-            for(int col = 0; col < size[row]; col ++){
-                std::cout<< list_map[row][col].use_count();
-                if(col != size[row] -1)
-                    std::cout << "\t";
-            }
-            std::cout << std::endl;
-        }
-        std::cout<<std::endl;
-        std::cout<< "Old Beads: " <<std::endl;
-        if(old_size.size() == 0){
-            std::cout<< "Empty!" << std::endl;
-        }
-        for(int row = 0; row < old_size.size(); row ++){
-            for(int col = 0; col < old_size[row]; col ++){
-                std::cout<< old_list_map[row][col].use_count();
-                if(col != old_size[row] -1)
-                    std::cout << "\t";
-            }
-            std::cout << std::endl;
-        }
-        std::cout<<std::endl;
-        
-        std::cout << "___________________________________" <<std::endl;
-        
-        
     }
 };
 

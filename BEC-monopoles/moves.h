@@ -59,8 +59,6 @@ protected:
     iVector changed_particles;
     
     boost::shared_ptr<Potential_Action> pa;
-    boost::shared_ptr<Kinetic_Action> ka;
-
 
 };
 

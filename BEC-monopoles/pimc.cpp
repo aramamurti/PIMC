@@ -20,6 +20,8 @@ std::vector<boost::tuple<std::string, int, int> > PIMC::run(int end_step, IO &wr
     set_up_moves(path->get_parameters()->get_move_list());
     set_up_estimators(estimator_list);
     
+    std::cout<< path->get_processor_num() << ":\tStarting algorithm..." <<std::endl;
+
     std::cout << path->get_processor_num() <<":\tEquilibrating..." <<std::endl;
     
     equilibrate();
@@ -34,6 +36,8 @@ std::vector<boost::tuple<std::string, int, int> > PIMC::run(int end_step, IO &wr
     std::cout << path->get_processor_num() <<":\tStarting simulation..." << std::endl;
     for(int step = 0; step < end_step; step++){
         
+        std::cout << path->get_processor_num()<<":\tSimulation Step:\t" << step <<"/"<<end_step <<std::endl;
+
         int num_updates = std::max(1,path->get_beads()->get_num_particles());
         for(int i = 0; i < num_updates; i++)
             for(boost::ptr_vector<Move_Base>::iterator it = moves.begin(); it != moves.end(); it++){
@@ -41,7 +45,7 @@ std::vector<boost::tuple<std::string, int, int> > PIMC::run(int end_step, IO &wr
                     it->attempt();
             }
         
-        if(step%100 == 0){
+        if(step% 20 == 0){
             
             dVector cycles_double = estimators[1].estimate();
             iVector cycles(cycles_double.begin(),cycles_double.end());
@@ -71,11 +75,9 @@ void PIMC::equilibrate(){
     int com_att = 200;
     int com_acc = 0;
     
-    int start_part = path->get_beads()->get_num_particles();
-    
     for(int step = 0; step < end_step; step++){
         
-        std::cout << path->get_processor_num()<<":\tEquilibration:\t" << step <<"/"<<end_step <<std::endl;
+        std::cout << path->get_processor_num()<<":\tEquilibration Step:\t" << step <<"/"<<end_step <<std::endl;
         
         if(double(step)/end_step < 1/3.){
             for(int i = 0; i < std::max(1,path->get_beads()->get_num_particles()); i++)

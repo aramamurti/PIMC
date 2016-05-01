@@ -23,7 +23,7 @@ public:
     
     void set_up_perms();
     double recalc_perms(iVector ptcls, int slice);
-    iVector pick_permutation(int ptcl, int start);
+    iVector pick_permutation(int start);
     
     iiVector* get_perm_list(){return &perm_list;}
     ddVector* get_prob_list(){return &prob_list;}
@@ -38,9 +38,6 @@ private:
     ddVector prob_list;
     iiVector perm_part_loc;
     iiVector permed_parts;
-    
-    boost::shared_ptr<Kinetic_Action> ka;
-
     
 };
 

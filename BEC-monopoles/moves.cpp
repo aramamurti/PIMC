@@ -20,7 +20,6 @@ Move_Base::Move_Base(boost::shared_ptr<Path> path){
     num_attempts = 0;
     this->path = path;
     pa = boost::shared_ptr<Potential_Action>(new Potential_Action(this->path, this->path->get_parameters()->get_potentials()));
-    ka = boost::shared_ptr<Kinetic_Action>(new Kinetic_Action(this->path));
 }
 
 void Move_Base::attempt(){
@@ -104,7 +103,7 @@ void Center_of_Mass::attempt(){
         }
     }
     
-    path->get_beads()->shift_all(ptcl, shift);
+    path->get_beads()->shift_all(ptcl, shift, path->get_parameters()->get_box_size());
     
     for(iVector::iterator it = changed_particles.begin(); it != changed_particles.end(); it++){
         for(int slice = 0; slice < path->get_parameters()->get_num_timeslices(); slice++){
@@ -126,8 +125,6 @@ void Center_of_Mass::accept(){
         }
     }
     Move_Base::accept();
-    path->put_in_box(changed_particles,0,path->get_parameters()->get_num_timeslices());
-
 }
 
 /************************************************************
@@ -200,7 +197,7 @@ void Bisection::level_move(int ptcl, int start, int m){
         for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
             move.push_back(aved[ndim] + path->get_util()->randgaussian(width));
         }
-        path->get_beads()->set_bead_data(ptcl, slice, move);
+        path->get_beads()->set_bead_data(ptcl, slice, path->get_parameters()->get_box_size(), move);
         level_move(ptcl, start, m/2);
         level_move(ptcl, slice, m/2);
     }
@@ -219,7 +216,6 @@ void Bisection::accept(){
         path->get_beads()->set_prev_perm();
     }
     Move_Base::accept();
-    path->put_in_box(changed_particles, start, start+multistep_dist);
 }
 
 void Bisection::reject(){
@@ -267,7 +263,7 @@ void Perm_Bisection::attempt(){
     permed_parts = std::vector<int>(0);
     
     if(path->get_parameters()->is_boson()){
-        chosenPerm = ptable->pick_permutation(0, start);
+        chosenPerm = ptable->pick_permutation(start);
         
         for(iVector::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
@@ -276,16 +272,16 @@ void Perm_Bisection::attempt(){
             }
     }
     
-    path->get_beads()->set_permutation(origpart, permed_parts, start, multistep_dist);
-    path->get_beads()->permute();
-    
     if(permed_parts.size() == 0){
         level_move(ptcl, start, multistep_dist);
         permed_parts.push_back(ptcl);
     }
-    else
+    else{
+        path->get_beads()->set_permutation(origpart, permed_parts, start, multistep_dist);
+        path->get_beads()->permute();
         for(iVector::iterator ptcl = origpart.begin(); ptcl !=origpart.end(); ptcl++)
             level_move(*ptcl, start, multistep_dist);
+    }
     
     for(int a = 0; a < multistep_dist+1; a++ ){
         int slice = (start + a)%path->get_parameters()->get_num_timeslices();
@@ -310,8 +306,10 @@ void Perm_Bisection::accept(){
     
 }
 void Perm_Bisection::reject(){
-    path->get_beads()->permute(true);
-    path->get_beads()->reset_permute();
+    if(permed_parts.size() != 0){
+        path->get_beads()->permute(true);
+        path->get_beads()->reset_permute();
+    }
     path->set_last_changed(iVector(0));
     Bisection::reject();
 }

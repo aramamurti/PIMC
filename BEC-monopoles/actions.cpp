@@ -20,18 +20,14 @@ double Potential_Action::potential_helper(int slice, int ptcl){
             case 1:
             case 2:
                 for(int i = ptcl+1; i < num_particles; i++){
-                    dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                    const dVector& distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
                     double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                     pe += (*it)->potential_value(dist);
                 }
                 break;
             case 3:
                 for(int i = 0; i < num_particles; i++){
-                    dVector distvec;
-                    if(i != ptcl)
-                        distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
-                    else
-                        distvec = dVector(path->get_parameters()->get_ndim(),0);
+                    const dVector& distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
                     int chgi = path->get_beads()->get_charge(ptcl);
                     int chgj = path->get_beads()->get_charge(i);
                     pe += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
@@ -66,18 +62,14 @@ double Potential_Action::get_action_single_particle(int ptcl, int slice){
             case 2:
                 for(int i = 0; i < num_particles; i++)
                     if(i != ptcl){
-                        dVector distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
+                        const dVector& distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         pot += (*it)->potential_value(dist);
                     }
                 break;
             case 3:
                 for(int i = 0; i < num_particles; i++){
-                    dVector distvec;
-                    if(i != ptcl)
-                        distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
-                    else
-                        distvec = dVector(path->get_parameters()->get_ndim(),0);
+                    const dVector& distvec = path->get_beads()->get_path_separation(ptcl, i, slice);
                     int chgi = path->get_beads()->get_charge(ptcl);
                     int chgj = path->get_beads()->get_charge(i);
                     pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
@@ -102,14 +94,14 @@ double Potential_Action::get_action_multiple_particles(iVector ptcls, int slice)
                 for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
                     for(int i = 0; i < num_particles; i++)
                         if(i != *ptcl){
-                            dVector distvec = path->get_beads()->get_path_separation(*ptcl, i, slice);
+                            const dVector& distvec = path->get_beads()->get_path_separation(*ptcl, i, slice);
                             double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                             pot += (*it)->potential_value(dist);
                         }
                 }
                 for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
                     for(iVector::iterator ptcl2 = ptcl+1; ptcl2 != ptcls.end(); ptcl2++){
-                        dVector distvec = path->get_beads()->get_path_separation(*ptcl, *ptcl2, slice);
+                        const dVector& distvec = path->get_beads()->get_path_separation(*ptcl, *ptcl2, slice);
                         double dist = sqrt(inner_product(distvec.begin(), distvec.end(),distvec.begin(), 0.0));
                         pot -= (*it)->potential_value(dist);
                     }
@@ -118,11 +110,7 @@ double Potential_Action::get_action_multiple_particles(iVector ptcls, int slice)
             case 3:
                 for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
                     for(int i = 0; i < num_particles; i++){
-                        dVector distvec;
-                        if(i != *ptcl)
-                            distvec = path->get_beads()->get_path_separation(*ptcl, i, slice);
-                        else
-                            distvec = dVector(path->get_parameters()->get_ndim(),0);
+                        const dVector& distvec = path->get_beads()->get_path_separation(*ptcl, i, slice);
                         int chgi = path->get_beads()->get_charge(*ptcl);
                         int chgj = path->get_beads()->get_charge(i);
                         pot += (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
@@ -130,7 +118,7 @@ double Potential_Action::get_action_multiple_particles(iVector ptcls, int slice)
                 }
                 for(iVector::iterator ptcl = ptcls.begin(); ptcl != ptcls.end(); ptcl++){
                     for(iVector::iterator ptcl2 = ptcl+1; ptcl2 != ptcls.end(); ptcl2++){
-                        dVector distvec = path->get_beads()->get_path_separation(*ptcl, *ptcl2, slice);
+                        const dVector& distvec = path->get_beads()->get_path_separation(*ptcl, *ptcl2, slice);
                         int chgi = path->get_beads()->get_charge(*ptcl);
                         int chgj = path->get_beads()->get_charge(*ptcl2);
                         pot -= (*it)->potential_value(distvec, chgi, chgj, path->get_parameters()->get_box_size());
@@ -140,34 +128,4 @@ double Potential_Action::get_action_multiple_particles(iVector ptcls, int slice)
         }
     }
     return path->get_parameters()->get_tau()*pot;
-}
-
-double Kinetic_Action::get_action(int slice, int dist){
-    double kin = 0;
-    int num_particles = path->get_beads()->get_num_particles();
-    
-    for(int ptcl = 0; ptcl < num_particles; ptcl++){
-        ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, dist);
-        dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
-        double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
-        kin += norm/dist*ipdist;
-    }
-    return kin;
-}
-
-double Kinetic_Action::get_action_single_particle(int ptcl, int slice, int dist){
-    double kin = 0;
-    ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, dist);
-    dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
-    double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
-    kin += norm/dist*ipdist;
-    return kin;
-}
-
-double Kinetic_Action::get_action_pos(ddVector pair, int dist){
-    double kin = 0;
-    dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
-    double ipdist =  inner_product(distVec.begin(),distVec.end(),distVec.begin(),0.0);
-    kin += norm/dist*ipdist;
-    return kin;
 }
