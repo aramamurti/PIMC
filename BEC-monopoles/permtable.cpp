@@ -123,18 +123,19 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
     recomp_perms.erase(it, recomp_perms.end());
     
     double perm_tot = 0.0;
-    iVector identity(path->get_beads()->get_num_particles());
-    iota(identity.begin(),identity.end(),0);
     
     double norm = 1.0/(4.0*path->get_parameters()->get_lambda()*path->get_parameters()->get_tau());
     
     prob_list[slice][0] = 1;
+    iVector reperm1(0);
+    iVector reperm2(0);
     
     for(int j = 0; j < recomp_perms.size(); j++){
         int i = recomp_perms[j];
-        iVector oneperm = perm_list[i];
         int chdptcl = (int)permed_parts[i].size();
-        std::vector<std::pair<double, double> > perm_bead_seps = path->get_beads()->get_perm_seps(identity,oneperm, slice, multistep_dist);
+        std::vector<std::pair<double, double> > perm_bead_seps;
+        perm_bead_seps.reserve(chdptcl);
+        path->get_beads()->get_perm_seps(perm_list[0],perm_list[i], reperm1, reperm2,  perm_bead_seps, slice, multistep_dist);
         double new_action = 0;
         double old_action = 0;
         for(std::vector<std::pair<double, double> >::iterator it = perm_bead_seps.begin(); it != perm_bead_seps.end(); it++){
@@ -156,7 +157,7 @@ double Permutation_Table::recalc_perms(iVector ptcls, int slice){
     return perm_tot;
 }
 
-iVector Permutation_Table::pick_permutation(int start){
+void Permutation_Table::pick_permutation(int start, iVector& chosen_perm){
     dVector perm_weight = prob_list[start];
     double sum = 0.0;
     for(dVector::iterator it = perm_weight.begin(); it != perm_weight.end(); it++)
@@ -167,8 +168,9 @@ iVector Permutation_Table::pick_permutation(int start){
     for(int i = 0; i < perm_weight.size(); i++){
         probsum += perm_weight[i];
         if(rn<=probsum){
-            return perm_list[i];
+            chosen_perm = perm_list[i];
+            return;
         }
     }
-    return perm_list[0];
+    chosen_perm = perm_list[0];
 }

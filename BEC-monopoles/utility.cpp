@@ -78,37 +78,11 @@ dVector Utility::vecadd(dVector a, dVector b){
     return result;
 }
 
-dVector Utility::location(dVector bead, double box_size){
-    int ndim = (int)bead.size();
-    dVector loc;
-    for(int i = 0; i < ndim; i++){
-        if(box_size != -1)
-            loc.push_back(per_bound_cond(bead[i],box_size));
-        else
-            loc.push_back(bead[i]);
-    }
-    return loc;
-}
-
 void Utility::put_in_box(dVector &bead, double box_size){
     for(int i = 0; i < bead.size(); i++){
         if(box_size != -1)
             bead[i] = per_bound_cond(bead[i],box_size);
     }
-}
-
-dVector Utility::dist(ddVector beads, double box_size){
-    int ndim = (int)beads[0].size();
-    dVector dist;
-    dVector bead1 = location(beads[0],box_size);
-    dVector bead2 = location(beads[1],box_size);
-    for(int i = 0; i < ndim; i++){
-        double dimdist = bead2[i]-bead1[i];
-        if(box_size != -1)
-            dimdist = per_bound_cond(dimdist+box_size/2, box_size)-box_size/2;
-        dist.push_back(dimdist);
-    }
-    return dist;
 }
 
 void Utility::dist(dVector &bead1, dVector &bead2, dVector &dist, double box_size){
@@ -122,12 +96,11 @@ void Utility::dist(dVector &bead1, dVector &bead2, dVector &dist, double box_siz
     }
 }
 
-dVector Utility::avedist(ddVector beads, double box_size){
-    dVector dstc = dist(beads, box_size);
+void Utility::avedist(dVector& bead1, dVector& bead2, dVector& dstc, double box_size){
+    dist(bead1, bead2, dstc, box_size);
     for(dVector::iterator it = dstc.begin(); it!= dstc.end(); it++){
-        *it = *it/2 + beads[0][it-dstc.begin()];
+        *it = *it/2 + bead1[it-dstc.begin()];
     }
-    return dstc;
 }
 
 double Utility::per_bound_cond(double a, double b)

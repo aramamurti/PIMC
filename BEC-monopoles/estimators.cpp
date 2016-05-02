@@ -64,8 +64,11 @@ double Energy_Estimator::kinetic_energy(){
     double tot = 0.0;
     for(int slice = 0; slice < num_timeslices; slice++){
         for(int ptcl = 0; ptcl < num_particles; ptcl++){
-            ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
-            dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+            dVector bead1;
+            dVector bead2;
+            path->get_beads()->get_pair_same_path(ptcl, slice, 1, bead1, bead2);
+            dVector distVec;
+            utility->dist(bead1, bead2, distVec, path->get_parameters()->get_box_size());
             double dist = inner_product(distVec.begin(), distVec.end(), distVec.begin(), 0.0);
             tot -= norm*dist;
         }
@@ -81,8 +84,11 @@ dVector Winding_Estimator::estimate(){
     dVector dvectot(ndim,0.0);
     for(int ptcl = 0; ptcl < num_particles; ptcl++){
         for(int slice = 0; slice < num_timeslices; slice++){
-            ddVector pair = path->get_beads()->get_pair_same_path(ptcl, slice, 1);
-            dVector distVec = utility->dist(pair, path->get_parameters()->get_box_size());
+            dVector bead1;
+            dVector bead2;
+            path->get_beads()->get_pair_same_path(ptcl, slice, 1, bead1, bead2);
+            dVector distVec;
+            utility->dist(bead1, bead2, distVec, path->get_parameters()->get_box_size());
             dvectot = utility->vecadd(dvectot, distVec);
         }
     }

@@ -20,6 +20,7 @@ Move_Base::Move_Base(boost::shared_ptr<Path> path){
     num_attempts = 0;
     this->path = path;
     pa = boost::shared_ptr<Potential_Action>(new Potential_Action(this->path, this->path->get_parameters()->get_potentials()));
+    ndim = path->get_parameters()->get_ndim();
 }
 
 void Move_Base::attempt(){
@@ -164,6 +165,10 @@ void Bisection::attempt(){
         old_action += pa->get_action_single_particle(row, slice);
     }
     
+    iVector chd_ptcls = path->get_beads()->get_pair_rows(ptcl, start, multistep_dist);
+    changed_particles.push_back(chd_ptcls[0]);
+    changed_particles.push_back(chd_ptcls[1]);
+
     level_move(ptcl, start, multistep_dist);
     
     for(int a = 0; a < multistep_dist+1; a++ ){
@@ -187,15 +192,18 @@ void Bisection::level_move(int ptcl, int start, int m){
     if(m != 1 && m%2 == 0){
         int slice = (start + m/2);
         double tau1 = (m/2)*path->get_parameters()->get_tau();
-        dVector move(0);
-        ddVector bds = path->get_beads()->get_pair_same_path(ptcl, start, m);
-        iVector chd_ptcls = path->get_beads()->get_pair_rows(ptcl, start, m);
-        changed_particles.push_back(chd_ptcls[0]);
-        changed_particles.push_back(chd_ptcls[1]);
-        dVector aved = path->get_util()->avedist(bds,path->get_parameters()->get_box_size());
+        dVector move;
+        move.reserve(ndim);
+        dVector bead1;
+        dVector bead2;
+        path->get_beads()->get_pair_same_path(ptcl, start, m, bead1, bead2);
+        
+        dVector aved;
+        aved.reserve(ndim);
+        path->get_util()->avedist(bead1, bead2, aved,path->get_parameters()->get_box_size());
         double width = sqrt(path->get_parameters()->get_lambda()*tau1);
-        for(int ndim = 0; ndim < path->get_parameters()->get_ndim(); ndim++){
-            move.push_back(aved[ndim] + path->get_util()->randgaussian(width));
+        for(int n = 0; n < ndim; n++){
+            move.push_back(aved[n] + path->get_util()->randgaussian(width));
         }
         path->get_beads()->set_bead_data(ptcl, slice, path->get_parameters()->get_box_size(), move);
         level_move(ptcl, start, m/2);
@@ -263,7 +271,7 @@ void Perm_Bisection::attempt(){
     permed_parts = std::vector<int>(0);
     
     if(path->get_parameters()->is_boson()){
-        chosenPerm = ptable->pick_permutation(start);
+        ptable->pick_permutation(start, chosenPerm);
         
         for(iVector::iterator it = identity.begin(); it != identity.end(); it++)
             if(*it != chosenPerm[*it]){
@@ -273,14 +281,23 @@ void Perm_Bisection::attempt(){
     }
     
     if(permed_parts.size() == 0){
+        iVector chd_ptcls = path->get_beads()->get_pair_rows(ptcl, start, multistep_dist);
+        changed_particles.push_back(chd_ptcls[0]);
+        changed_particles.push_back(chd_ptcls[1]);
+
         level_move(ptcl, start, multistep_dist);
         permed_parts.push_back(ptcl);
     }
     else{
         path->get_beads()->set_permutation(origpart, permed_parts, start, multistep_dist);
         path->get_beads()->permute();
-        for(iVector::iterator ptcl = origpart.begin(); ptcl !=origpart.end(); ptcl++)
+        for(iVector::iterator ptcl = origpart.begin(); ptcl !=origpart.end(); ptcl++){
+            iVector chd_ptcls = path->get_beads()->get_pair_rows(*ptcl, start, multistep_dist);
+            changed_particles.push_back(chd_ptcls[0]);
+            changed_particles.push_back(chd_ptcls[1]);
+
             level_move(*ptcl, start, multistep_dist);
+        }
     }
     
     for(int a = 0; a < multistep_dist+1; a++ ){

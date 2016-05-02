@@ -23,7 +23,7 @@ public:
     
     void set_up_perms();
     double recalc_perms(iVector ptcls, int slice);
-    iVector pick_permutation(int start);
+    void pick_permutation(int start, iVector& chosen_perm);
     
     iiVector* get_perm_list(){return &perm_list;}
     ddVector* get_prob_list(){return &prob_list;}

@@ -307,10 +307,9 @@ public:
                 sep->update_bead_separations(list_map[i][j]->column_number,list_map[i][j]->key);
     }
     
-    iVector shift_all(int row, T shift, double box_size){
+    void shift_all(int row, T shift, double box_size){
         
         int times_through = 0;
-        iVector shifted_rows(1,row);
         
         int cur_row = row;
         while(!(cur_row == row && times_through != 0)){
@@ -324,11 +323,7 @@ public:
             }
             cur_row = list_map[cur_row][size[cur_row]-1]->right_node->row_number;
             times_through++;
-            shifted_rows.push_back(cur_row);
         }
-        
-        shifted_rows.pop_back();
-        return shifted_rows;
     }
     
     iVector get_changed_ptcls(int row){
@@ -384,7 +379,7 @@ public:
         }
     }
     
-    void set_permutation(iVector i, iVector j, int pos, int dist = 0){
+    void set_permutation(iVector& i, iVector& j, int pos, int dist = 0){
         permute_position = (pos+dist);
         permute_start_orders.resize(i.size());
         permute_end_order.resize(j.size());
@@ -393,9 +388,7 @@ public:
         std::copy(j.begin(), j.end(), permute_end_order.begin());
         
         if(permute_position > size[0]){
-            iiVector perms = circular_perm(i,j);
-            repermute_start_order = perms[0];
-            repermute_end_order = perms[1];
+            circular_perm(i,j, repermute_start_order, repermute_end_order);
         }
         else{
             repermute_start_order = i;
@@ -480,38 +473,31 @@ public:
         }
     }
     
-    iiVector circular_perm(iVector lc, iVector end){
-        iVector nlc;
-        iVector nend;
-        for(iVector::iterator it = lc.begin(); it != lc.end(); it++){
-            nlc.push_back(list_map[*it][size[*it]-1]->right_node->row_number);
-            nend.push_back(list_map[end[it-lc.begin()]][size[*it]-1]->right_node->row_number);
+        
+    void circular_perm(iVector& i, iVector& j, iVector& ip, iVector& jp){
+        ip.clear();
+        jp.clear();
+        ip.reserve(i.size());
+        jp.reserve(j.size());
 
+        for(iVector::iterator it = i.begin(); it != i.end(); it++){
+            ip.push_back(list_map[*it][size[*it]-1]->right_node->row_number);
+            jp.push_back(list_map[j[it-i.begin()]][size[*it]-1]->right_node->row_number);
+            
         }
-        
-        iiVector reperms;
-        reperms.push_back(nlc);
-        reperms.push_back(nend);
-        return reperms;
     }
+
     
-    std::vector<std::pair<double, double> > get_perm_seps(iVector i, iVector j, int pos, int dist = 0){
-        
-        iVector ip;
-        iVector jp;
-        
+    void get_perm_seps(iVector& i, iVector& j, iVector& ip, iVector& jp, std::vector<std::pair<double, double> >& pair_dists, int pos, int dist = 0){
         
         if(pos+dist > size[0]){
-            iiVector perms = circular_perm(i,j);
-            ip = perms[0];
-            jp = perms[1];
+            circular_perm(i,j, ip, jp);
         }
         else{
             ip = i;
             jp = j;
         }
         
-        std::vector<std::pair<double, double> > pair_dists(0);
         int end = (pos+dist)%size[0];
         for(iVector::iterator it = i.begin(); it!=i.end(); it++){
             if(*it != j[it-i.begin()]){
@@ -521,10 +507,9 @@ public:
             }
         }
         
-        return pair_dists;
     }
     
-    dVector get_bead_data(int row, int slice){
+    T get_bead_data(int row, int slice){
         
         if(slice < size[row]){
             return list_map[row][slice]->data;
@@ -555,7 +540,7 @@ public:
             list_map[row][slice]->old_data = old_data;
     }
     
-    std::vector<T> get_pair_same_path(int row, int start, int dist){
+    void get_pair_same_path(int row, int start, int dist, T& bead1, T& bead2){
         
         int row2 = row;
         int end = start+dist;
@@ -570,10 +555,8 @@ public:
             row2 = list_map[row2][size[row]-1]->right_node->row_number;
         }
         
-        std::vector<T> ret(0);
-        ret.push_back(list_map[row][start]->data);
-        ret.push_back(list_map[row2][end]->data);
-        return ret;
+        bead1 = list_map[row][start]->data;
+        bead2 = list_map[row2][end]->data;
     }
     
     iVector get_pair_rows(int row, int start, int dist){
@@ -597,41 +580,7 @@ public:
         return ret;
     }
     
-    iVector get_pair_rows_back(int row, int start, int dist){
         
-        int row2 = row;
-        int end = start-dist;
-        
-        if(start >= size[row]&& circular){
-            start = start%size[row];
-            row = list_map[row][size[row]-1]->right_node->row_number;
-        }
-        
-        if(end < 0 && circular){
-            end = end%size[row];
-            row2 = list_map[row2][0]->left_node->row_number;
-        }
-        
-        iVector ret(0);
-        ret.push_back(row);
-        ret.push_back(row2);
-        return ret;
-    }
-    
-    std::vector<T> get_pair_same_slice(int row1, int row2, int slice){
-        
-        if(slice >= size[row1] && circular){
-            slice = slice%size[row1];
-            row1 = list_map[row1][size[row1]-1]->right_node->row_number;
-            row2 = list_map[row2][size[row2]-1]->right_node->row_number;
-        }
-        std::vector<T> ret(0);
-        ret.push_back(list_map[row1][slice]->data);
-        ret.push_back(list_map[row2][slice]->data);
-        return ret;
-        
-    }
-    
     const T& get_path_separation(int row1, int row2, int slice){
         return sep->get_bead_separation(std::pair<size_t,size_t>(list_map[row1][slice]->key,list_map[row2][slice]->key));
     }

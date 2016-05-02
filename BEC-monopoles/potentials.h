@@ -34,7 +34,7 @@ public:
     Harmonic(double m, double w){mass = m; omega = w;}
     ~Harmonic(){};
     
-    double potential_value(dVector loc){
+    double potential_value(dVector& loc){
         double pot_val = 0.0;
         for(int i = 0; i < loc.size(); i++){
             pot_val += 0.5*mass*pow(omega,2)*pow(loc[i],2);

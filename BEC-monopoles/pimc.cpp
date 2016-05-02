@@ -45,7 +45,7 @@ std::vector<boost::tuple<std::string, int, int> > PIMC::run(int end_step, IO &wr
                     it->attempt();
             }
         
-        if(step% 20 == 0){
+        if(step% 50 == 0){
             
             dVector cycles_double = estimators[1].estimate();
             iVector cycles(cycles_double.begin(),cycles_double.end());
@@ -101,7 +101,6 @@ void PIMC::equilibrate(){
                                 else if (com_acc_rat > 0.8)
                                     it->shift_delta(0.6);
                                 com_acc = it->get_num_accepts();
-                                std::cout << path->get_processor_num() <<":\tCenter of Mass equil. -- Acceptance:\t"<<com_acc_rat <<"\t--\tDelta:\t"<<it->get_delta() << std::endl;
                             }
                         }
                     }

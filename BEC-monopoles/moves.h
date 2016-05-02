@@ -48,6 +48,7 @@ protected:
     
     int ptcl;
     int num_particles;
+    int ndim;
     
     double old_action;
     double new_action;
