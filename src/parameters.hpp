@@ -22,36 +22,39 @@ public:
     int my_end = -1;
     int slices_per_process = -1;
     int num_workers = 0;
+    int multistep_dist = 2;
     
-    int equilibration;
-    int end;
+    int equilibration = 0;
+    int end = 0;
     
-    int dimensions;
-    int particles;
-    int init_particles;
-    double real_particles;
-    double lambda;
-    double tau;
-    double temperature;
-    double kb;
+    int dimensions = 1;
+    int particles = 1;
+    int init_particles = 1;
+    double real_particles = 1;
+    double lambda = 1;
+    double tau = .1;
+    double temperature = 1;
+    double kb = 1;
     
     bool per_bound_cond;
     double box_size = -1;
     double volume = -1;
     double volume2 = -1;
+    double grid_size = 0;
     
     std::string particle_type;
-    bool boson;
+    bool boson = false;
     
-    bool charged;
-    int charges;
-    double coupling;
+    bool charged = false;
+    int charges = 0;
+    double coupling = 0;
     
-    double C0;
-    double C;
-    int Mbar;
-    double mu;
+    double C0 = 1;
+    double C = 1;
+    int Mbar = 2;
+    double mu = 0;
     
+    bool gce = false;
     bool worm_on = false;
     std::pair<int, int> worm_head;
     std::pair<int, int> worm_tail;
@@ -133,13 +136,19 @@ public:
         else
             set_total_slices(100);
         
-        
         //Periodic boundary conditions
         param_it = simpars.find("periodic_boundary_conditions");
         per_bound_cond = false;
         if(param_it != simpars.end())
             per_bound_cond = ((*param_it).second == "true");
         
+        //Temperature
+        param_it = simpars.find("NN_grid_size");
+        if(param_it != simpars.end())
+            grid_size = std::stod((*param_it).second);
+        else
+            grid_size = 1.0;
+
         //Coupling constant
         param_it = simpars.find("coupling");
         if(param_it != simpars.end())
@@ -147,21 +156,25 @@ public:
         else
             coupling = 0;
         
-        //Coupling constant
+        //Chemical potential
         param_it = simpars.find("mu");
         if(param_it != simpars.end())
             mu = std::stod((*param_it).second);
         else
             mu = 0;
         
-        //Coupling constant
+        //Worm constant
         param_it = simpars.find("C0");
         if(param_it != simpars.end())
             set_C0(std::stod((*param_it).second));
         else
             set_C0(0);
         
-        
+        //Worm
+        param_it = simpars.find("grand_canonical_ensemble");
+        gce = false;
+        if(param_it != simpars.end())
+            gce = ((*param_it).second == "true");
         
         //Number of different charges
         charges = 0;
@@ -271,6 +284,11 @@ public:
     
     void shift_C0(double shift){
         set_C0(C0+C0*shift);
+    }
+    
+    void set_multistep(){
+        multistep_dist = pow(2, floor(log2(total_slices/4.)));
+        if(multistep_dist < 2) multistep_dist = 2;
     }
     
 };

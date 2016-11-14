@@ -35,7 +35,12 @@ public:
             box_size = 30;
             box_start = -box_size/2;
         }
-        num_grid = 4;
+        if(params.grid_size != 0){
+            num_grid = ceil(box_size/params.grid_size);
+            num_grid = std::max(num_grid,3);
+        }
+        else
+            num_grid = 3;
         grid_step = box_size/num_grid;
         cell_members.resize(params.slices_per_process);
         set_up_neighbor_table(params);
@@ -57,9 +62,8 @@ public:
                             grid_key = triple_hash(std::make_tuple(grid[0],grid[1],grid[2]));
                             std::vector<std::vector<int> > neighboring_boxes = get_shifted_box(grid, params);
                             std::vector<size_t> neighbor_box_keys(0);
-                            for(std::vector<std::vector<int> >::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); ++it){
+                            for(std::vector<std::vector<int> >::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); ++it)
                                 neighbor_box_keys.push_back(triple_hash(std::make_tuple((*it)[0],(*it)[1],(*it)[2])));
-                            }
                             std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
                             auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
                             neighbor_box_keys.erase(last, neighbor_box_keys.end());
@@ -132,9 +136,12 @@ public:
             std::vector<int> result;
             result.reserve(params.dimensions);
             std::transform(grid_box.begin(), grid_box.end(), shift.begin(), std::back_inserter(result), std::plus<int>());
-            for(std::vector<int>::iterator it2 = result.begin(); it2 != result.end(); ++it2)
+            for(std::vector<int>::iterator it2 = result.begin(); it2 != result.end(); ++it2){
                 if(*it2 < 0)
                     *it2 = num_grid-1;
+                if(*it2 >= num_grid)
+                    *it2 = *it2-num_grid;
+            }
             neighboring_boxes.push_back(result);
         }
         return neighboring_boxes;
@@ -230,6 +237,17 @@ public:
         return size;
     }
     
+    bool is_in_box(int slice, int key, std::vector<double>& pos){
+        size_t grid_key = get_grid_key(pos);
+        auto cell = cell_members[slice].find(grid_key);
+        if(cell != cell_members[slice].end()){
+            auto vit = std::find(cell->second.begin(), cell->second.end(), key);
+            if(vit != cell->second.end())
+                return true;
+        }
+        return false;
+    }
+    
 private:
     int num_grid;
     double box_size;
@@ -323,6 +341,113 @@ private:
     std::unordered_map<size_t, double> distances;
     double box_size;
 };
+
+
+class Kinetic_Separation_Table{
+    
+public:
+    Kinetic_Separation_Table(Parameters &params){
+        start_locations.resize(params.slices_per_process);
+        end_locations.resize(params.slices_per_process);
+        box_size = params.box_size;
+    }
+    
+    ~Kinetic_Separation_Table(){}
+    
+    void add_bead_start(int slice, int key, const std::vector<double>& position){
+        start_locations[slice].insert({key,position});
+    }
+    
+    void add_bead_end(int slice, int key, const std::vector<double>& position){
+        end_locations[slice].insert({key,position});
+    }
+
+    
+    void remove_bead_end(int slice, int key){
+        auto i = end_locations[slice].find(key);
+        if(i != end_locations[slice].end()){
+            for(auto& j : start_locations[slice]){
+                size_t key_fwd = pair_hash(std::pair<int, int>(i->first,j.first));
+                size_t key_bwd = pair_hash(std::pair<int, int>(j.first,i->first));
+                distances.erase(key_fwd);
+                distances.erase(key_bwd);
+            }
+            end_locations[slice].erase(i);
+        }
+    }
+    
+    void remove_bead_start(int slice, int key){
+        auto i = start_locations[slice].find(key);
+        if(i != start_locations[slice].end()){
+            for(auto& j : end_locations[slice]){
+                size_t key_fwd = pair_hash(std::pair<int, int>(i->first,j.first));
+                size_t key_bwd = pair_hash(std::pair<int, int>(j.first,i->first));
+                distances.erase(key_fwd);
+                distances.erase(key_bwd);
+            }
+            start_locations[slice].erase(i);
+        }
+    }
+    
+    void update_location_start(int slice, int key, const std::vector<double>& new_position, bool update = true){
+        auto found = start_locations[slice].find(key);
+        if(found != start_locations[slice].end())
+            found->second = new_position;
+        if(update)
+            calculate_separations_start(slice, key);
+    }
+    
+    void update_location_end(int slice, int key, const std::vector<double>& new_position, bool update = true){
+        auto found = end_locations[slice].find(key);
+        if(found != end_locations[slice].end())
+            found->second = new_position;
+        if(update)
+            calculate_separations_end(slice, key);
+    }
+
+    
+    // NOTE THAT THE SEPARATIONS STORED ARE SQUARE SEPARATIONS
+    
+    void calculate_separations_start(int slice, int ptcl){
+        auto i = start_locations[slice].find(ptcl);
+        if(i != start_locations[slice].end()){
+            for(auto& j : end_locations[slice]){
+                size_t key_fwd = pair_hash(std::pair<int, int>(i->first,j.first));
+                size_t key_bwd = pair_hash(std::pair<int, int>(j.first,i->first));
+                std::vector<double> dist(i->second.size());
+                distance(i->second, j.second, dist, box_size);
+                distances[key_fwd] = inner_product(dist.begin(), dist.end(), dist.begin(), 0.0);
+                distances[key_bwd] = distances[key_fwd];
+            }
+        }
+    }
+    
+    void calculate_separations_end(int slice, int ptcl){
+        auto i = end_locations[slice].find(ptcl);
+        if(i != end_locations[slice].end()){
+            for(auto& j : start_locations[slice]){
+                size_t key_fwd = pair_hash(std::pair<int, int>(i->first,j.first));
+                size_t key_bwd = pair_hash(std::pair<int, int>(j.first,i->first));
+                std::vector<double> dist(i->second.size());
+                distance(i->second, j.second, dist, box_size);
+                distances[key_fwd] = inner_product(dist.begin(), dist.end(), dist.begin(), 0.0);
+                distances[key_bwd] = distances[key_fwd];
+            }
+        }
+    }
+    
+    double get_distance(int key1, int key2){
+        size_t key = pair_hash(std::pair<int, int>(key1,key2));
+        return distances[key];
+    }
+    
+private:
+    std::vector<std::unordered_map<int, std::vector<double> > > start_locations;
+    std::vector<std::unordered_map<int, std::vector<double> > > end_locations;
+    std::unordered_map<size_t, double> distances;
+    double box_size;
+};
+
 
 
 #endif /* lookuptable_hpp */

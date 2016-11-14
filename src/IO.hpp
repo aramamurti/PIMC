@@ -50,6 +50,8 @@ public:
         pathf.close();
         pathf2 << "}" << std::endl;
         pathf2.close();
+        pathf3 << "}" << std::endl;
+        pathf3.close();
     };
     
     void read_parameters(std::string infile, Parameters& params);
@@ -57,6 +59,7 @@ public:
 private:
     std::ofstream f1,f2,f3,f4,f5;
     std::ofstream pathf, pathf2;
+    std::ofstream pathf3;
     MPI_Comm local_comm;
     
 };

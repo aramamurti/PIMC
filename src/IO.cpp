@@ -56,6 +56,15 @@ void IO::set_up_outfiles(int& id){
     pathf2.open(result.c_str());
     pathf2 << "{";
     pathf2.flush();
+    
+    sstm.str(std::string());
+    sstm.clear();
+    sstm << "output/charges_" << id <<".txt";
+    result = sstm.str();
+    pathf3.open(result.c_str());
+    pathf3 << "{";
+    pathf3.flush();
+
 }
 
 void IO::write_final(int counter, double particles, double energy_th, double energy_th_std, double energy_v, double energy_v_std, std::vector<std::vector<int> >& cycles, boost::ptr_vector<Moves> &moves){
@@ -129,7 +138,7 @@ void IO::write_parameters(Parameters& params){
     f1 << std::left << std::setw(25) << "Box Size" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.box_size <<"\n";
     f1 << std::left << std::setw(25) << "tau" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.tau << "\n";
     f1 << std::left << std::setw(25) << "lambda" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.lambda <<"\n";
-    f1 << std::left << std::setw(25) << "Temperature" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.temperature << "\n" << std::endl;
+    f1 << std::left << std::setw(25) << "Temperature" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.temperature << "\n";
     f1 << std::left << std::setw(25) << "Coupling" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.coupling << "\n" << std::endl;
 
     f5 << "Particle Type, " << params.particle_type << std::endl;
@@ -208,7 +217,7 @@ void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
     }
     if(id == 0){
         pathf << std::fixed << std::showpoint;
-        pathf << std::setprecision(3);
+        pathf << std::setprecision(6);
         pathf<<"{";
         for(int slice = 0; slice < params.total_slices; ++slice){
             pathf << "{";
@@ -239,7 +248,8 @@ void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
             else
                 pathf << "}";
         }
-        pathf << "}}," << std::endl;
+        pathf << "}},"  ;
+        pathf.flush();
         pathf2 << "{";
         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
             pathf2 << paths.forward_connects[ptcl];
@@ -248,6 +258,16 @@ void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
             else
                 pathf2 << "},";
         }
+        pathf2.flush();
+        pathf3 << "{";
+        for(int ptcl = 0; ptcl < params.particles; ++ptcl){
+            pathf3 << paths.charge[ptcl];
+            if(ptcl != params.particles-1)
+                pathf3 << ",";
+            else
+                pathf3 << "},";
+        }
+        pathf3.flush();
     }
 }
 void IO::write_acceptances(int counter, boost::ptr_vector<Moves> &moves){

@@ -28,6 +28,7 @@ private:
     std::unordered_map<int, std::pair<int, int> > key_finder;
     Neighbor_Table nt;
     Separation_Table st;
+    Kinetic_Separation_Table kst;
     RNG rng;
     int bead_counter;
     MPI_Comm local_comm;
@@ -39,7 +40,7 @@ public:
     std::vector<int> charge;
     int broken_worldlines;
     
-    Paths(int &id, Parameters &params, MPI_Comm &local) : nt(params), st(params){
+    Paths(int &id, Parameters &params, MPI_Comm &local) : nt(params), st(params), kst(params){
         local_comm = local;
         rng.seed(id);
         set_up(id, params);
@@ -72,6 +73,7 @@ public:
         coordinate_slices.resize(params.slices_per_process);
         coordinate_keys.resize(params.slices_per_process);
         int slice_counter = 0;
+        bead_counter += params.my_start*params.particles;
         for(auto &slice: coordinate_slices){
             slice.resize(params.particles);
             coordinate_keys[&slice - &coordinate_slices[0]].resize(params.particles);
@@ -86,16 +88,70 @@ public:
                 key_finder.insert({bead_counter, std::pair<int, int>(&slice - &coordinate_slices[0],&particle - &slice[0])});
                 nt.add_bead(slice_counter, bead_counter, particle);
                 st.add_bead(slice_counter, bead_counter, particle);
+                if(!params.gce)
+                {
+                    kst.add_bead_start(slice_counter, bead_counter, particle);
+                    kst.add_bead_end(slice_counter, (bead_counter+params.multistep_dist*params.particles-1)%(params.total_slices*params.particles)+1, particle);
+                }
                 ++bead_counter;
             }
             ++slice_counter;
         }
+        if(!params.gce)
+            for(int slice = 0; slice < params.slices_per_process; ++slice)
+                for(int ptcl = 0; ptcl < params.particles; ++ptcl)
+                    kst.calculate_separations_start(slice, coordinate_keys[slice][ptcl]);
         params.worm_on = false;
         params.worm_head.first = -1;
         params.worm_head.second = -1;
         params.worm_tail.first = -1;
         params.worm_tail.second = -1;
     }
+    
+    /*******************************************************************************************************************************************
+
+     PERMUTATION METHODS
+     
+     *******************************************************************************************************************************************/
+    
+    void swap_worldlines(Parameters &params, int start_slice, std::vector<int> start_config, std::vector<int> end_config){
+        std::vector<std::pair<int, int> > swaps(start_config.size()-1);
+        int cur_index = 0;
+        for(int i = 0; i < swaps.size(); ++i){
+            swaps[i] = std::make_pair(start_config[cur_index], end_config[cur_index]);
+            auto it = std::find(start_config.begin(),start_config.end(), end_config[cur_index]);
+            *it = start_config[cur_index];
+            cur_index = it - start_config.begin();
+        }
+        for(int slice = start_slice; slice < params.total_slices; ++slice){
+            if(slice >= params.my_start && slice <= params.my_end){
+                for(auto &i : swaps){
+                    std::iter_swap(forward_connects.begin()+i.first, forward_connects.begin()+i.second);
+                    std::iter_swap(coordinate_slices[slice%params.slices_per_process].begin()+i.first, coordinate_slices[slice%params.slices_per_process].begin()+i.second);
+                    std::iter_swap(coordinate_keys[slice%params.slices_per_process].begin()+i.first, coordinate_keys[slice%params.slices_per_process].begin()+i.second);
+                    key_finder[coordinate_keys[slice%params.slices_per_process][i.second]].second = i.second;
+                    key_finder[coordinate_keys[slice%params.slices_per_process][i.first]].second = i.first;
+                }
+            }
+        }
+        for(int i = 0; i < params.particles; ++i)
+            backward_connects[forward_connects[i]] = i;
+    }
+    
+    void swap_worldlines(Parameters &params, int start_slice, int p1, int p2){
+        for(int slice = start_slice; slice < params.total_slices; ++slice){
+            if(slice >= params.my_start && slice <= params.my_end){
+                std::iter_swap(coordinate_slices[slice%params.slices_per_process].begin()+p1, coordinate_slices[slice%params.slices_per_process].begin()+p2);
+                std::iter_swap(coordinate_keys[slice%params.slices_per_process].begin()+p1, coordinate_keys[slice%params.slices_per_process].begin()+p2);
+                key_finder[coordinate_keys[slice%params.slices_per_process][p2]].second = p2;
+                key_finder[coordinate_keys[slice%params.slices_per_process][p1]].second = p1;
+            }
+        }
+        std::iter_swap(forward_connects.begin()+p1, forward_connects.begin()+p2);
+        for(int i = 0; i < params.particles; ++i)
+            backward_connects[forward_connects[i]] = i;
+    }
+
     
     /*******************************************************************************************************************************************
      
@@ -146,8 +202,8 @@ public:
             for(auto &sep : distances)
                 seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(std::get<0>(sep), bead_counter), std::get<1>(sep), std::get<2>(sep)));
             update_separations(seps);
-            ++bead_counter;
         }
+        ++bead_counter;
         ++params.worm_length;
     }
     
@@ -196,8 +252,8 @@ public:
             for(auto &sep : distances)
                 seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(std::get<0>(sep),bead_counter), std::get<1>(sep), std::get<2>(sep)));
             update_separations(seps);
-            ++bead_counter;
         }
+        ++bead_counter;
         ++params.worm_length;
     }
     
@@ -603,12 +659,28 @@ public:
      
      *******************************************************************************************************************************************/
     
+    //Updates the coordinate of a bead in the neighbor table, (potential) separation table, and kinetic (bisection) separation table to the new location. If the parameter 'update' is true, then the potential separation table updates the distances between beads. If false, one must pass in separation vectors and distances after the locations are updated
     void set_coordinate(int slice, int column, const std::vector<double>& location, bool update = true){
         nt.update_grid(slice, coordinate_keys[slice][column], coordinate_slices[slice][column], location);
         st.update_location(slice, coordinate_keys[slice][column], location, update);
+        kst.update_location_start(slice, coordinate_keys[slice][column], location, update);
         coordinate_slices[slice][column] = location;
     }
     
+    //Sets the location of a bead at the bisection end slice
+    void set_kinetic_end(int slice, int key, const std::vector<double>& location, bool update = true){
+        kst.update_location_end(slice, key, location, update);
+    }
+    
+    void calculate_kinetic_separations_start(int slice, int key){
+        kst.calculate_separations_start(slice, key);
+    }
+    
+    void calculate_kinetic_separations_end(int slice, int key){
+        kst.calculate_separations_end(slice, key);
+    }
+
+    //Gives the separation table precomputed distances and distance vectors (from move methods) so it doesn't have to compute them again when updating locations
     void update_separations(std::vector<std::tuple<std::pair<int,int>, std::vector<double>, double> >& new_distances){
         st.update_separations(new_distances);
     }
@@ -621,6 +693,7 @@ public:
         return coordinate_keys[slice][column];
     }
 
+    //Returns particle number of nearest neighbor (particles are stored in the table as keys)
     std::vector<int> get_nearest_neighbors(int slice, std::vector<double>& position){
         std::vector<int> keys = nt.get_nearest_neighbors(slice, position);
         std::vector<int> neighbors(keys.size());
@@ -630,40 +703,145 @@ public:
         return neighbors;
     }
     
+    std::vector<int> get_nearest_neighbor_keys(int slice, std::vector<double>& position){
+        std::vector<int> keys = nt.get_nearest_neighbors(slice, position);
+        return keys;
+    }
+
+    
+    //Checks whether two given positions are in neighboring grid boxes
     bool are_neighbors(std::vector<double>& position1, std::vector<double>& position2){
         return nt.are_nearest_neighbors(position1, position2);
     }
     
+    //Returns separation of two particles sqrt(dist_vec*dist_vec)
     double get_separation(int slice, int ptcl1, int ptcl2){
         int key1 = coordinate_keys[slice][ptcl1];
         int key2 = coordinate_keys[slice][ptcl2];
         return st.get_distance(key1, key2);
     }
     
+    //Returns the distance vector pointing from particle 2 to particle 1
     std::vector<double>& get_separation_vector(int slice, int ptcl1, int ptcl2){
         int key1 = coordinate_keys[slice][ptcl1];
         int key2 = coordinate_keys[slice][ptcl2];
         return st.get_distance_vector(key1, key2);
     }
     
+    double get_kinetic_separation(int slice, int key1, int key2){
+        return kst.get_distance(key1, key2);
+    }
+    
+    
+    /*******************************************************************************************************************************************
+     
+     CHECKER METHODS
+     
+     *******************************************************************************************************************************************/
+
     void check_separations(Parameters& params){
-        double s1 = 0;
-        double s2 = 0;
+        double d1 = 0;
+        double d2 = 0;
+        bool stop = false;
         for(int s = 0; s < coordinate_slices.size(); ++s){
             for(int p1 = 0; p1 < coordinate_slices[s].size(); ++p1){
                 for(int p2 = 0; p2 < coordinate_slices[s].size(); ++p2){
                     if(coordinate_slices[s][p1].size() != 0 && coordinate_slices[s][p2].size() != 0){
-                        s1 += st.get_distance(coordinate_keys[s][p1], coordinate_keys[s][p2]);
+                        d1 =  st.get_distance(coordinate_keys[s][p1], coordinate_keys[s][p2]);
                         std::vector<double> dist;
                         distance(coordinate_slices[s][p1], coordinate_slices[s][p2], dist, params.box_size);
-                        s2 += sqrt(inner_product(dist.begin(),dist.end(),dist.begin(),0.0));
+                        d2 =  sqrt(inner_product(dist.begin(),dist.end(),dist.begin(),0.0));
+                        if(std::abs(d1 - d2) > 10E-10){
+                            stop = true;
+                            std::cout << d1 << "\t" << d2 << std::endl;
+                        }
                     }
                 }
             }
         }
-        std::cout << s1 - s2 << std::endl;
-        if(std::abs(s1 - s2) > 10E-10)
+        if(stop){
+            std::cout << "Same slice separation check failed..." << std::endl;
             getchar();
+        }
+    }
+    
+    void check_separations_kinetic( Parameters& params){
+        double total_diff = 0;
+        std::vector<double> dist(params.dimensions);
+        for(int slice = 0; slice < params.total_slices; ++slice){
+            int slice_fwd = positive_modulo(slice+params.multistep_dist, params.total_slices);
+            for(int ptcl1 = 0; ptcl1 < params.particles; ++ptcl1){
+                for(int ptcl2 = 0; ptcl2 < params.particles; ++ptcl2){
+                    if(slice >= params.my_start && slice <= params.my_end){
+                        if(slice_fwd >= params.my_start && slice_fwd <= params.my_end){
+                            distance(coordinate_slices[slice%params.slices_per_process][ptcl1], coordinate_slices[slice_fwd%params.slices_per_process][ptcl2], dist, params.box_size);
+                            double r1 = inner_product(dist.begin(),dist.end(),dist.begin(),0.0);
+                            double r2 = get_kinetic_separation(slice%params.slices_per_process, coordinate_keys[slice%params.slices_per_process][ptcl1], coordinate_keys[slice_fwd%params.slices_per_process][ptcl2]);
+                            if(std::abs(r1-r2) > 10E-10){
+                                std::cout << ptcl1 << "\t" << ptcl2 << std::endl;
+                                std::cout << coordinate_keys[slice%params.slices_per_process][ptcl1] << "\t" << coordinate_keys[slice_fwd%params.slices_per_process][ptcl2] << std::endl;
+                                std::cout << r1 << "\t" << r2 << "\t" << r1-r2 << std::endl;
+                            }
+                            total_diff +=  std::abs(r1 - r2);
+                        }
+                        else{
+                            std::vector<double> ptcl_ahead(params.dimensions);
+                            int key = 0;
+                            MPI_Recv(&ptcl_ahead[0], params.dimensions, MPI_DOUBLE, slice_fwd/params.slices_per_process, 0, local_comm, MPI_STATUS_IGNORE);
+                            MPI_Recv(&key, 1, MPI_INT, slice_fwd/params.slices_per_process, 1, local_comm, MPI_STATUS_IGNORE);
+                            distance(coordinate_slices[slice%params.slices_per_process][ptcl1], ptcl_ahead, dist, params.box_size);
+                            double r1 = inner_product(dist.begin(),dist.end(),dist.begin(),0.0);
+                            double r2 = get_kinetic_separation(slice%params.slices_per_process, coordinate_keys[slice%params.slices_per_process][ptcl1], key);
+                            if(std::abs(r1-r2) > 10E-10){
+                                std::cout << ptcl1 << "\t" << ptcl2 << std::endl;
+                                std::cout << coordinate_keys[slice%params.slices_per_process][ptcl1] << "\t" << key << std::endl;
+                                std::cout << r1 << "\t" << r2 << "\t" << r1-r2 << std::endl;
+                            }
+                            total_diff +=  std::abs(r1 - r2);
+                        }
+                    }
+                    else if(slice_fwd >= params.my_start && slice_fwd <= params.my_end){
+                        MPI_Send(&coordinate_slices[slice_fwd%params.slices_per_process][ptcl2][0], params.dimensions, MPI_DOUBLE, slice/params.slices_per_process, 0, local_comm);
+                        MPI_Send(&coordinate_keys[slice_fwd%params.slices_per_process][ptcl2], 1, MPI_INT, slice/params.slices_per_process, 1, local_comm);
+                    }
+                }
+            }
+        }
+        if(total_diff > 10E-10){
+            std::cout << "Multi-slice separation check failed..." << std::endl;
+            std::cout << total_diff << std::endl;
+            getchar();
+        }
+    }
+    
+    void check_nt(){
+        bool check = true;
+        int count = 0;
+        for(int slice = 0; slice < coordinate_keys.size(); ++slice){
+            for(int ptcl = 0; ptcl < coordinate_keys[slice].size(); ++ptcl){
+                if(coordinate_keys[slice][ptcl] != 0)
+                    check = nt.is_in_box(slice, coordinate_keys[slice][ptcl], coordinate_slices[slice][ptcl]);
+                if(!check)
+                    break;
+                else
+                    ++count;
+            }
+            count = 0;
+        }
+        if(!check)
+            std::cout << "Neighbor table check failed..." << std::endl;
+    }
+    void check_charge(){
+        for(int i = 0; i < charge.size(); ++i){
+            int particle = forward_connects[i];
+            while(particle != i && particle != -1){
+                if(charge[particle] != charge[i]){
+                    std::cout << "Charge check failed..." << std::endl;
+                    getchar();
+                }
+                particle = forward_connects[particle];
+            }
+        }
     }
 
     /*******************************************************************************************************************************************
@@ -775,6 +953,9 @@ public:
             std::cout << std::endl<< "BR:\t\t";
             for(int i = 0; i < broken.size(); i++)
                 std::cout <<  std::setw(width) << std::left<< broken[i];
+            std::cout << std::endl<< "Ch:\t\t";
+            for(int i = 0; i < charge.size(); i++)
+                std::cout <<  std::setw(width) << std::left<< charge[i];
             
             std::cout << std::endl;
             std::cout << std::endl;

@@ -30,7 +30,7 @@ public:
     virtual double get_delta(){return 0;}
     virtual void shift_delta(double shift){}
     virtual void set_delta(double shift){}
-    virtual void attempt(int &id,Parameters &params, Paths &paths, RNG &rng);
+    virtual int attempt(int &id,Parameters &params, Paths &paths, RNG &rng);
     bool check();
     void accept();
     void reject();
@@ -48,6 +48,8 @@ private:
     std::vector<int> ptcls;
     bool ac_re;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
 
 public:
@@ -56,7 +58,7 @@ public:
     
     Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
     
-    void attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
     void shift_delta(double shift){
         delta += shift*delta;
     }
@@ -81,6 +83,8 @@ private:
     std::vector<int> ptcl_slice;
     bool ac_re;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
 
 public:
@@ -89,7 +93,35 @@ public:
     
     Bisection* clone() const{return new Bisection(*this);}
     
-    void attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
+    void check(int &id, Parameters &params,Paths &paths,  RNG &rng);
+    void accept();
+    void reject();
+};
+
+class Permutation_Bisection : public Moves{
+private:
+    int multistep_dist;
+    std::vector<std::vector<int> > multisteps;
+    std::vector<std::vector<int> > minp;
+    std::vector<int> bisection_info;
+    std::vector<int> ptcl_slice_1;
+    std::vector<int> ptcl_slice_2;
+    bool ac_re;
+    int choice;
+    bool keep_going;
+    std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
+    std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    
+public:
+    Permutation_Bisection(int &id, Parameters &params,MPI_Comm &local);
+    ~Permutation_Bisection(){};
+    
+    Permutation_Bisection* clone() const{return new Permutation_Bisection(*this);}
+    
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
     void check(int &id, Parameters &params,Paths &paths,  RNG &rng);
     void accept();
     void reject();
@@ -110,7 +142,7 @@ public:
     
     Open* clone() const{return new Open(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -121,6 +153,8 @@ class Close : public Moves{
 private:
     bool ac_re;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
     
 public:
@@ -132,7 +166,7 @@ public:
     
     Close* clone() const{return new Close(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -145,6 +179,8 @@ private:
     bool ac_re;
     std::vector<int> insert_info;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
     
 public:
@@ -156,7 +192,7 @@ public:
     
     Insert* clone() const{return new Insert(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -167,6 +203,7 @@ public:
 class Remove : public Moves{
 private:
     bool ac_re;
+    std::vector<int> keys_ahead;
     
 public:
     Remove(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Remove";
@@ -177,7 +214,7 @@ public:
     
     Remove* clone() const{return new Remove(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -189,6 +226,8 @@ private:
     bool ac_re;
     int M;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
     
 public:
@@ -200,7 +239,7 @@ public:
     
     Advance_Tail* clone() const{return new Advance_Tail(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -213,6 +252,8 @@ private:
     bool ac_re;
     int M;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
     
 public:
@@ -224,7 +265,7 @@ public:
     
     Advance_Head* clone() const{return new Advance_Head(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -235,6 +276,7 @@ class Recede_Head : public Moves{
 private:
     bool ac_re;
     int M;
+    std::vector<int> keys_ahead;
     
 public:
     Recede_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Recede Head";
@@ -245,7 +287,7 @@ public:
     
     Recede_Head* clone() const{return new Recede_Head(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -256,6 +298,7 @@ class Recede_Tail : public Moves{
 private:
     bool ac_re;
     int M;
+    std::vector<int> keys_ahead;
     
 public:
     Recede_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Recede Tail";
@@ -266,7 +309,7 @@ public:
     
     Recede_Tail* clone() const{return new Recede_Tail(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -281,6 +324,8 @@ private:
     int choice;
     bool keep_going;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
     
 public:
@@ -292,7 +337,7 @@ public:
     
     Swap_Tail* clone() const{return new Swap_Tail(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
@@ -306,6 +351,8 @@ private:
     int choice;
     bool keep_going;
     std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
     
 public:
@@ -316,11 +363,10 @@ public:
     
     Swap_Head* clone() const{return new Swap_Head(*this);}
     
-    void attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng);
     void accept();
     void reject();
-    
 };
 
 #endif /* moves_h */
