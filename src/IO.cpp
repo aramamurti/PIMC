@@ -23,7 +23,7 @@ void IO::set_up_outfiles(int& id){
     
     sstm.str(std::string());
     sstm.clear();
-    sstm << "output/energy_data" << id <<".csv";
+    sstm << "output/energy_data_" << id <<".csv";
     result = sstm.str();
     f2.open(result.c_str());
     
