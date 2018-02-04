@@ -48,6 +48,8 @@ int main(int argc, char * argv[]) {
         std::cerr << "Number of time slices not divisible by number of worker processes. Exiting..." << std::endl;
         return 2;
     }
+    if(working_rank == 0)
+        std::cout << "Initializing Data Structures ... " << std::endl;
     params.slices_per_process = params.total_slices/params.num_workers;
     params.my_start = (params.slices_per_process)*(working_rank);
     params.my_end = (params.slices_per_process)*(working_rank+1) - 1;
@@ -56,8 +58,10 @@ int main(int argc, char * argv[]) {
         writer.write_parameters(params);
     Runner runner(working_rank, params, sub_comm);
     runner.run(working_rank, params, writer);
-    if(working_rank == 0)
+    if(working_rank == 0){
         writer.close();
+        std::cout << "Done." << std::endl;
+    }
     MPI_Finalize();
     return 0;
 }

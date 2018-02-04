@@ -12,6 +12,8 @@ Runner::Runner(int &id, Parameters &params, MPI_Comm &local){
     local_comm = local;
     moves.push_back(new Center_of_Mass(id, params, local));
     moves.push_back(new Bisection(id, params, local));
+    if(params.charges == 2)
+        moves.push_back(new Pair_Center_of_Mass(id, params, local));
     if(!params.gce && params.boson)
         moves.push_back(new Permutation_Bisection(id,params,local));
     if(params.gce && params.boson){
@@ -37,10 +39,12 @@ Runner::Runner(int &id, Parameters &params, MPI_Comm &local){
     }
 }
 
-void Runner::equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Runner::equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng, Cos& cos){
     int com_att = 200;
     int com_acc = 0;
+    int com_acc_pair = 0;
     int prev_num_attempts = 0;
+    int prev_num_attempts_pair = 0;
     int off_diag_att = 3000;
     int off_diag_att_ctr = 0;
     int conf_att = 500;
@@ -49,9 +53,12 @@ void Runner::equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng){
     double cumulative_particles = 0;
     bool check1 = false;
     bool check2 = false;
+    int initial_moves = 2;
+    if(params.charges == 2)
+        initial_moves = 3;
     for(int step = 0; step < params.equilibration; ++step){
-        if(id == 0)
-            std::cout << "Equilibration step " <<step+1 << "/" <<params.equilibration << ":\t" << params.real_particles << " particles" << std::endl;
+        if(id == 0  && (step+1)%100 == 0)
+            std::cout << "Equilibration step " << step+1 << "/" <<params.equilibration << ":\t" << params.real_particles << " particles" << std::endl;
         if(double(step)/params.equilibration < 1/3.){
             for(int j = 0; j < params.particles; ++j){
                 for(int n = 0; n < params.particles; ++n){
@@ -63,9 +70,9 @@ void Runner::equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng){
                             paths.check_separations_kinetic(params);
                             paths.check_charge();
                         }
-                        int choice = rng.randint(2);
+                        int choice = rng.randint(initial_moves);
                         MPI_Bcast(&choice, 1, MPI_INT, 0, local_comm);
-                        success = moves[choice].attempt(id, params, paths, rng);
+                        success = moves[choice].attempt(id, params, paths, rng, cos);
                     }while(success != 0);
                     if(moves[0].get_num_attempts()%com_att == 0 && moves[0].get_num_attempts() != prev_num_attempts){
                         com_acc = moves[0].get_num_accepts()-com_acc;
@@ -109,8 +116,32 @@ void Runner::equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng){
                         else
                             choice = move_choices[0][(rng.randint(move_choices[0].size()))];
                         MPI_Bcast(&choice, 1, MPI_INT, 0, local_comm);
-                        success = moves[choice].attempt(id, params, paths, rng);
+                        success = moves[choice].attempt(id, params, paths, rng, cos);
                     }while(success != 0);
+                }
+                if(params.charges == 2){
+                    if(moves[2].get_num_attempts()%com_att == 0 && moves[2].get_num_attempts() != prev_num_attempts_pair){
+                        com_acc_pair = moves[2].get_num_accepts()-com_acc_pair;
+                        double com_acc_rat = double(com_acc_pair)/com_att;
+                        if (com_acc_rat < 0.2)
+                            moves[2].shift_delta(-0.6);
+                        else if (com_acc_rat < 0.3)
+                            moves[2].shift_delta(-0.4);
+                        else if (com_acc_rat < 0.4)
+                            moves[2].shift_delta(-0.2);
+                        else if(moves[2].get_delta() < params.box_size){
+                            if (com_acc_rat > 0.6)
+                                moves[2].shift_delta(0.2);
+                            else if (com_acc_rat > 0.7)
+                                moves[2].shift_delta(0.4);
+                            else if (com_acc_rat > 0.8)
+                                moves[2].shift_delta(0.6);
+                        }
+                        com_acc_pair = moves[2].get_num_accepts();
+                        prev_num_attempts_pair = moves[2].get_num_attempts();
+                    }
+                    if(moves[2].get_delta() > params.box_size)
+                        moves[2].set_delta(params.box_size);
                 }
                 if(params.gce && params.boson){
                     params.real_particles = params.particles - (ceil(double(params.worm_length)/params.total_slices) - double(params.worm_length)/params.total_slices);
@@ -163,9 +194,19 @@ void Runner::run(int &id, Parameters &params, IO &writer){
     Paths paths(id, params, local_comm);
     RNG rng;
     rng.seed(id);
-    equilibrate(id, params, paths, rng);
+    Cos cos;
+    cos.set_up();
+    if(!params.gce || params.potential != 2)
+        moves[0].initialize_potential_table(id, params, paths, cos);
     if(id == 0)
-        writer.write_equil_parameters(params, moves[0].get_delta());
+        std::cout << "Equilibrating ... " << std::endl;
+    equilibrate(id, params, paths, rng, cos);
+    if(id == 0){
+        if(params.charges == 2)
+            writer.write_equil_parameters(params, moves[0].get_delta(), moves[2].get_delta());
+        else
+            writer.write_equil_parameters(params, moves[0].get_delta());
+    }
     for(auto &i : moves)
         i.reset_acceptance_counters();
     Estimator estimator(local_comm);
@@ -179,8 +220,10 @@ void Runner::run(int &id, Parameters &params, IO &writer){
     particles.reserve(params.end);
     int counter = 0;
     bool path_dump = true;
+    if(id == 0)
+        std::cout << "Collecting Data ... " << std::endl;
     for(int step = 0; step < params.end; ++step){
-        if(id == 0)
+        if(id == 0 && (step+1)%100 == 0)
             std::cout << "Simulation step " << step+1 << "/" <<params.end << ":\t" << params.real_particles << " particles" << std::endl;
         for(int j = 0; j < std::max(params.particles,params.init_particles); ++j){
             for(int n = 0; n < std::max(params.particles,params.init_particles); ++n){
@@ -192,7 +235,7 @@ void Runner::run(int &id, Parameters &params, IO &writer){
                     else
                         choice = move_choices[0][(rng.randint(move_choices[0].size()))];
                     MPI_Bcast(&choice, 1, MPI_INT, 0, local_comm);
-                    success = moves[choice].attempt(id, params, paths, rng);
+                    success = moves[choice].attempt(id, params, paths, rng, cos);
                 }while(success != 0);
             }
         }
@@ -213,6 +256,7 @@ void Runner::run(int &id, Parameters &params, IO &writer){
         }
     }
     if(id == 0){
+        std::cout << "Finalizing ... " << std::endl;
         writer.write_acceptances(counter, moves);
     }
 }

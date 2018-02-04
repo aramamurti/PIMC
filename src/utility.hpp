@@ -13,6 +13,7 @@
 #include <gsl/gsl_randist.h>
 #include <stdio.h>
 #include <vector>
+#include <array>
 #include <deque>
 #include <cmath>
 #include <algorithm>
@@ -49,6 +50,32 @@ public:
     
     double randgaussian(double width){
         return gsl_ran_gaussian_ziggurat(r, width);
+    }
+};
+
+class Cos{
+    static const int table_size = 4096;
+    std::array<double, table_size> CosTable;
+    
+public:
+    
+    Cos(){};
+    
+    void set_up(){
+        for(int i = 0; i < table_size; ++i)
+            CosTable[i] = std::cos(double(i)/CosTable.size()*2.0*M_PI);
+    }
+    
+    const double value(double& angle){
+        angle = std::fmod(angle/(2.0*M_PI), 1.0);
+        while(angle < 0.0)
+            angle += 1.;
+        double indexd = angle*table_size;
+        int index = int(indexd);
+        double weight = indexd-index;
+        int index_p1 = (index+1) % table_size;
+        return (1.0-weight)*CosTable[index]+weight*CosTable[index_p1];
+        return CosTable[index];
     }
 };
 

@@ -35,7 +35,7 @@ public:
     
     void set_up_outfiles(int& id);
     void write_parameters(Parameters &params);
-    void write_equil_parameters(Parameters& params, double delta);
+    void write_equil_parameters(Parameters& params, double delta, double delta_pair = 0);
     void write_step_state(int step, int num_particles, std::vector<double>& energy, std::vector<int>& cycles,std::vector<int>& wnum);
     void write_final(int counter, double particles, double energy_th, double energy_th_std, double energy_v, double energy_v_std, std::vector<std::vector<int> >& cycles, boost::ptr_vector<Moves> &moves);
     void write_acceptances(int counter,boost::ptr_vector<Moves> &moves);

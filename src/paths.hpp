@@ -159,7 +159,7 @@ public:
      
      *******************************************************************************************************************************************/
 
-    void worm_advance_tail(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, int worm_start = 0, int chg = -10){
+    void worm_advance_tail(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(params.worm_on == false){
             params.worm_on = true;
             params.worm_head.second = params.particles;
@@ -197,17 +197,22 @@ public:
             nt.add_bead(my_slice, bead_counter, location);
             st.add_bead(my_slice, bead_counter, location, false);
             std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > seps;
+            std::vector<std::tuple<std::pair<int, int>, double> > pots;
             seps.reserve(distances.size()+1);
+            pots.reserve(potentials.size()+1);
             seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(bead_counter,bead_counter), std::vector<double>(params.dimensions,0), 0));
             for(auto &sep : distances)
                 seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(std::get<0>(sep), bead_counter), std::get<1>(sep), std::get<2>(sep)));
+            for(auto &pot : potentials)
+                pots.push_back(std::tuple<std::pair<int, int>, double>(std::pair<int,int>(std::get<0>(pot), bead_counter), std::get<1>(pot)));
             update_separations(seps);
+            update_potentials(pots);
         }
         ++bead_counter;
         ++params.worm_length;
     }
     
-    void worm_advance_head(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, int worm_start = 0, int chg = -10){
+    void worm_advance_head(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(!params.worm_on){
             params.worm_on = true;
             params.worm_head.second = params.particles;
@@ -247,11 +252,16 @@ public:
             nt.add_bead(my_slice, bead_counter, location);
             st.add_bead(my_slice, bead_counter, location, false);
             std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > seps;
+            std::vector<std::tuple<std::pair<int, int>, double> > pots;
             seps.reserve(distances.size()+1);
+            pots.reserve(potentials.size()+1);
             seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(bead_counter,bead_counter), std::vector<double>(params.dimensions,0), 0));
             for(auto &sep : distances)
                 seps.push_back(std::tuple<std::pair<int, int>, std::vector<double>, double>(std::pair<int,int>(std::get<0>(sep),bead_counter), std::get<1>(sep), std::get<2>(sep)));
+            for(auto &pot : potentials)
+                pots.push_back(std::tuple<std::pair<int, int>, double>(std::pair<int,int>(std::get<0>(pot), bead_counter), std::get<1>(pot)));
             update_separations(seps);
+            update_potentials(pots);
         }
         ++bead_counter;
         ++params.worm_length;
@@ -452,13 +462,13 @@ public:
             worm_recede_head(params);
     }
     
-    void close_worm(Parameters& params, const std::vector<std::vector<double> >& new_coordinates, const std::vector<std::vector<std::tuple<int, std::vector<double>, double> > >& distances){
+    void close_worm(Parameters& params, const std::vector<std::vector<double> >& new_coordinates, const std::vector<std::vector<std::tuple<int, std::vector<double>, double> > >& distances, const std::vector<std::vector<std::tuple<int, double> > >& potentials){
         if(!params.worm_on) return;
         while(params.worm_tail.first != positive_modulo(params.worm_head.first - 1, params.total_slices)){
             if(!new_coordinates.empty())
-                worm_advance_tail(params, new_coordinates[(params.worm_tail.first+1)%params.slices_per_process], distances[(params.worm_tail.first+1)%params.slices_per_process]);
+                worm_advance_tail(params, new_coordinates[(params.worm_tail.first+1)%params.slices_per_process], distances[(params.worm_tail.first+1)%params.slices_per_process], potentials[(params.worm_tail.first+1)%params.slices_per_process]);
             else
-                worm_advance_tail(params, std::vector<double>(params.dimensions, 0), std::vector<std::tuple<int, std::vector<double>, double> >());
+                worm_advance_tail(params, std::vector<double>(params.dimensions, 0), std::vector<std::tuple<int, std::vector<double>, double> >(), std::vector<std::tuple<int, double> >());
         }
         int orig_worm_head = params.worm_head.first;
         while(params.worm_head.first != 0){
@@ -685,17 +695,31 @@ public:
         st.update_separations(new_distances);
     }
     
+    void update_potentials(std::vector<std::tuple<std::pair<int,int>, double> >& new_potentials){
+        st.update_potentials(new_potentials);
+    }
+
+    
     std::vector<double>& get_coordinate(int slice, int column){
         return coordinate_slices[slice][column];
     }
     
-    int get_coordinate_key(int slice, int column){
+    int& get_coordinate_key(int slice, int column){
         return coordinate_keys[slice][column];
     }
 
     //Returns particle number of nearest neighbor (particles are stored in the table as keys)
     std::vector<int> get_nearest_neighbors(int slice, std::vector<double>& position){
         std::vector<int> keys = nt.get_nearest_neighbors(slice, position);
+        std::vector<int> neighbors(keys.size());
+        for(auto &key : keys){
+            neighbors[&key - &keys[0]] = key_finder[key].second;
+        }
+        return neighbors;
+    }
+    
+    std::vector<int> get_cell_mates(int slice, std::vector<double>& position){
+        std::vector<int> keys = nt.get_cell_mates(slice, position);
         std::vector<int> neighbors(keys.size());
         for(auto &key : keys){
             neighbors[&key - &keys[0]] = key_finder[key].second;
@@ -715,10 +739,16 @@ public:
     }
     
     //Returns separation of two particles sqrt(dist_vec*dist_vec)
-    double get_separation(int slice, int ptcl1, int ptcl2){
+    double& get_separation(int slice, int ptcl1, int ptcl2){
         int key1 = coordinate_keys[slice][ptcl1];
         int key2 = coordinate_keys[slice][ptcl2];
         return st.get_distance(key1, key2);
+    }
+    
+    double& get_potential(int slice, int ptcl1, int ptcl2){
+        int key1 = coordinate_keys[slice][ptcl1];
+        int key2 = coordinate_keys[slice][ptcl2];
+        return st.get_potential(key1, key2);
     }
     
     //Returns the distance vector pointing from particle 2 to particle 1

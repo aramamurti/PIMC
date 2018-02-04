@@ -10,69 +10,82 @@
 #include "moves.hpp"
 
 inline double potential_value_harmonic(double dist2){
-    double val = 0.5*dist2;
-    return val;
+    return 0.5*dist2;
 }
 
-inline double aziz_pcws(double dist){
+inline double aziz_pcws(double& dist){
     if(dist >= 3.68335)
-        return 1;
+        return 1.;
     else
-        return exp(-pow((3.68335/dist-1),2));
+        return std::exp(-std::pow((3.68335/dist-1),2.));
 }
 
-inline double potential_value_aziz(double dist){
-    double val = 10.8*(544850.4 * exp(-4.50018*dist)-(9424.94/pow(dist,10)+2556.63/pow(dist,8)+937.38/pow(dist,6))*aziz_pcws(dist));
+inline double potential_value_aziz(double& dist){
+    double val = 10.8*(544850.4 * std::exp(-4.50018*dist)-(9424.94/std::pow(dist,10.)+2556.63/std::pow(dist,8.)+937.38/std::pow(dist,6.))*aziz_pcws(dist));
     return val;
 }
 
-inline double potential_value_coulomb(std::vector<double>& dist, std::vector<int>& kVec, int chgi, int chgj, Parameters& params){
-    if(params.coupling == 0) return 0;
-    double val = 0;
-    for(int nx = -params.nmax; nx <= params.nmax; nx++)
-        for(int ny = -params.nmax; ny <= params.nmax; ny++)
-            for(int nz = -params.nmax; nz <= params.nmax; nz++){
-                double rSq = pow(dist[0] + nx*params.box_size, 2) + pow(dist[1] + ny*params.box_size, 2) + pow(dist[2] + nz*params.box_size, 2);
-                double r = sqrt(rSq);
+inline double potential_value_coulomb(std::vector<double>& dist, std::vector<int>& kVec, int& chgi, int& chgj, Parameters& params, Cos& cos){
+    if(params.coupling == 0) return 0.0;
+    double val = 0.0;
+    if(params.charges == 1){
+    for(int nx = -params.nmax; nx <= params.nmax; ++nx)
+        for(int ny = -params.nmax; ny <= params.nmax; ++ny)
+            for(int nz = -params.nmax; nz <= params.nmax; ++nz){
+                double rSq = std::pow(dist[0] + nx*params.box_size, 2.) + std::pow(dist[1] + ny*params.box_size, 2.) + std::pow(dist[2] + nz*params.box_size, 2.);
+                double r = std::sqrt(rSq);
                 if(rSq > 10E-10 && rSq < params.coulcut2){
-                    val += chgi*chgj * erfc(params.alpha*r) / r;
+                    val += chgi*chgj * std::erfc(params.alpha*r) / r;
                 }
             }
-    for(int kx = 0; kx <= params.kmax; kx++)
-        for(int ky = 0; ky <= params.kmax; ky++)
-            for(int kz = 0; kz <= params.kmax; kz++){
+    for(int kx = 0; kx <= params.kmax; ++kx)
+        for(int ky = 0; ky <= params.kmax; ++ky)
+            for(int kz = 0; kz <= params.kmax; ++kz){
                 kVec = {kx, ky, kz};
-                double k2 = 0;
-                for(int dim = 0; dim < params.dimensions; ++dim)
-                    k2 += pow(params.kfac * kVec[dim],2);
-                if(k2 < params.kcut2 && (k2  != 0)){
+                double k2 = (params.kfac*params.kfac)*std::inner_product(kVec.begin(), kVec.end(), kVec.begin(), 0.0);
+                if(k2 < params.kcut2 && (k2  > 10E-10)){
                     int zeros = 0;
                     if(kx == 0)
-                        zeros++;
+                        ++zeros;
                     if(ky == 0)
-                        zeros++;
+                        ++zeros;
                     if(kz == 0)
-                        zeros++;
+                        ++zeros;
                     double sfac = 2.0;
-                    if(zeros == 0)
-                        sfac = 8.0;
-                    else if(zeros == 1)
-                        sfac = 4.0;
-                    double efac = 1.0;
-                    double expfac = 0;
-                    for(int dim = 0; dim < params.dimensions; ++dim){
-                        expfac = params.kfac * kVec[dim] * dist[dim];
-                        efac = efac * cos(expfac);
+                    switch(zeros){
+                        case 0:
+                            sfac = 8.0;
+                        case 1:
+                            sfac = 4.0;
                     }
-                    double reci = sfac*(4*M_PI)/pow(params.box_size,3)*chgi*chgj*efac*exp(-k2*1/(4*params.alpha*params.alpha))/k2;
+                    double efac = 1.0;
+                    double expfac = 0.0;
+                    for(int dim = 0; dim < params.dimensions; ++dim)
+                        if(kVec[dim] != 0){
+                            expfac = params.kfac * kVec[dim] * dist[dim];
+                            efac = efac*cos.value(expfac);
+                        }
+                    double reci = sfac*(4.*M_PI)/std::pow(params.box_size,3.)*chgi*chgj*efac*std::exp(-k2*1./(4.*params.alpha*params.alpha))/k2;
                     val += reci;
                 }
             }
     if(std::abs(dist[0]) < 10E-10 && std::abs(dist[1]) < 10E-10 && std::abs(dist[2]) < 10E-10)
-        val -= 2*params.alpha/sqrt(M_PI) * pow(chgi,2);
+        val -= 2.*params.alpha/std::sqrt(M_PI) * std::pow(chgi,2.);
+    }
+    else if(params.charges == 2){
+        int loc_nmax = 3;
+        for(int nx = -loc_nmax; nx <= loc_nmax; ++nx)
+        for(int ny = -loc_nmax; ny <= loc_nmax; ++ny)
+        for(int nz = -loc_nmax; nz <= loc_nmax; ++nz){
+            double rSq = std::pow(dist[0] + nx*params.box_size, 2.) + std::pow(dist[1] + ny*params.box_size, 2.) + std::pow(dist[2] + nz*params.box_size, 2.);
+            double r = std::sqrt(rSq);
+            if(rSq > 10E-10){
+                val += 1./std::pow(5.*r,20.) + chgi*chgj / r;
+            }
+        }
+    }
     return params.coupling*val;
 }
-
 
 Moves::Moves(MPI_Comm &local){
     num_attempts = 0;
@@ -80,13 +93,46 @@ Moves::Moves(MPI_Comm &local){
     local_comm = local;
 }
 
-int Moves::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Moves::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+//    std::cout << move_name << std::endl;
     return 0;
 }
 
 void Moves::reset_acceptance_counters(){
     num_attempts = 0;
     num_accepts = 0;
+}
+
+void Moves::initialize_potential_table(int &id, Parameters &params, Paths &paths, Cos &cos){
+    std::vector<std::tuple<std::pair<int, int>, double> > newp;
+    std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.0;
+    if(params.potential == 2){
+        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
+        params.coulcut = sqrt(params.p)/params.alpha;
+        params.coulcut2 = pow(params.coulcut,2);
+        params.kcut = 2.*params.p/params.coulcut;
+        params.kcut2 = pow(params.kcut,2);
+        params.nmax = floor(params.coulcut/params.box_size);
+        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
+    }
+    for(int slice = 0; slice < params.slices_per_process; ++slice)
+        for(int ptcl1 = 0; ptcl1 < params.particles; ++ptcl1)
+            for(int ptcl2 = 0; ptcl2 < params.particles; ++ptcl2){
+                switch(params.potential){
+                    case 1:
+                        if(ptcl1 != ptcl2){
+                            pot_val = potential_value_aziz(paths.get_separation(slice, ptcl1, ptcl2));
+                            newp.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice, ptcl1), paths.get_coordinate_key(slice, ptcl2)), pot_val));
+                        }
+                        break;
+                    case 2:
+                        pot_val = potential_value_coulomb(paths.get_separation_vector(slice, ptcl1, ptcl2), kVec, paths.charge[ptcl1],paths.charge[ptcl2], params, cos);
+                        newp.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice, ptcl1), paths.get_coordinate_key(slice, ptcl2)), pot_val));
+                        break;
+                }
+            }
+    paths.update_potentials(newp);
 }
 
 Center_of_Mass::Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : Moves(local){
@@ -96,8 +142,8 @@ Center_of_Mass::Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : M
     worm_on = true;
 }
 
-int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
-    Moves::attempt(id, params, paths, rng);
+int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
     std::vector<double> shift(params.dimensions);
     for(auto &dim : shift)
@@ -119,13 +165,14 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
     new_coordinates_ahead.resize(new_coordinates.size());
     keys_ahead.resize(new_coordinates.size());
     new_distances.reserve(ptcls.size()*params.particles*params.slices_per_process);
+    new_potentials.reserve(ptcls.size()*params.particles*params.slices_per_process);
     for(int i = 0; i < ptcls.size(); ++i){
         for(int slice = 0; slice < params.slices_per_process; ++slice){
             if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first))
                 std::transform(paths.get_coordinate(slice,ptcls[i]).begin(),paths.get_coordinate(slice,ptcls[i]).end(),shift.begin(),std::back_inserter(new_coordinates[i*params.slices_per_process+slice]), std::plus<double>());
         }
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
     num_attempts++;
     if(ac_re){
@@ -137,6 +184,8 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
                     paths.set_coordinate(slice, ptcls[i],new_coordinates[i*params.slices_per_process+slice], false);
                 }
         paths.update_separations(new_distances);
+        if(!params.gce || params.potential != 2)
+            paths.update_potentials(new_potentials);
         if(!params.gce){
             for(int i = 0; i < ptcls.size(); ++i)
                 for(int slice = 0; slice < params.slices_per_process; ++slice)
@@ -180,15 +229,17 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
     new_coordinates_ahead.clear();
     keys_ahead.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
-    if(params.potential == 2){
+    double pot_val = 0.;
+    if(params.potential == 2 && params.gce){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
         params.coulcut2 = pow(params.coulcut,2);
@@ -200,47 +251,257 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int j = 0; j < ptcls.size(); ++j){
         for(int i = 0; i < params.slices_per_process; ++i){
             if(!(ptcls[j] == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcls[j] == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
-                double old_action_local = 0;
-                double new_action_local = 0;
                 switch(params.potential){
                     case 0:
                         new_action_p[i]+= potential_value_harmonic(inner_product(new_coordinates[j*params.slices_per_process+i].begin(),new_coordinates[j*params.slices_per_process+i].end(),new_coordinates[j*params.slices_per_process+i].begin(),0.0));
                         old_action_p[i] = potential_value_harmonic(inner_product(paths.get_coordinate(i,ptcls[j]).begin(),paths.get_coordinate(i,ptcls[j]).end(),paths.get_coordinate(i,ptcls[j]).begin(),0.0));
                         break;
                     case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                             if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
                                 if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
-                                    old_action_local += potential_value_aziz(paths.get_separation(i, ptcl, ptcls[j]));
+                                    old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
                                     distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
                                     double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                    new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                    pot_val = potential_value_aziz(r);
+                                    new_action_p[i] += pot_val;
                                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
+                                    new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), pot_val));
                                 }
                             }
                         }
-                        old_action_p[i] += old_action_local;
-                        new_action_p[i] += new_action_local;
                         break;
                     case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                             if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
                                 if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
-                                    old_action_local += potential_value_coulomb(paths.get_separation_vector(i, ptcl, ptcls[j]), kVec, paths.charge[ptcl],paths.charge[ptcls[j]],  params);
+                                    if(params.gce)
+                                        old_action_p[i] += potential_value_coulomb(paths.get_separation_vector(i, ptcl, ptcls[j]), kVec, paths.charge[ptcl],paths.charge[ptcls[j]],  params, cos);
+                                    else
+                                        old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
                                     double r = 0;
                                     distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
                                     r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                    new_action_local += potential_value_coulomb(dist, kVec,  paths.charge[ptcl],paths.charge[ptcls[j]], params);
-#pragma omp critical
+                                    pot_val = potential_value_coulomb(dist, kVec,  paths.charge[ptcl],paths.charge[ptcls[j]], params, cos);
+                                    new_action_p[i] += pot_val;
                                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
+                                    if(!params.gce)
+                                        new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), pot_val));
                                 }
                             }
                         }
-                        old_action_p[i] += old_action_local;
-                        new_action_p[i] += new_action_local;
+                        break;
+                }
+            }
+        }
+    }
+    if(id != 0){
+        MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 0, local_comm);
+        MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 1, local_comm);
+    }
+    else{
+        ac_re = false;
+        std::vector<double> old_action;
+        std::vector<double> new_action;
+        old_action.reserve(params.total_slices);
+        new_action.reserve(params.total_slices);
+        old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
+        new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
+        for(int j = 1; j < params.num_workers; ++j){
+            MPI_Recv(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, j, 0, local_comm, MPI_STATUS_IGNORE);
+            MPI_Recv(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, j, 1, local_comm, MPI_STATUS_IGNORE);
+            old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
+            new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
+        }
+        double oa = 0;
+        double na = 0;
+        for(int j = 0; j < params.total_slices; ++j){
+            oa += params.tau*(old_action[j]);
+            na += params.tau*(new_action[j]);
+        }
+        if(rng.randnormed(1) < exp(-(na - oa)))
+            ac_re = true;
+    }
+}
+
+Pair_Center_of_Mass::Pair_Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : Moves(local){
+    delta = sqrt(params.lambda*params.tau);
+    move_name = "Pair Center of Mass";
+    worm_off = true;
+    worm_on = true;
+}
+
+int Pair_Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::attempt(id, params, paths, rng, cos);
+    if(params.particles == 0) return 0;
+    std::vector<double> shift(params.dimensions);
+    for(auto &dim : shift)
+        dim = rng.randgaussian(delta);
+    int ptcl = rng.randint(params.particles);
+    std::vector<int> neighbors = paths.get_cell_mates(0, paths.get_coordinate(0, ptcl));
+    int dist = params.box_size;
+    int ptcl2 = ptcl;
+    for(auto &p : neighbors){
+        if(p != ptcl)
+            if(paths.get_separation(0, ptcl, p) < dist && paths.charge[p] != paths.charge[ptcl]){
+                dist = paths.get_separation(0, ptcl, p);
+                ptcl2 = p;
+            }
+    }
+    MPI_Bcast(&shift[0], params.dimensions, MPI_DOUBLE, 0, local_comm);
+    MPI_Bcast(&ptcl, 1, MPI_INT, 0, local_comm);
+    MPI_Bcast(&ptcl2, 1, MPI_INT, 0, local_comm);
+    if(ptcl == ptcl2)
+        return 1;
+    int cur_part = ptcl;
+    int end_part = ptcl;
+    if(paths.broken[ptcl]){
+        cur_part = params.worm_head.second;
+        end_part = -1;
+    }
+    do{
+        ptcls.push_back(cur_part);
+        cur_part = paths.forward_connects[cur_part];
+    }while(cur_part != end_part);
+    cur_part = ptcl2;
+    end_part = ptcl2;
+    if(paths.broken[ptcl2]){
+        cur_part = params.worm_head.second;
+        end_part = -1;
+    }
+    do{
+        ptcls.push_back(cur_part);
+        cur_part = paths.forward_connects[cur_part];
+    }while(cur_part != end_part);
+    new_coordinates.resize(params.slices_per_process*ptcls.size());
+    new_coordinates_ahead.resize(new_coordinates.size());
+    keys_ahead.resize(new_coordinates.size());
+    new_distances.reserve(ptcls.size()*params.particles*params.slices_per_process);
+    new_potentials.reserve(ptcls.size()*params.particles*params.slices_per_process);
+    for(int i = 0; i < ptcls.size(); ++i){
+        for(int slice = 0; slice < params.slices_per_process; ++slice){
+            if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first))
+                std::transform(paths.get_coordinate(slice,ptcls[i]).begin(),paths.get_coordinate(slice,ptcls[i]).end(),shift.begin(),std::back_inserter(new_coordinates[i*params.slices_per_process+slice]), std::plus<double>());
+        }
+    }
+    check(id, params, paths, rng, cos);
+    MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
+    num_attempts++;
+    if(ac_re){
+        num_accepts++;
+        for(int i = 0; i < ptcls.size(); ++i)
+            for(int slice = 0; slice < params.slices_per_process; ++slice)
+                if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first)){
+                    put_in_box(new_coordinates[i*params.slices_per_process+slice], params.box_size);
+                    paths.set_coordinate(slice, ptcls[i],new_coordinates[i*params.slices_per_process+slice], false);
+                }
+        paths.update_separations(new_distances);
+        if(!params.gce || params.potential != 2)
+            paths.update_potentials(new_potentials);
+        if(!params.gce){
+            for(int i = 0; i < ptcls.size(); ++i)
+                for(int slice = 0; slice < params.slices_per_process; ++slice)
+                    if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first))
+                        paths.calculate_kinetic_separations_start(slice, paths.get_coordinate_key(slice, ptcls[i]));
+            for(int i = 0; i < ptcls.size(); ++i)
+                for(int tslice = 0; tslice < params.total_slices; ++tslice){
+                    int slice_back = positive_modulo(tslice-params.multistep_dist, params.total_slices);
+                    if(tslice >= params.my_start && tslice <= params.my_end){
+                        int slice = tslice%params.slices_per_process;
+                        int send_rank = slice_back/params.slices_per_process;
+                        int send_tag = i*params.total_slices+slice_back;
+                        new_coordinates[i*params.slices_per_process+slice].resize(params.dimensions);
+                        int key = paths.get_coordinate_key(slice, ptcls[i]);
+                        if(send_rank != id){
+                            MPI_Send(&new_coordinates[i*params.slices_per_process+slice][0], params.dimensions, MPI_DOUBLE, send_rank, send_tag, local_comm);
+                            MPI_Send(&key, 1, MPI_INT, send_rank, params.total_slices*ptcls.size()+send_tag, local_comm);
+                        }
+                        else{
+                            keys_ahead[i*params.slices_per_process+slice_back%params.slices_per_process] = key;
+                            new_coordinates_ahead[i*params.slices_per_process+slice_back%params.slices_per_process] = new_coordinates[i*params.slices_per_process+slice];
+                            paths.set_kinetic_end(slice_back%params.slices_per_process, keys_ahead[i*params.slices_per_process+slice_back%params.slices_per_process], new_coordinates_ahead[i*params.slices_per_process+slice_back%params.slices_per_process], true);
+                        }
+                    }
+                    else if(slice_back >= params.my_start && slice_back <= params.my_end){
+                        int slice = slice_back%params.slices_per_process;
+                        int recv_rank = tslice/params.slices_per_process;
+                        int recv_tag = i*params.total_slices+slice_back;
+                        new_coordinates_ahead[i*params.slices_per_process+slice].resize(params.dimensions);
+                        MPI_Recv(&new_coordinates_ahead[i*params.slices_per_process+slice][0], params.dimensions, MPI_DOUBLE, recv_rank, recv_tag, local_comm, MPI_STATUS_IGNORE);
+                        MPI_Recv(&keys_ahead[i*params.slices_per_process+slice], 1, MPI_INT, recv_rank, params.total_slices*ptcls.size()+recv_tag, local_comm, MPI_STATUS_IGNORE);
+                        if(keys_ahead[i*params.slices_per_process+slice] != 0){
+                            paths.set_kinetic_end(slice, keys_ahead[i*params.slices_per_process+slice], new_coordinates_ahead[i*params.slices_per_process+slice], true);
+                        }
+                    }
+                }
+        }
+    }
+    ptcls.clear();
+    new_coordinates.clear();
+    new_coordinates_ahead.clear();
+    keys_ahead.clear();
+    new_distances.clear();
+    new_potentials.clear();
+    return 0;
+}
+
+void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    std::vector<double> old_action_p(params.slices_per_process,0);
+    std::vector<double> new_action_p(params.slices_per_process,0);
+    std::vector<double> dist(params.dimensions);
+    std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
+    if(params.potential == 2 && params.gce){
+        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
+        params.coulcut = sqrt(params.p)/params.alpha;
+        params.coulcut2 = pow(params.coulcut,2);
+        params.kcut = 2.*params.p/params.coulcut;
+        params.kcut2 = pow(params.kcut,2);
+        params.nmax = floor(params.coulcut/params.box_size);
+        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
+    }
+    for(int j = 0; j < ptcls.size(); ++j){
+        for(int i = 0; i < params.slices_per_process; ++i){
+            if(!(ptcls[j] == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcls[j] == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
+                switch(params.potential){
+                    case 0:
+                        new_action_p[i]+= potential_value_harmonic(inner_product(new_coordinates[j*params.slices_per_process+i].begin(),new_coordinates[j*params.slices_per_process+i].end(),new_coordinates[j*params.slices_per_process+i].begin(),0.0));
+                        old_action_p[i] = potential_value_harmonic(inner_product(paths.get_coordinate(i,ptcls[j]).begin(),paths.get_coordinate(i,ptcls[j]).end(),paths.get_coordinate(i,ptcls[j]).begin(),0.0));
+                        break;
+                    case 1:
+                        for(int ptcl = 0; ptcl < params.particles; ++ptcl){
+                            if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
+                                if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
+                                    old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
+                                    distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
+                                    double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
+                                    pot_val = potential_value_aziz(r);
+                                    new_action_p[i] += pot_val;
+                                    new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
+                                    new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), pot_val));
+                                }
+                            }
+                        }
+                        break;
+                    case 2:
+                        for(int ptcl = 0; ptcl < params.particles; ++ptcl){
+                            if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
+                                if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
+                                    if(params.gce)
+                                        old_action_p[i] += potential_value_coulomb(paths.get_separation_vector(i, ptcl, ptcls[j]), kVec, paths.charge[ptcl],paths.charge[ptcls[j]],  params, cos);
+                                    else
+                                        old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
+                                    double r = 0;
+                                    distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
+                                    r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
+                                    pot_val = potential_value_coulomb(dist, kVec,  paths.charge[ptcl],paths.charge[ptcls[j]], params, cos);
+                                    new_action_p[i] += pot_val;
+                                    new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
+                                    if(!params.gce)
+                                        new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), pot_val));
+                                }
+                            }
+                        }
                         break;
                 }
             }
@@ -296,8 +557,8 @@ Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local
     worm_on = true;
 }
 
-int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
-    Moves::attempt(id, params, paths, rng);
+int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
     int set = rng.randint(multisteps.size());
     bisection_info.clear();
@@ -319,6 +580,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
     new_coordinates_ahead.resize(params.slices_per_process);
     keys_ahead.resize(params.slices_per_process);
     new_distances.reserve(params.slices_per_process*params.particles);
+    new_potentials.reserve(params.slices_per_process*params.particles);
     int level = int(round(log2(bisection_info[1]-bisection_info[0])));
     int counter = 0;
     ptcl_slice.resize(params.slices_per_process,bisection_info[2]);
@@ -380,7 +642,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
         }
         --level;
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -392,6 +654,8 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
                 paths.set_coordinate(slice, ptcl_slice[slice],new_coordinates[slice], false);
             }
         paths.update_separations(new_distances);
+        if(!params.gce || params.potential != 2)
+            paths.update_potentials(new_potentials);
         if(!params.gce){
             for(int i = bisection_info[0]; i <= bisection_info[1]; ++i)
                 if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end){
@@ -435,15 +699,17 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
     new_coordinates_ahead.clear();
     keys_ahead.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
-    if(params.potential == 2){
+    double pot_val = 0.;
+    if(params.potential == 2 && params.gce){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
         params.coulcut2 = pow(params.coulcut,2);
@@ -455,46 +721,44 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
         int slice =i%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0;
-            double new_action_local = 0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).end(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),0.0));
                     new_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(),new_coordinates[slice%params.slices_per_process].end(),new_coordinates[slice%params.slices_per_process].begin(),0.0));
                     break;
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice[slice%params.slices_per_process]){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]));
+                                old_action_p[slice%params.slices_per_process]  += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]);
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                pot_val = potential_value_aziz(r);
+                                new_action_p[slice%params.slices_per_process]  += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), pot_val));
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice[slice%params.slices_per_process]){
-                                old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice[slice%params.slices_per_process]], params);
+                                if(params.gce)
+                                    old_action_p[slice%params.slices_per_process]  += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice[slice%params.slices_per_process]], params, cos);
+                                else
+                                    old_action_p[slice%params.slices_per_process]  += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]);
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice[slice%params.slices_per_process]],  params);
-#pragma omp critical
-                            new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
+                                pot_val = potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice[slice%params.slices_per_process]],  params, cos);
+                                new_action_p[slice%params.slices_per_process]  += pot_val;
+                                new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
+                                if(!params.gce)
+                                    new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), pot_val));
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] = old_action_local;
-                    new_action_p[slice%params.slices_per_process] = new_action_local;
                     break;
             }
         }
@@ -551,8 +815,8 @@ Permutation_Bisection::Permutation_Bisection(int& id, Parameters &params, MPI_Co
     worm_on = true;
 }
 
-int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng){
-    Moves::attempt(id, params, paths, rng);
+int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
     int set = rng.randint(multisteps.size());
     bisection_info.clear();
@@ -802,7 +1066,7 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
         }
         --level;
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -828,6 +1092,8 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
             }
         }
         paths.update_separations(new_distances);
+        if(!params.gce || params.potential != 2)
+            paths.update_potentials(new_potentials);
         if(!params.gce){
             p1 = sp1;
             p2 = sp2;
@@ -896,14 +1162,16 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
     new_coordinates_ahead.clear();
     keys_ahead.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -916,8 +1184,6 @@ void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG
     for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
         int slice =i%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0;
-            double new_action_local = 0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,ptcl_slice_1[slice%params.slices_per_process]).begin(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice_1[slice%params.slices_per_process]).end(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice_1[slice%params.slices_per_process]).begin(),0.0));
@@ -927,63 +1193,76 @@ void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG
                     break;
                 case 1:
                 {
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice_1[slice%params.slices_per_process] && ptcl != ptcl_slice_2[slice%params.slices_per_process]){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl_slice_1[slice%params.slices_per_process]));
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl_slice_2[slice%params.slices_per_process]));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice_1[slice%params.slices_per_process]);
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice_2[slice%params.slices_per_process]);
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                pot_val = potential_value_aziz(r);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), dist, r));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), pot_val));
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process+params.slices_per_process], dist, params.box_size);
                                 r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                pot_val = potential_value_aziz(r);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process])), dist, r));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process])), pot_val));
                             }
                         }
                     }
-                    old_action_local += 2*potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process], ptcl_slice_1[slice%params.slices_per_process]));
+                    old_action_p[slice%params.slices_per_process] += 2*potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process], ptcl_slice_1[slice%params.slices_per_process]));
                     distance(new_coordinates[slice%params.slices_per_process+params.slices_per_process], new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                     double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                    new_action_local += 2*potential_value_aziz(r);
+                    pot_val = potential_value_aziz(r);
+                    new_action_p[slice%params.slices_per_process] += 2*pot_val;
                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process]),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), dist, r));
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
+                    new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process]),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), pot_val));
                     break;
                 }
                 case 2:
                 {
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local, old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice_1[slice%params.slices_per_process] && ptcl != ptcl_slice_2[slice%params.slices_per_process]){
-                                old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice_1[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params);
-                                old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice_2[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice_2[slice%params.slices_per_process]], params);
+                                if(params.gce){
+                                    old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice_1[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params, cos);
+                                    old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice_2[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice_2[slice%params.slices_per_process]], params, cos);
+                                }
+                                else{
+                                    old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice_1[slice%params.slices_per_process]);
+                                    old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice_2[slice%params.slices_per_process]);
+                                }
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice_1[slice%params.slices_per_process]],  params);
-#pragma omp critical
+                                pot_val = potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice_1[slice%params.slices_per_process]],  params, cos);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), dist, r));
+                                if(!params.gce)
+                                    new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), pot_val));
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process+params.slices_per_process], dist, params.box_size);
                                 r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice_2[slice%params.slices_per_process]],  params);
-#pragma omp critical
+                                pot_val = potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice_2[slice%params.slices_per_process]],  params, cos);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process])), dist, r));
-
+                                if(!params.gce)
+                                    new_potentials.push_back(std::tuple<std::pair<int,int>, double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process])), pot_val));
                             }
                         }
                     }
-                    old_action_local += 2*potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process], ptcl_slice_1[slice%params.slices_per_process]), kVec,  paths.charge[ptcl_slice_2[slice%params.slices_per_process]],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params);
+                    if(params.gce)
+                        old_action_p[slice%params.slices_per_process] += 2*potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process], ptcl_slice_1[slice%params.slices_per_process]), kVec,  paths.charge[ptcl_slice_2[slice%params.slices_per_process]],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params, cos);
+                    else
+                        old_action_p[slice%params.slices_per_process] += 2*paths.get_potential(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process], ptcl_slice_1[slice%params.slices_per_process]);
                     distance(new_coordinates[slice%params.slices_per_process+params.slices_per_process], new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                     double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                    new_action_local += 2*potential_value_coulomb(dist, kVec,paths.charge[ptcl_slice_2[slice%params.slices_per_process]],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params);
+                    pot_val = potential_value_coulomb(dist, kVec,paths.charge[ptcl_slice_2[slice%params.slices_per_process]],paths.charge[ptcl_slice_1[slice%params.slices_per_process]], params, cos);
+                    new_action_p[slice%params.slices_per_process] += 2*pot_val;
                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process]),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), dist, r));
-                    old_action_p[slice%params.slices_per_process] = old_action_local;
-                    new_action_p[slice%params.slices_per_process] = new_action_local;
+                    if(!params.gce)
+                        new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_1[slice%params.slices_per_process]),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice_2[slice%params.slices_per_process])), pot_val));
                     break;
                 }
             }
@@ -1020,14 +1299,15 @@ void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG
     }
 }
 
-int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(params.worm_on) return 0;
     if(params.particles == 0) return 0;
-    Moves::attempt(id, params, paths, rng);    open_info.push_back(rng.randint(params.particles));
+    Moves::attempt(id, params, paths, rng, cos);
+    open_info.push_back(rng.randint(params.particles));
     open_info.push_back(rng.randint(params.total_slices));
     open_info.push_back(rng.randint(params.Mbar)+1);
     MPI_Bcast(&open_info[0], 3, MPI_INT, 0, local_comm);
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(open_info[1]-open_info[2] < 0){
@@ -1041,7 +1321,7 @@ int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     return 0;
 }
 
-void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> first_part(params.dimensions,0);
     std::vector<double> second_part(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
@@ -1063,30 +1343,25 @@ void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng){
         int part = open_info[0];
         if(i < 0) part = paths.backward_connects[open_info[0]];
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,part).begin(),paths.get_coordinate(slice%params.slices_per_process,part).end(),paths.get_coordinate(slice%params.slices_per_process,part).begin(),0.0));
                     break;
                 case 1:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != part){
-                                 old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, part));
+                                 old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, part);
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
                 case 2:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process,  ptcl, part), kVec, paths.charge[ptcl], paths.charge[part], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process,  ptcl, part), kVec, paths.charge[ptcl], paths.charge[part], params, cos);
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
             }
         }
@@ -1145,13 +1420,14 @@ void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     int distance = (params.worm_head.first - params.worm_tail.first + params.total_slices)%params.total_slices;
     if(distance > params.Mbar + 1 || distance == 0) return 1;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     new_coordinates.resize(params.slices_per_process);
     new_distances.resize(params.slices_per_process);
+    new_potentials.resize(params.slices_per_process);
     std::vector<double> end(params.dimensions,0);
     std::vector<double> start(params.dimensions,0);
     if(params.worm_head.first >= params.my_start && params.worm_head.first <= params.my_end){
@@ -1191,25 +1467,27 @@ int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
     if(distance == 1 && params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end)
         new_coordinates[params.worm_tail.first%params.slices_per_process] = paths.get_coordinate(params.worm_tail.first%params.slices_per_process,start_col);
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
-        paths.close_worm(params, new_coordinates, new_distances);
+        paths.close_worm(params, new_coordinates, new_distances, new_potentials);
     }
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     int disty = (params.worm_head.first - params.worm_tail.first + params.total_slices)%params.total_slices;
     std::vector<double> first_part(params.dimensions,0);
     std::vector<double> second_part(params.dimensions,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -1223,41 +1501,35 @@ void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int i = 0; i <= disty; ++i){
         int slice = (start_slice+i)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double new_action_local = 0.0;
             new_distances[slice%params.slices_per_process].reserve(params.particles);
             switch(params.potential){
                 case 0:
                     new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(), 0.0));
                     break;
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                            pot_val = potential_value_aziz(r);
+                            new_action_p[slice%params.slices_per_process] += pot_val;
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
+                            new_potentials[slice%params.slices_per_process].push_back(std::tuple<int, double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), pot_val));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl],paths.charge[params.worm_tail.second], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl],paths.charge[params.worm_tail.second], params, cos);
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     dist = std::vector<double>(params.dimensions, 0);
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_tail.second],paths.charge[params.worm_tail.second], params);
+                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_tail.second],paths.charge[params.worm_tail.second], params, cos);
                     break;
-
             }
         }
     }
@@ -1306,9 +1578,9 @@ void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     insert_info.push_back(rng.randint(params.total_slices));
     insert_info.push_back(rng.randint(params.Mbar)+1);
     if(params.charged)
@@ -1318,6 +1590,7 @@ int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     MPI_Bcast(&insert_info[0], 3, MPI_INT, 0, local_comm);
     new_coordinates.resize(params.slices_per_process);
     new_distances.resize(params.slices_per_process);
+    new_potentials.resize(params.slices_per_process);
     int start_slice = insert_info[0];
     if(start_slice >= params.my_start && start_slice <= params.my_end){
         new_coordinates[start_slice%params.slices_per_process].resize(params.dimensions);
@@ -1345,7 +1618,7 @@ int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
                 MPI_Send(&new_coordinates[slicem1%params.slices_per_process][0], params.dimensions,MPI_DOUBLE,slice/params.slices_per_process, i, local_comm);
     }
     ++num_attempts;
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     if(ac_re){
         ++num_accepts;
@@ -1353,22 +1626,24 @@ int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             int slice = (insert_info[0]+i)%params.total_slices;
             if(slice >= params.my_start && slice <= params.my_end){
                 put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-                paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process], new_distances[slice%params.slices_per_process], insert_info[0], insert_info[2]);
+                paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process], new_distances[slice%params.slices_per_process], new_potentials[slice%params.slices_per_process], insert_info[0], insert_info[2]);
             }
             else
-                paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0), insert_info[0], insert_info[2]);
+                paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0), std::vector<std::tuple<int, double> >(0), insert_info[0], insert_info[2]);
         }
     }
     insert_info.clear();
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -1382,39 +1657,34 @@ void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int i = 0; i <= insert_info[1]; ++i){
         int slice = (start_slice+i)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double new_action_local = 0.0;
             new_distances[slice%params.slices_per_process].reserve(params.particles);
             switch(params.potential){
                 case 0:
                     new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(), 0.0));
                     break;
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl),new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r =sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                            pot_val = potential_value_aziz(r);
+                            new_action_p[slice%params.slices_per_process] += pot_val;
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
+                            new_potentials[slice%params.slices_per_process].push_back(std::tuple<int ,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), pot_val));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl),new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r =sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], insert_info[2], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], insert_info[2], params, cos);
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
                         }
                     }
                     dist = std::vector<double>(params.dimensions,0);
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, insert_info[2], insert_info[2], params);
+                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, insert_info[2], insert_info[2], params, cos);
                     break;
             }
         }
@@ -1440,11 +1710,11 @@ void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Remove::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Remove::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     if(params.worm_length > params.Mbar + 1) return 1;
-    Moves::attempt(id, params, paths, rng);
-    check(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1455,7 +1725,7 @@ int Remove::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     return 0;
 }
 
-void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
     if(params.potential == 2){
@@ -1471,30 +1741,25 @@ void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     int column = params.worm_head.second;
     for(int i = 0; i < params.worm_length; ++i){
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0.0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,column).begin(),paths.get_coordinate(slice%params.slices_per_process,column).end(),paths.get_coordinate(slice%params.slices_per_process,column).begin(),0.0));
                     break;
                 case 1:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(paths.broken[ptcl])){
                             if(ptcl != column){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, column));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, column);
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
                 case 2:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, column), kVec, paths.charge[ptcl], paths.charge[column], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, column), kVec, paths.charge[ptcl], paths.charge[column], params, cos);
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
             }
         }
@@ -1528,13 +1793,14 @@ void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
     MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
     new_coordinates.resize(params.slices_per_process);
     new_distances.resize(params.slices_per_process);
+    new_potentials.resize(params.slices_per_process);
     for(int i = 1; i <= M; ++i){
         int slice = (params.worm_tail.first+i)%params.total_slices;
         int slicem1 = (params.worm_tail.first+i-1)%params.total_slices;
@@ -1557,7 +1823,7 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             MPI_Send(&new_coordinates[slicem1%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slice/params.slices_per_process,i, local_comm);
         }
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1567,21 +1833,23 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             int slice = (start_slice+i)%params.total_slices;
             if(slice >= params.my_start && slice <= params.my_end){
                 put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-                paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process]);
+                paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
             }
             else
-                paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0));
+                paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0), std::vector<std::tuple<int, double> >(0));
         }
     }
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -1595,39 +1863,34 @@ void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int i = 0; i <= M; ++i){
         int slice = (start_slice+i)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double new_action_local = 0;
             new_distances[slice%params.slices_per_process].reserve(params.particles);
             switch(params.potential){
                 case 0:
                     new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(), 0.0));
                     break;
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local  += potential_value_aziz(r);
-#pragma omp critical
+                            pot_val = potential_value_aziz(r);
+                            new_action_p[slice%params.slices_per_process]  += pot_val;
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
+                            new_potentials[slice%params.slices_per_process].push_back(std::tuple<int,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), pot_val));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_tail.second], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_tail.second], params, cos);
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     dist = std::vector<double>(params.dimensions,0);
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_tail.second], paths.charge[params.worm_tail.second], params);
+                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_tail.second], paths.charge[params.worm_tail.second], params, cos);
                     break;
             }
         }
@@ -1653,13 +1916,14 @@ void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
     MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
     new_coordinates.resize(params.slices_per_process);
     new_distances.resize(params.slices_per_process);
+    new_potentials.resize(params.slices_per_process);
     for(int i = 1; i <= M; ++i){
         int slice = (params.worm_head.first-i+params.total_slices)%params.total_slices;
         int slicep1 = (params.worm_head.first-i+1+params.total_slices)%params.total_slices;
@@ -1682,7 +1946,7 @@ int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             MPI_Send(&new_coordinates[slicep1%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slice/params.slices_per_process,i, local_comm);
         }
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1692,22 +1956,24 @@ int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             int slice = (start_slice-i+params.total_slices)%params.total_slices;
             if(slice >= params.my_start && slice <= params.my_end){
                 put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-                paths.worm_advance_head(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process]);
+                paths.worm_advance_head(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
             }
             else
-                paths.worm_advance_head(params, std::vector<double>(0),std::vector<std::tuple<int, std::vector<double>, double> >(0));
+                paths.worm_advance_head(params, std::vector<double>(0),std::vector<std::tuple<int, std::vector<double>, double> >(0),std::vector<std::tuple<int, double> >(0));
         }
     }
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     int start_slice = params.worm_head.first;
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
+    double pot_val = 0.;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -1720,39 +1986,34 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     for(int i = 0; i <= M; ++i){
         int slice = (start_slice-i+params.total_slices)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            double new_action_local = 0;
             new_distances[slice%params.slices_per_process].reserve(params.particles);
             switch(params.potential){
                 case 0:
                     new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(), 0.0));
                     break;
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                            pot_val = potential_value_aziz(r);
+                            new_action_p[slice%params.slices_per_process] += pot_val;
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
+                            new_potentials[slice%params.slices_per_process].push_back(std::tuple<int,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), pot_val));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_head.second], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_head.second], params, cos);
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
                         }
                     }
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     dist = std::vector<double>(params.dimensions,0);
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_head.second], paths.charge[params.worm_head.second], params);
+                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_head.second], paths.charge[params.worm_head.second], params, cos);
                     break;
             }
         }
@@ -1778,14 +2039,14 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
     if(M >= params.worm_length)
         M = params.worm_length;
     MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1796,7 +2057,7 @@ int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     return 0;
 }
 
-void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
     if(params.potential == 2){
@@ -1815,30 +2076,25 @@ void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
         if(start_slice+i == params.total_slices)
             col = paths.forward_connects[col];
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,col).begin(),paths.get_coordinate(slice%params.slices_per_process,col).end(),paths.get_coordinate(slice%params.slices_per_process,col).begin(),0.0));
                     break;
                 case 1:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != col){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, col));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, col);
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
                 case 2:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, col), kVec, paths.charge[ptcl], paths.charge[col], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, col), kVec, paths.charge[ptcl], paths.charge[col], params, cos);
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
             }
         }
@@ -1864,13 +2120,13 @@ void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Recede_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Recede_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
     if(M > params.worm_length) M = params.worm_length;
     MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1881,7 +2137,7 @@ int Recede_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     return 0;
 }
 
-void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
     if(params.potential == 2){
@@ -1900,30 +2156,25 @@ void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
         if(start_slice - i == -1)
             col = paths.backward_connects[col];
         if(slice >= params.my_start && slice <= params.my_end){
-            double old_action_local = 0;
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,col).begin(),paths.get_coordinate(slice%params.slices_per_process,col).end(),paths.get_coordinate(slice%params.slices_per_process,col).begin(),0.0));
                     break;
                 case 1:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != col){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, col));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, col);
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
                 case 2:
-#pragma omp parallel for reduction (+:old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, col), kVec, paths.charge[ptcl], paths.charge[col], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, col), kVec, paths.charge[ptcl], paths.charge[col], params, cos);
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
                     break;
             }
         }
@@ -1949,9 +2200,9 @@ void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     int start_slice = params.worm_tail.first;
     int swap_slice = (start_slice + params.Mbar) % params.total_slices;
     keep_going = true;
@@ -2119,6 +2370,7 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     MPI_Bcast(&end[0], params.dimensions, MPI_DOUBLE, swap_slice/params.slices_per_process, local_comm);
     new_coordinates.resize(params.slices_per_process);
     new_distances.reserve(params.Mbar*params.particles);
+    new_potentials.reserve(params.Mbar*params.particles);
     for(int i = 1; i < params.Mbar; ++i){
         int slice = (start_slice+i)%params.total_slices;
         int slicem1 = (start_slice+i-1+params.total_slices)%params.total_slices;
@@ -2148,24 +2400,28 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             }
         }
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
         paths.swap_into_tail(params, choice, params.Mbar, new_coordinates);
         paths.update_separations(new_distances);
+        if(params.potential != 2)
+            paths.update_potentials(new_potentials);
     }
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
     std::vector<double> dist(params.dimensions);
+    double pot_val = 0.0;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -2182,8 +2438,6 @@ void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
         if(slice >= params.my_start && slice <= params.my_end){
             if(start_slice+params.Mbar >= params.total_slices && start_slice+i < params.total_slices)
                 ptcl1 = paths.backward_connects[ptcl1];
-            double old_action_local = 0;
-            double new_action_local = 0;
             switch(params.potential){
                 case 0:
                 {
@@ -2192,48 +2446,42 @@ void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
                     break;
                 }
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction(+:old_action_local,new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(i != 0 && ptcl != ptcl1){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl1));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                pot_val = potential_value_aziz(r);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)), pot_val));
                             }
                             else if(i == 0){
                                 if(ptcl != ptcl1)
-                                    old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl1));
-                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
+                                    old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
+//                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
+//                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                 if(ptcl != params.worm_tail.second)
-                                    new_action_local += potential_value_aziz(r);
+                                    new_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, params.worm_tail.second);
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction(+:old_action_local,new_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl1), kVec, paths.charge[ptcl], paths.charge[ptcl1], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl1), kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl1], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
                             new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
                         }
                     }
                     if(i != 0 && i != params.Mbar){
                         dist = std::vector<double>(params.dimensions, 0);
-                        new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl1], paths.charge[ptcl1], params);
+                        new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl1], paths.charge[ptcl1], params, cos);
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
             }
         }
@@ -2268,9 +2516,9 @@ void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng){
     }
 }
 
-int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
+int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng);
+    Moves::attempt(id, params, paths, rng, cos);
     int start_slice = params.worm_head.first;
     int swap_slice = (start_slice - params.Mbar + params.total_slices) % params.total_slices;
     keep_going = true;
@@ -2438,6 +2686,7 @@ int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
     MPI_Bcast(&end[0], params.dimensions, MPI_DOUBLE, swap_slice/params.slices_per_process, local_comm);
     new_coordinates.resize(params.slices_per_process);
     new_distances.reserve(params.Mbar*params.particles);
+    new_potentials.reserve(params.Mbar*params.particles);
     if(swap_slice >= params.my_start && swap_slice <= params.my_end)
         new_coordinates[swap_slice%params.slices_per_process] = end;
     for(int i = 1; i < params.Mbar; ++i){
@@ -2467,24 +2716,28 @@ int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng){
             }
         }
     }
-    check(id, params, paths, rng);
+    check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
         paths.swap_into_head(params, choice, params.Mbar, new_coordinates);
         paths.update_separations(new_distances);
+        if(params.potential != 2)
+            paths.update_potentials(new_potentials);
     }
     new_coordinates.clear();
     new_distances.clear();
+    new_potentials.clear();
     return 0;
 }
 
-void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
+void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions,0);
+    double pot_val = 0.0;
     if(params.potential == 2){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -2501,8 +2754,6 @@ void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
         if(slice >= params.my_start && slice <= params.my_end){
             if(start_slice-params.Mbar < 0 && start_slice-i >= 0)
                 ptcl1 = paths.forward_connects[ptcl1];
-            double old_action_local = 0;
-            double new_action_local = 0;
             switch(params.potential){
                 case 0:
                 {
@@ -2511,47 +2762,43 @@ void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng){
                     break;
                 }
                 case 1:
-#pragma omp parallel for firstprivate(dist) reduction(+:new_action_local,old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(i != 0 && ptcl != ptcl1){
-                                old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl1));
+                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                new_action_local += potential_value_aziz(r);
-#pragma omp critical
+                                pot_val = potential_value_aziz(r);
+                                new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  pot_val));
                             }
                             else if(i == 0){
                                 if(ptcl != ptcl1)
-                                    old_action_local += potential_value_aziz(paths.get_separation(slice%params.slices_per_process, ptcl, ptcl1));
-                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                                if(ptcl != params.worm_head.second)
-                                    new_action_local += potential_value_aziz(sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0)));
+                                    old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
+//                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
+//                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
+                                if(ptcl != params.worm_head.second){
+                                    new_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, params.worm_head.second);
+                                }
                             }
                         }
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
                 case 2:
-#pragma omp parallel for firstprivate(dist) reduction(+:new_action_local,old_action_local)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_local += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl1), kVec, paths.charge[ptcl], paths.charge[ptcl1], params);
+                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl1), kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl1], params);
-#pragma omp critical
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
                             new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
                         }
                     }
                     if(i != 0 && i != params.Mbar){
                         dist = std::vector<double>(params.dimensions, 0);
-                        new_action_local += potential_value_coulomb(dist, kVec, paths.charge[ptcl1], paths.charge[ptcl1], params);
+                        new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl1], paths.charge[ptcl1], params, cos);
                     }
-                    old_action_p[slice%params.slices_per_process] += old_action_local;
-                    new_action_p[slice%params.slices_per_process] += new_action_local;
                     break;
             }
         }

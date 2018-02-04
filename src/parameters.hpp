@@ -238,7 +238,21 @@ public:
                 charges = 2;
                 boson = true;
                 if(per_bound_cond){
-                    box_size = pow(particles,1./dimensions);
+                    box_size = pow(particles/2.,1./dimensions);
+                    volume = pow(box_size, 3);
+                    volume2 = pow(volume, 2);
+                    kfac = 2*M_PI/box_size;
+                }
+                potential = 2;
+            }	
+            else if((*param_it).second == "scaled_monopole_liquid"){
+                particle_type = (*param_it).second;
+                lambda = 0.5;
+                charged = true;
+                charges = 2;
+                boson = true;
+                if(per_bound_cond){
+                    box_size = std::pow((1./(3.191667129161336*0.557/std::pow(std::log(temperature/3.45*2.69),2.)*std::pow(temperature/3.45,3.))*particles/2.),1./3.);
                     volume = pow(box_size, 3);
                     volume2 = pow(volume, 2);
                     kfac = 2*M_PI/box_size;

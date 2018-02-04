@@ -192,7 +192,6 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                         pe += potential_value_harmonic(inner_product(all_locations[s][p1].begin(), all_locations[s][p1].end(), all_locations[s][p1].begin(), 0.0));
                         break;
                     case 1:
-#pragma omp parallel for firstprivate(dist) reduction (+:pe)
                         for (int p2 = p1+1; p2 < params.particles; ++p2){
                             distance(all_locations[s][p2] , all_locations[s][p1],dist, params.box_size);
                             double pd = sqrt(inner_product(dist.begin(),dist.end(),dist.begin(),0.0));
@@ -200,7 +199,6 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                         }
                         break;
                     case 2:
-#pragma omp parallel for firstprivate(dist) reduction (+:pe)
                         for (int p2 = 0; p2 < params.particles; ++p2){
                             distance(all_locations[s][p2] , all_locations[s][p1],dist, params.box_size);
                             pe += potential_value_coulomb(dist, paths.charge[p2], paths.charge[p1], params);
@@ -266,7 +264,6 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
         double E2 = 0;
         double E3fac = 1./(2*params.total_slices);
         double E3 = 0;
-#pragma omp parallel for reduction(+:E2)
         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
             for(int slice = 0; slice < params.total_slices; ++slice){
                 std::vector<double> v1;
@@ -299,7 +296,6 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                         }
                         break;
                     case 1:
-#pragma omp parallel for firstprivate(dist) reduction(+:E3)
                         for(int p2 = 0; p2 < params.particles; ++p2)
                             if(p1 != p2){
                                 distance(all_locations[s][p2],all_locations[s][p1],dist, params.box_size);
@@ -315,7 +311,6 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                             }
                         break;
                     case 2:
-#pragma omp parallel for firstprivate(dist) reduction(+:E3)
                         for(int p2 = 0; p2 < params.particles; ++p2){
                             distance(all_locations[s][p2],all_locations[s][p1],dist, params.box_size);
                             std::vector<double> gradVvec = grad_potential_value_coulomb(dist, paths.charge[p2], paths.charge[p1], params);

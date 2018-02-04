@@ -194,6 +194,15 @@ public:
         return neighboring_particles;
     }
     
+    std::vector<int> get_cell_mates(int slice, const std::vector<double>& position){
+        size_t grid_key = get_grid_key(position);
+        std::vector<int> neighboring_particles(0);
+        auto found = cell_members[slice].find(grid_key);
+        if(found != cell_members[slice].end())
+            return found->second;
+        return neighboring_particles;
+    }
+    
     bool are_nearest_neighbors(const std::vector<double>& position1, const std::vector<double>& position2){
         size_t grid_key_1 = get_grid_key(position1);
         size_t grid_key_2 = get_grid_key(position2);
@@ -283,6 +292,8 @@ public:
                 distance_vectors.erase(key_bwd);
                 distances.erase(key_fwd);
                 distances.erase(key_bwd);
+                potentials.erase(key_fwd);
+                potentials.erase(key_bwd);
             }
             locations[slice].erase(i);
         }
@@ -308,6 +319,15 @@ public:
         }
     }
     
+    void update_potentials(std::vector<std::tuple<std::pair<int,int>, double> >& new_potentials){
+        for(auto &n : new_potentials){
+            size_t key_fwd = pair_hash(std::get<0>(n));
+            size_t key_bwd = pair_hash(std::pair<int, int>(std::get<0>(n).second,std::get<0>(n).first));
+            potentials[key_fwd] = std::get<1>(n);
+            potentials[key_bwd] = std::get<1>(n);
+        }
+    }
+    
     void calculate_separations(int slice, int ptcl){
         auto i = locations[slice].find(ptcl);
         if(i != locations[slice].end()){
@@ -330,15 +350,22 @@ public:
         return distance_vectors[key];
     }
     
-    double get_distance(int key1, int key2){
+    double& get_distance(int key1, int key2){
         size_t key = pair_hash(std::pair<int, int>(key1,key2));
         return distances[key];
     }
+    
+    double& get_potential(int key1, int key2){
+        size_t key = pair_hash(std::pair<int, int>(key1,key2));
+        return potentials[key];
+    }
+
     
 private:
     std::vector<std::unordered_map<int, std::vector<double> > > locations;
     std::unordered_map<size_t, std::vector<double> > distance_vectors;
     std::unordered_map<size_t, double> distances;
+    std::unordered_map<size_t, double> potentials;
     double box_size;
 };
 

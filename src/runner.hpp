@@ -24,7 +24,7 @@ public:
     Runner(int &id, Parameters &params, MPI_Comm &local);
     ~Runner(){};
     void run(int &id, Parameters &params, IO &writer);
-    void equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng);
+    void equilibrate(int &id, Parameters &params, Paths &paths, RNG &rng, Cos& cos);
     
 private:
     boost::ptr_vector<Moves> moves;

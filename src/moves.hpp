@@ -30,7 +30,7 @@ public:
     virtual double get_delta(){return 0;}
     virtual void shift_delta(double shift){}
     virtual void set_delta(double shift){}
-    virtual int attempt(int &id,Parameters &params, Paths &paths, RNG &rng);
+    virtual int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     bool check();
     void accept();
     void reject();
@@ -39,6 +39,8 @@ public:
     void reset_acceptance_counters();
     std::string get_move_name(){return move_name;}
     std::pair<bool, bool> get_move_type(){return std::pair<bool, bool>(worm_off, worm_on);}
+    
+    void initialize_potential_table(int &id, Parameters &params,Paths &paths, Cos &cos);
 };
 
 
@@ -51,6 +53,8 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
+
 
 public:
     Center_of_Mass(int &id, Parameters &params, MPI_Comm &local);
@@ -58,7 +62,7 @@ public:
     
     Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
     
-    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng, Cos &cos);
     void shift_delta(double shift){
         delta += shift*delta;
     }
@@ -69,7 +73,41 @@ public:
         return delta;
     }
     
-    void check(int &id, Parameters &params,Paths &paths, RNG &rng);
+    void check(int &id, Parameters &params,Paths &paths, RNG &rng, Cos &cos);
+    void accept();
+    void reject();
+};
+
+class Pair_Center_of_Mass : public Moves{
+    private:
+    double delta;
+    std::vector<int> ptcls;
+    bool ac_re;
+    std::vector<std::vector<double> > new_coordinates;
+    std::vector<std::vector<double> > new_coordinates_ahead;
+    std::vector<int> keys_ahead;
+    std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
+    
+    
+    public:
+    Pair_Center_of_Mass(int &id, Parameters &params, MPI_Comm &local);
+    ~Pair_Center_of_Mass(){};
+    
+    Pair_Center_of_Mass* clone() const{return new Pair_Center_of_Mass(*this);}
+    
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng, Cos &cos);
+    void shift_delta(double shift){
+        delta += shift*delta;
+    }
+    void set_delta(double shift){
+        delta = shift;
+    }
+    double get_delta(){
+        return delta;
+    }
+    
+    void check(int &id, Parameters &params,Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
 };
@@ -86,6 +124,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
 
 public:
     Bisection(int &id, Parameters &params,MPI_Comm &local);
@@ -93,8 +132,8 @@ public:
     
     Bisection* clone() const{return new Bisection(*this);}
     
-    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params,Paths &paths,  RNG &rng);
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params,Paths &paths,  RNG &rng, Cos &cos);
     void accept();
     void reject();
 };
@@ -114,6 +153,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
     
 public:
     Permutation_Bisection(int &id, Parameters &params,MPI_Comm &local);
@@ -121,8 +161,8 @@ public:
     
     Permutation_Bisection* clone() const{return new Permutation_Bisection(*this);}
     
-    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params,Paths &paths,  RNG &rng);
+    int attempt(int &id,Parameters &params,Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params,Paths &paths,  RNG &rng, Cos &cos);
     void accept();
     void reject();
 };
@@ -142,8 +182,8 @@ public:
     
     Open* clone() const{return new Open(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -156,6 +196,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
+    std::vector<std::vector<std::tuple<int, double> > > new_potentials;
     
 public:
     Close(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Close";
@@ -166,8 +207,8 @@ public:
     
     Close* clone() const{return new Close(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -182,6 +223,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
+    std::vector<std::vector<std::tuple<int, double> > > new_potentials;
     
 public:
     Insert(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Insert";
@@ -192,8 +234,8 @@ public:
     
     Insert* clone() const{return new Insert(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -214,8 +256,8 @@ public:
     
     Remove* clone() const{return new Remove(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -229,6 +271,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
+    std::vector<std::vector<std::tuple<int, double> > > new_potentials;
     
 public:
     Advance_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Advance Tail";
@@ -239,8 +282,8 @@ public:
     
     Advance_Tail* clone() const{return new Advance_Tail(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -255,6 +298,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
+    std::vector<std::vector<std::tuple<int, double> > > new_potentials;
     
 public:
     Advance_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Advance Head";
@@ -265,8 +309,8 @@ public:
     
     Advance_Head* clone() const{return new Advance_Head(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -287,8 +331,8 @@ public:
     
     Recede_Head* clone() const{return new Recede_Head(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -309,8 +353,8 @@ public:
     
     Recede_Tail* clone() const{return new Recede_Tail(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -327,6 +371,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
     
 public:
     Swap_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Swap Tail";
@@ -337,8 +382,8 @@ public:
     
     Swap_Tail* clone() const{return new Swap_Tail(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
     
@@ -354,6 +399,7 @@ private:
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
     std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
     
 public:
     Swap_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Swap Head";        worm_off = false;
@@ -363,8 +409,8 @@ public:
     
     Swap_Head* clone() const{return new Swap_Head(*this);}
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng);
+    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
+    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void accept();
     void reject();
 };

@@ -152,9 +152,11 @@ void IO::write_parameters(Parameters& params){
     f5 << "Coupling, " << params.coupling << std::endl;
 }
 
-void IO::write_equil_parameters(Parameters& params, double delta){
+void IO::write_equil_parameters(Parameters& params, double delta, double delta_pair){
     f1 << "[Equilibration Parameters]\n";
     f1 << std::left << std::setw(25) << "Cent. of Mass delta" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << delta << "\n";
+    if(delta_pair != 0)
+        f1 << std::left << std::setw(25) << "Pair Cent. of Mass delta" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << delta_pair << "\n";
     f1 << std::left << std::setw(25) << "C0" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.C0 << "\n";
     f1 << std::left << std::setw(25) << "µ" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << params.mu << "\n";
     f1 << std::endl;
