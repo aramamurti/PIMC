@@ -326,7 +326,3 @@ def preprocess_data(folder_path,particles, trial = 1):
     num_splits = int(np.floor(len(data.loc[data.temperature==data.temperature.unique()[0]])/nsamps))
     avg_data = split_average(data, num_splits)
     return avg_data
-
-
-
-

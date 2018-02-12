@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-    Created on Mon Jul 27 15:59:10 2015
-    
-    @author: adith
-    """
-
-
 ####  STILL PRELIMINARY, NEEDS MORE WORK ####
 
 
