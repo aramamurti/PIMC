@@ -244,13 +244,13 @@ def visualize_correlations(data):
         for j in range(len(ax[i])):
             ax[i,j].scatter(data[str(i+2)],data[str(j+2)],c=cdat,edgecolor = 'black')
             ax[i,j].annotate(xycoords = 'axes fraction', xy= (0.05,.85), s ='('+str(i+2)+','+str(j+2)+')')
-    plt.subplots_adjust(wspace=.5, hspace=.5)
+    plt.subplots_adjust(wspace=.35, hspace=.35)
 
     plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0)
     plt.show()
 
     correlation = data.corr()
-    plt.figure(figsize=(30,30))
+    plt.figure(figsize=(25,25))
     cbar_ax = fig.add_axes([.905, .3, .05, .3])
     sns.heatmap(correlation, vmin = -1, vmax=1, cbar_ax = cbar_ax, square=True,annot=True,cmap='viridis')
 
@@ -265,7 +265,7 @@ def average_data(data):
     return avgd_data
 
 
-def predict_temperature(folder_path, model, particles, tr_data):
+def predict_temperature(folder_path, model, particles, tr_data, num_parts = 1):
     test = pd.read_csv(folder_path+'combined_data/test_data.csv')
     for i in range(1,particles+1):
         test[str(i)] = test[str(i)]/particles
@@ -273,7 +273,13 @@ def predict_temperature(folder_path, model, particles, tr_data):
     test['wy'] = test['wy'].abs()
     test['wz'] = test['wz'].abs()
     
-    test = average_data(test)
+    test_data_avgd = []
+    for split in range(num_parts):
+        split_data = test.sample(frac=1/(num_parts-split))
+        test = test.drop(split_data.index)
+        test_data_avgd.append(average_data(split_data))
+    test = pd.concat(test_data_avgd)
+    test.reset_index(drop=True,inplace=True)
 
     test_X2 = test[tr_data]
     predicted_ttc = model.predict(test_X2)
@@ -284,9 +290,9 @@ def predict_temperature(folder_path, model, particles, tr_data):
 def scatter_temperature(dfsp):
     for dfp in dfsp:
         plotting = []
-        temps = dfp[1].temperature.unique()
+        temps = np.round(dfp[1].temperature.unique(),1)
         for temp in temps:
-            plotting.append([temp,dfp[1].loc[dfp[1].temperature == temp].TTc.mean()])
+            plotting.append([temp,dfp[1].loc[np.round(dfp[1].temperature,1) == temp].TTc.mean()])
         plotting = np.array(plotting)
         plt.scatter(plotting[:,0],plotting[:,1],label = dfp[0])
         plt.legend()
