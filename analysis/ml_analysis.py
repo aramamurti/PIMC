@@ -32,7 +32,9 @@ from scipy.optimize import brentq
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 
-def create_input(folder_path):
+
+### This method creates the training file for the models.
+def create_input(folder_path, num_rows = -1):
 
     def represents_int(s):
         try:
@@ -64,6 +66,7 @@ def create_input(folder_path):
     else:
         sys.exit()
 
+
     prefix = folder_path+'{}/output/'.format(1)
     temps = []
     for num in range(0,num_temps):
@@ -91,14 +94,22 @@ def create_input(folder_path):
             winding = winding.drop(columns = 0)
             winding.columns = ['wx','wy','wz']
             winding['w2'] = (winding['wx']**2+winding['wy']**2+winding['wz']**2)/3
-            if(temp_num == 0 and trial == 0):
-                trial_data = pd.concat([temppc,winding],axis = 1)
+            if(trial == 0):
+                trial_data_temp = pd.concat([temppc,winding],axis = 1)
             else:
-                trial_data = pd.concat([trial_data,pd.concat([temppc,winding],axis = 1)])
+                trial_data_temp = pd.concat([trial_data_temp,pd.concat([temppc,winding],axis = 1)])
+            if(num_rows > 0):
+                trial_data_temp = trial_data_temp.head(num_rows)
+        if(temp_num == 0):
+            trial_data = trial_data_temp
+        else:
+            trial_data = pd.concat([trial_data,trial_data_temp])
 
     print(trial_data.columns)
     trial_data.to_csv(folder_path+'combined_data/trial_data.csv',index=False)
 
+
+### This method creates the input files for the model predictions
 def create_test(folder_path):
     
     def represents_int(s):
@@ -117,7 +128,6 @@ def create_test(folder_path):
             p+=line
     particles = int(re.findall(r'\d+',p)[0])
     fo.close()
-
 
     num_temps =[]
     for i in range(num_trials):
@@ -157,12 +167,17 @@ def create_test(folder_path):
             else:
                 test_data = pd.concat([test_data,pd.concat([temppc,winding],axis = 1)])
 
+    test_data = test_data.head(num_rows)
     test_data.to_csv(folder_path+'combined_data/test_data.csv',index=False)
 
-def read_in_data(folder_path,particles):
+### Reads in data
+def read_in_data(folder_path,particles, trial = 1):
 
+    if(trial == 1):
+        main_file_path = folder_path+'combined_data/trial_data.csv'
+    else:
+        main_file_path = folder_path+'combined_data/test_data.csv'
 
-    main_file_path = folder_path+'combined_data/trial_data.csv'
     data = pd.read_csv(main_file_path)
 
     for i in range(1,particles+1):
@@ -177,25 +192,12 @@ def read_in_data(folder_path,particles):
 
     return data
 
+
+#Makes the models. First model is a classifier for T>Tc, and the second is a regressor for T/Tc.
 def make_model(data):
-#    print(check_output(["ls", folder_path]).decode("utf8"))
 
-#    for i in range(15,33):
-#        data.drop([str(i)],axis=1, inplace=True)
-#    data.drop(['wx','wy','wz'],axis=1, inplace=True)
-
-
-    num_splits = int(np.floor(len(data.loc[data.temperature==data.temperature.unique()[0]])/200))
-    train_data_avgd= []
-    train_data = data
-    for split in range(num_splits):
-        split_data = train_data.sample(frac=1/(num_splits-split))
-        train_data = train_data.drop(split_data.index)
-        train_data_avgd.append(average_data(split_data))
-    avg_data = pd.concat(train_data_avgd)
-    avg_data.reset_index(drop=True,inplace=True)
-    train_data = avg_data.sample(frac=.8)
-    test_data=avg_data.drop(train_data.index)
+    train_data = data.sample(frac=.8)
+    test_data = data.drop(train_data.index)
     train_y = train_data['T/Tc']
     train_X = train_data.drop(['T/Tc','temperature'], axis=1)
     test_y = test_data['T/Tc']
@@ -211,23 +213,42 @@ def make_model(data):
     predictions = model.predict(test_X)
     print("Mean Absolute Error : " + str(mean_absolute_error(np.array(predictions), test_y)))
 
-
-    train_data = avg_data.sample(frac=.8)
-    test_data = avg_data.drop(train_data.index)
     train_y = train_data['temperature']/3.3125
-    train_X = train_data.drop(['T/Tc','temperature'], axis=1)
     test_y = test_data['temperature']/3.3125
-    test_X = test_data.drop(['T/Tc','temperature'], axis=1)
 
-    model2 = XGBRegressor(n_estimators = 1000,max_depth=8, learning_rate=0.05)
-    model2.fit(train_X, train_y, early_stopping_rounds=10,eval_metric='mae',
-                 eval_set=[(test_X, test_y)], verbose=True)
+#    model2 = XGBRegressor(n_estimators = 1000,max_depth=8, learning_rate=0.05)
+#    model2.fit(train_X, train_y, early_stopping_rounds=10,eval_metric='mae',
+#                 eval_set=[(test_X, test_y)], verbose=True)
+
+    model2 = svm.SVR(kernel='rbf', gamma=.7, C=1, verbose = True)
+    model2.fit(train_X, train_y)
 
     predictions = model2.predict(test_X)
     print("Mean Absolute Error : " + str(mean_absolute_error(np.array(predictions), test_y)))
 
-    return (model,model2, avg_data)
+    return [model,model2]
 
+
+def predict_temperature(test, model, tr_data):
+
+    test_X = test[tr_data]
+    predicted_ttc = model.predict(test_X)
+    final = pd.DataFrame({'temperature': test.temperature, 'TTc': np.array(predicted_ttc,dtype='float')})
+    
+    return final
+
+def find_critical_temperature(df, offset):
+    curve = []
+    temps = np.round(df.temperature,2).unique()
+    for temp in temps:
+        curve.append([temp,df.loc[np.round(df.temperature,2) == temp].TTc.mean()])
+    curve = np.array(curve)
+    curve = curve[curve[:,0].argsort()]
+    f = UnivariateSpline(curve[:,0],curve[:,1]-offset)
+    root = f.roots()
+    return root[0]
+
+### Visualization methods
 def visualize_correlations(data):
 
     data_index = []
@@ -236,17 +257,17 @@ def visualize_correlations(data):
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    fig,ax = plt.subplots(ncols=maxn,nrows=maxn,figsize = (10,10))
+    fig,ax = plt.subplots(ncols=maxn,nrows=maxn,figsize = (10,10),)
 
     colors = np.array(['b','r'])
     cdat = np.take(colors, np.array(data['T/Tc'].values,dtype='int'))
     for i in range(len(ax)):
         for j in range(len(ax[i])):
-            ax[i,j].scatter(data[str(i+2)],data[str(j+2)],c=cdat,edgecolor = 'black')
+            ax[i,j].scatter(data[str(i+2)],data[str(j+2)],c=cdat,edgecolor = 'black', rasterized=True)
             ax[i,j].annotate(xycoords = 'axes fraction', xy= (0.05,.85), s ='('+str(i+2)+','+str(j+2)+')')
     plt.subplots_adjust(wspace=.35, hspace=.35)
 
-    plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0)
+    plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0, dpi=300)
     plt.show()
 
     correlation = data.corr()
@@ -257,6 +278,28 @@ def visualize_correlations(data):
     plt.savefig('corr2.pdf', bbox_inches='tight', pad_inches=0)
     plt.show()
 
+def scatter_temperature(dfsp, temp_dict):
+    for dfp in dfsp:
+        plotting = []
+        temps = np.round(dfp[1].temperature,2).unique()
+        for temp in temps:
+            plotting.append([temp,dfp[1].loc[np.round(dfp[1].temperature,2) == temp].TTc.mean()])
+        plotting = np.array(plotting)
+        plt.scatter(plotting[:,0],plotting[:,1],label = temp_dict[dfp[0]])
+        plt.legend()
+
+    plt.show()
+
+def scatter_tcs(tcs, temp_dict):
+    plotting = np.array(tcs)
+    xvals = list(map(lambda x: temp_dict[x],plotting[:,0]))
+    yvals = np.array(plotting[:,1],dtype='float')
+    plt.scatter(xvals,yvals)
+    plt.xscale('log')
+    plt.show()
+
+### Utility data ensemble averaging methods
+
 def average_data(data):
     temps = data.temperature.unique()
     avgd_data = pd.DataFrame([],columns = data.columns)
@@ -264,37 +307,26 @@ def average_data(data):
         avgd_data = avgd_data.append(data.loc[data.temperature == temp].mean().to_frame().T)
     return avgd_data
 
+def split_average(data, num_splits):
+    data_avgs = []
+    left_data = data.copy()
+    for split in range(num_splits):
+        split_data = left_data.sample(frac=1/(num_splits-split))
+        left_data = left_data.drop(split_data.index)
+        data_avgs.append(average_data(split_data))
+    avg_data = pd.concat(data_avgs)
+    avg_data.reset_index(drop=True,inplace=True)
+    return avg_data
 
-def predict_temperature(folder_path, model, particles, tr_data, num_parts = 1):
-    test = pd.read_csv(folder_path+'combined_data/test_data.csv')
-    for i in range(1,particles+1):
-        test[str(i)] = test[str(i)]/particles
-    test['wx'] = test['wx'].abs()
-    test['wy'] = test['wy'].abs()
-    test['wz'] = test['wz'].abs()
-    
-    test_data_avgd = []
-    for split in range(num_parts):
-        split_data = test.sample(frac=1/(num_parts-split))
-        test = test.drop(split_data.index)
-        test_data_avgd.append(average_data(split_data))
-    test = pd.concat(test_data_avgd)
-    test.reset_index(drop=True,inplace=True)
+def preprocess_data(folder_path,particles, trial = 1):
+    data = read_in_data(folder_path,particles,trial)
+    nsamps = 200
+    if(trial == 0):
+        nsamps = 400
+    num_splits = int(np.floor(len(data.loc[data.temperature==data.temperature.unique()[0]])/nsamps))
+    avg_data = split_average(data, num_splits)
+    return avg_data
 
-    test_X2 = test[tr_data]
-    predicted_ttc = model.predict(test_X2)
-    final = pd.DataFrame({'temperature': test.temperature, 'TTc': np.array(predicted_ttc,dtype='float')})
 
-    return final
 
-def scatter_temperature(dfsp):
-    for dfp in dfsp:
-        plotting = []
-        temps = np.round(dfp[1].temperature.unique(),1)
-        for temp in temps:
-            plotting.append([temp,dfp[1].loc[np.round(dfp[1].temperature,1) == temp].TTc.mean()])
-        plotting = np.array(plotting)
-        plt.scatter(plotting[:,0],plotting[:,1],label = dfp[0])
-        plt.legend()
 
-    plt.show()
