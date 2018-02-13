@@ -31,9 +31,12 @@ from scipy.optimize import curve_fit
 from scipy.optimize import brentq
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+### DATA FILE SETUP ###
 
-### This method creates the training file for the models.
+# This method creates the training file for the models.
 def create_input(folder_path, num_rows = -1):
 
     def represents_int(s):
@@ -109,7 +112,7 @@ def create_input(folder_path, num_rows = -1):
     trial_data.to_csv(folder_path+'combined_data/trial_data.csv',index=False)
 
 
-### This method creates the input files for the model predictions
+# This method creates the input files for the model predictions
 def create_test(folder_path):
     
     def represents_int(s):
@@ -167,10 +170,9 @@ def create_test(folder_path):
             else:
                 test_data = pd.concat([test_data,pd.concat([temppc,winding],axis = 1)])
 
-    test_data = test_data.head(num_rows)
     test_data.to_csv(folder_path+'combined_data/test_data.csv',index=False)
 
-### Reads in data
+# Reads in data
 def read_in_data(folder_path,particles, trial = 1):
 
     if(trial == 1):
@@ -193,6 +195,72 @@ def read_in_data(folder_path,particles, trial = 1):
     return data
 
 
+### MODELING ###
+
+def optimize_model_class(data):
+    train_data = data.sample(frac=.8)
+    test_data = data.drop(train_data.index)
+    train_y = train_data['T/Tc']
+    train_X = train_data.drop(['T/Tc','temperature'], axis=1)
+    test_y = test_data['T/Tc']
+    test_X = test_data.drop(['T/Tc','temperature'], axis=1)
+
+    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1,.5,.1,1e-2,1e-3, 1e-4],
+                     'C': [.1,.5, 1,5, 10, 50, 100,500, 1000]},
+                    {'kernel': ['linear'], 'C': [.1,.5, 1,5, 10, 50, 100,500, 1000]}]
+    model = GridSearchCV(svm.SVC(), tuned_parameters, cv=5)
+    model.fit(train_X, train_y)
+
+    print()
+    print("Best parameters:")
+    print()
+    print(model.best_params_)
+    print()
+    print("Grid scores:")
+    print()
+    means = model.cv_results_['mean_test_score']
+    stds = model.cv_results_['std_test_score']
+    for mean, std, params in zip(means, stds, model.cv_results_['params']):
+        print("%0.3f (+/-%0.03f) for %r"
+              % (mean, std * 2, params))
+    print()
+    print("Classification report:")
+    print()
+    y_true, y_pred = test_y, model.predict(test_X)
+    print(classification_report(y_true, y_pred))
+    print()
+
+def optimize_model_regress(data):
+    train_data = data.sample(frac=.8)
+    test_data = data.drop(train_data.index)
+    train_y = train_data['temperature']/3.3125
+    train_X = train_data.drop(['T/Tc','temperature'], axis=1)
+    test_y = test_data['temperature']/3.3125
+    test_X = test_data.drop(['T/Tc','temperature'], axis=1)
+
+    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1,.5,.1,1e-2,1e-3, 1e-4],
+                     'C': [.1,.5, 1,5, 10, 50, 100,500, 1000]},
+                    {'kernel': ['linear'], 'C': [.1,.5, 1,5, 10, 50, 100,500, 1000]}]
+
+    model = GridSearchCV(svm.SVR(), tuned_parameters, cv=5)
+    model.fit(train_X, train_y)
+    print()
+    print("Best parameters:")
+    print()
+    print(model.best_params_)
+    print()
+    print("Grid scores:")
+    print()
+    means = model.cv_results_['mean_test_score']
+    stds = model.cv_results_['std_test_score']
+    for mean, std, params in zip(means, stds, model.cv_results_['params']):
+        print("%0.3f (+/-%0.03f) for %r"
+              % (mean, std * 2, params))
+    print()
+    y_true, y_pred = test_y, model.predict(test_X)
+    print("Mean Absolute Error : " + str(mean_absolute_error(y_pred,y_true)))
+    print()
+
 #Makes the models. First model is a classifier for T>Tc, and the second is a regressor for T/Tc.
 def make_model(data):
 
@@ -208,7 +276,7 @@ def make_model(data):
 #                 eval_set=[(test_X, test_y)], verbose=True)
 #    xgb.plot_tree(model)
 
-    model = svm.SVC(kernel='rbf', gamma=.7, C=1, verbose = True)
+    model = svm.SVC(kernel='rbf', gamma=1, C=1, verbose = True)
     model.fit(train_X, train_y)
     predictions = model.predict(test_X)
     print("Mean Absolute Error : " + str(mean_absolute_error(np.array(predictions), test_y)))
@@ -220,7 +288,7 @@ def make_model(data):
 #    model2.fit(train_X, train_y, early_stopping_rounds=10,eval_metric='mae',
 #                 eval_set=[(test_X, test_y)], verbose=True)
 
-    model2 = svm.SVR(kernel='rbf', gamma=.7, C=1, verbose = True)
+    model2 = svm.SVR(kernel='rbf', gamma=.5, C=1, verbose = True)
     model2.fit(train_X, train_y)
 
     predictions = model2.predict(test_X)
@@ -228,6 +296,8 @@ def make_model(data):
 
     return [model,model2]
 
+
+### PREDICTIONS/ANALYSIS ###
 
 def predict_temperature(test, model, tr_data):
 
@@ -257,17 +327,29 @@ def visualize_correlations(data):
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    fig,ax = plt.subplots(ncols=maxn,nrows=maxn,figsize = (10,10),)
+    fig,ax = plt.subplots(ncols=maxn,nrows=maxn,figsize = (15,15),)
 
     colors = np.array(['b','r'])
     cdat = np.take(colors, np.array(data['T/Tc'].values,dtype='int'))
     for i in range(len(ax)):
         for j in range(len(ax[i])):
-            ax[i,j].scatter(data[str(i+2)],data[str(j+2)],c=cdat,edgecolor = 'black', rasterized=True)
+            if( i == j ):
+                binwidth = max((max(data[str(i+2)].loc[data['T/Tc'] == 1]) - min(data[str(i+2)].loc[data['T/Tc'] == 1]))/10.,(max(data[str(i+2)].loc[data['T/Tc'] == 0]) - min(data[str(i+2)].loc[data['T/Tc'] == 0]))/10.)
+                ax[i,j].hist(data[str(i+2)].loc[data['T/Tc'] == 1],color='r',edgecolor = 'black', alpha = 0.5, bins=np.arange(min(data[str(i+2)].loc[data['T/Tc'] == 1]), max(data[str(i+2)].loc[data['T/Tc'] == 1]) + binwidth, binwidth))
+                ax[i,j].hist(data[str(i+2)].loc[data['T/Tc'] == 0],color='b',edgecolor = 'black', alpha = 0.5, bins=np.arange(min(data[str(i+2)].loc[data['T/Tc'] == 0]), max(data[str(i+2)].loc[data['T/Tc'] == 0]) + binwidth, binwidth))
+            else:
+                ax[i,j].scatter(data[str(i+2)],data[str(j+2)],c=cdat,edgecolor = 'black', rasterized=True)
+#                divider = make_axes_locatable(ax[i,j])
+#                axtop = divider.append_axes("top", size="30%", pad=0, sharex = ax[i,j])
+#                axtop.hist(data[str(i+2)].loc[data['T/Tc'] == 1],color='r',edgecolor = 'black', alpha = 0.5)
+#                axtop.hist(data[str(i+2)].loc[data['T/Tc'] == 0],color='b',edgecolor = 'black', alpha = 0.5)
+#                axright = divider.append_axes("right", size="30%", pad=0, sharey = ax[i,j])
+#                axright.hist(data[str(j+2)].loc[data['T/Tc'] == 1],color='r',edgecolor = 'black', alpha = 0.5, orientation='horizontal')
+#                axright.hist(data[str(j+2)].loc[data['T/Tc'] == 0],color='b',edgecolor = 'black', alpha = 0.5,orientation='horizontal')
             ax[i,j].annotate(xycoords = 'axes fraction', xy= (0.05,.85), s ='('+str(i+2)+','+str(j+2)+')')
     plt.subplots_adjust(wspace=.35, hspace=.35)
 
-    plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0, dpi=300)
+    plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0, dpi=600)
     plt.show()
 
     correlation = data.corr()
@@ -276,7 +358,7 @@ def visualize_correlations(data):
     sns.heatmap(correlation, vmin = -1, vmax=1, cbar_ax = cbar_ax, square=True,annot=True,cmap='viridis')
 
     plt.savefig('corr2.pdf', bbox_inches='tight', pad_inches=0)
-    plt.show()
+    plt.close()
 
 def scatter_temperature(dfsp, temp_dict):
     for dfp in dfsp:
@@ -321,8 +403,6 @@ def split_average(data, num_splits):
 def preprocess_data(folder_path,particles, trial = 1):
     data = read_in_data(folder_path,particles,trial)
     nsamps = 200
-    if(trial == 0):
-        nsamps = 400
     num_splits = int(np.floor(len(data.loc[data.temperature==data.temperature.unique()[0]])/nsamps))
     avg_data = split_average(data, num_splits)
     return avg_data
