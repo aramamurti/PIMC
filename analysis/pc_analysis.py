@@ -37,7 +37,7 @@ def read_input(pc_file_path):
 
     f, ax = plt.subplots()
     for col in pc_df.columns[1:7]:
-        ax.errorbar(pc_df['temperature'],pc_df[col],yerr=pc_df_std[col]*2,fmt='o')
+        ax.errorbar(pc_df['temperature'],pc_df[col],yerr=pc_df_std[col]*2,fmt='o',markersize=7,capsize=2)
     plt.show()
 
     return (pc_df,pc_df_std)
