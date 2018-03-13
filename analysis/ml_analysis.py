@@ -349,8 +349,8 @@ def visualize_correlations(data):
             ax[i,j].annotate(xycoords = 'axes fraction', xy= (0.05,.85), s ='('+str(i+2)+','+str(j+2)+')')
     plt.subplots_adjust(wspace=.35, hspace=.35)
 
-    plt.savefig('corr1.png', bbox_inches='tight', pad_inches=0, dpi=600)
-    plt.close()
+#    plt.savefig('corr1.png', bbox_inches='tight', pad_inches=0, dpi=600)
+    plt.show()
 
     cols = data.columns.tolist()
     cols = cols[-6:]+cols[:-6]
@@ -359,8 +359,8 @@ def visualize_correlations(data):
     cbar_ax = fig.add_axes([.905, .3, .05, .3])
     sns.heatmap(correlation, vmin = -1, vmax=1, cbar_ax = cbar_ax, square=True,annot=True,cmap='viridis')
 
-    plt.savefig('corr2.png', bbox_inches='tight', pad_inches=0)
-    plt.close()
+#    plt.savefig('corr2.png', bbox_inches='tight', pad_inches=0)
+    plt.show()
 
 def scatter_temperature(dfsp, temp_dict):
     for dfp in dfsp:
@@ -374,12 +374,28 @@ def scatter_temperature(dfsp, temp_dict):
 
     plt.show()
 
-def scatter_tcs(tcs, temp_dict):
+def scatter_tcs(tcs, temp_dict,xlim = [],ylim = [],xticks = []):
     plotting = np.array(tcs)
     xvals = list(map(lambda x: temp_dict[x],plotting[:,0]))
     yvals = np.array(plotting[:,1],dtype='float')
-    plt.scatter(xvals,yvals)
-    plt.xscale('log')
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    f,ax = plt.subplots()
+    ax.scatter(xvals,yvals)
+    if(len(xlim) != 0):
+        ax.set_xlim(tuple(xlim))
+    if(len(ylim) != 0):
+        ax.set_ylim(tuple(ylim))
+    if(len(xticks) != 0):
+        ax.set_xticks(xticks)
+    ax.xaxis.grid(color='gray',linestyle='dashed')
+    ax.yaxis.grid(color='gray',linestyle='dashed')
+
+    ax.set_xlabel(r'$\alpha$',fontsize=16)
+    ax.set_ylabel(r'$T_c$',fontsize=16)
+
     plt.show()
 
 ### Utility data ensemble averaging methods

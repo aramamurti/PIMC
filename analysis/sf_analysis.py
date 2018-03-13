@@ -56,12 +56,23 @@ def calc_superfluid_frac(wn_df, wn_df_std):
     spl = UnivariateSpline(psp[:,0],psp[:,1], w = 1/(np.maximum(np.ones(len(psp_err))*.005,psp_err[:,1])))
     return (psp,psp_err,spl)
 
-def plot_psp(psps, psp_errs,spls):
+def plot_psp(psps, psp_errs,spls,num_particles,name):
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
     f,ax = plt.subplots()
+    ax.xaxis.grid(color='gray',linestyle='dashed')
+    ax.yaxis.grid(color='gray',linestyle='dashed')
+
+    ax.set_xlabel(r'$T/T_c$',fontsize=16)
+    ax.set_ylabel(r'$\rho_s/\rho$',fontsize=16)
+    
     colors = ['r','g','b']
     for i,psp in enumerate(psps):
-        ax.errorbar(psp[:,0],psp[:,1],yerr=psp_errs[i][:,1],fmt='o',markersize=7,capsize=2,c=colors[i])
+        ax.errorbar(psp[:,0],psp[:,1],yerr=psp_errs[i][:,1],fmt='o',markersize=7,capsize=2,c=colors[i], label=num_particles[i][:-1])
         ax.plot(psp[:,0],spls[i](psp[:,0]),c=colors[i])
+    plt.legend(fontsize=14)
+#    plt.savefig(name, dpi=600)
     plt.show()
 
 def find_interesect(psps,spls):

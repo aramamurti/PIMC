@@ -51,12 +51,30 @@ def mu_hat_fit_func(T, A, Tc, nu):
 def find_mu_hats(pc_df, pc_df_std, alpha=1.5):
     num_rows = pc_df.shape[0]
     mu_hats = []
+    mu_hat_errs = []
     for i in range(num_rows):
-        popt, _ = curve_fit(perm_cycle_fit_func, np.array(pc_df.iloc[i][2:].index,dtype='int'), pc_df.iloc[i][2:].values, p0 = (0,0,alpha), bounds= ([0,0,alpha],[np.inf, np.inf,alpha+.001]))
+        popt, pcov = curve_fit(perm_cycle_fit_func, np.array(pc_df.iloc[i][2:].index,dtype='int'), pc_df.iloc[i][2:].values, p0 = (0,0,alpha), bounds= ([0,0,alpha],[np.inf, np.inf,alpha+.001]))
 #        print(pc_df.iloc[i][0],popt)
         mu_hats.append([pc_df.iloc[i][0], popt[1]])
-    return np.array(mu_hats,dtype = 'float')
+        mu_hat_errs.append([pc_df.iloc[i][0], np.sqrt(np.diag(pcov))[1]])
+    return (np.array(mu_hats,dtype = 'float'),np.array(mu_hat_errs,dtype = 'float'))
 
-def fit_mu_hats(mu_hats,start=20):
-    popt, _ = curve_fit(mu_hat_fit_func, mu_hats[start:,0], mu_hats[start:,1], p0 = (1,3,.5))
-    return(popt[1])
+def fit_mu_hats(mu_hats,mu_hat_errs, start):
+    popt, pcov = curve_fit(mu_hat_fit_func, mu_hats[start:,0], mu_hats[start:,1], p0 = (1,3,.5))
+    return(popt)
+
+def scatter_mu_hats(mu_hats, mu_hat_errs, fit_vals, name):
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    f, ax = plt.subplots()
+    ax.errorbar(mu_hats[:,0],mu_hats[:,1],yerr = mu_hat_errs[:,1],fmt='o',markersize=7,capsize=2,c='b')
+    xfit = np.linspace(fit_vals[1],np.max(mu_hats[:,0]),100)
+    ax.plot(xfit, fit_vals[0]*(xfit-fit_vals[1])**fit_vals[2],c='b')
+    ax.xaxis.grid(color='gray',linestyle='dashed')
+    ax.yaxis.grid(color='gray',linestyle='dashed')
+    ax.set_xlabel(r'$T/T_c$',fontsize=16)
+    ax.set_ylabel(r'$\hat{\mu}$',fontsize=16)
+
+#    plt.savefig(name,dpi=600)
+    plt.show()
