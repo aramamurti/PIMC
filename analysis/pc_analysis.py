@@ -42,21 +42,21 @@ def read_input(pc_file_path):
 
     return (pc_df,pc_df_std)
 
-def perm_cycle_fit_func(k, A, mu_hat):
-    return A * np.exp(-mu_hat*k)/k
+def perm_cycle_fit_func(k, A, mu_hat,alpha):
+    return A * np.exp(-mu_hat*k)/k**alpha
 
 def mu_hat_fit_func(T, A, Tc, nu):
     return A * (T-Tc) ** nu
 
-def find_mu_hats(pc_df, pc_df_std):
+def find_mu_hats(pc_df, pc_df_std, alpha=1.5):
     num_rows = pc_df.shape[0]
     mu_hats = []
     for i in range(num_rows):
-        popt, _ = curve_fit(perm_cycle_fit_func, np.array(pc_df.iloc[i][2:].index,dtype='int'), pc_df.iloc[i][2:].values, p0 = (0,0), bounds= ([0,0],[np.inf, np.inf]))
+        popt, _ = curve_fit(perm_cycle_fit_func, np.array(pc_df.iloc[i][2:].index,dtype='int'), pc_df.iloc[i][2:].values, p0 = (0,0,alpha), bounds= ([0,0,alpha],[np.inf, np.inf,alpha+.001]))
 #        print(pc_df.iloc[i][0],popt)
         mu_hats.append([pc_df.iloc[i][0], popt[1]])
     return np.array(mu_hats,dtype = 'float')
 
-def fit_mu_hats(mu_hats):
-    popt, _ = curve_fit(mu_hat_fit_func, mu_hats[16:,0], mu_hats[16:,1], p0 = (1,3,.5))
+def fit_mu_hats(mu_hats,start=20):
+    popt, _ = curve_fit(mu_hat_fit_func, mu_hats[start:,0], mu_hats[start:,1], p0 = (1,3,.5))
     return(popt[1])

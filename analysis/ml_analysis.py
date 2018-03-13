@@ -37,7 +37,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 ### DATA FILE SETUP ###
 
 # This method creates the training file for the models.
-def create_input(folder_path, num_rows = -1):
+def create_input(folder_path, tc, num_rows = -1):
 
     def represents_int(s):
         try:
@@ -86,7 +86,7 @@ def create_input(folder_path, num_rows = -1):
             prefix = folder_path+'{}/output/'.format(trial+1)
             temppc = pd.read_csv(prefix+'permutation_data_{}.csv'.format(temp_num),header=None)
             temp = temps[temp_num]
-            if(temp/3.3125 > 1):
+            if(temp/tc > 1):
                 ttc = 1
             else:
                 ttc = 0
@@ -230,12 +230,12 @@ def optimize_model_class(data):
     print(classification_report(y_true, y_pred))
     print()
 
-def optimize_model_regress(data):
+def optimize_model_regress(data, tc):
     train_data = data.sample(frac=.8)
     test_data = data.drop(train_data.index)
-    train_y = train_data['temperature']/3.3125
+    train_y = train_data['temperature']/tc
     train_X = train_data.drop(['T/Tc','temperature'], axis=1)
-    test_y = test_data['temperature']/3.3125
+    test_y = test_data['temperature']/tc
     test_X = test_data.drop(['T/Tc','temperature'], axis=1)
 
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1,.5,.1,1e-2,1e-3, 1e-4],
@@ -262,7 +262,7 @@ def optimize_model_regress(data):
     print()
 
 #Makes the models. First model is a classifier for T>Tc, and the second is a regressor for T/Tc.
-def make_model(data):
+def make_model(data,tc):
 
     train_data = data.sample(frac=.8)
     test_data = data.drop(train_data.index)
@@ -281,8 +281,8 @@ def make_model(data):
     predictions = model.predict(test_X)
     print("Mean Absolute Error : " + str(mean_absolute_error(np.array(predictions), test_y)))
 
-    train_y = train_data['temperature']/3.3125
-    test_y = test_data['temperature']/3.3125
+    train_y = train_data['temperature']/tc
+    test_y = test_data['temperature']/tc
 
 #    model2 = XGBRegressor(n_estimators = 1000,max_depth=8, learning_rate=0.05)
 #    model2.fit(train_X, train_y, early_stopping_rounds=10,eval_metric='mae',
@@ -349,15 +349,17 @@ def visualize_correlations(data):
             ax[i,j].annotate(xycoords = 'axes fraction', xy= (0.05,.85), s ='('+str(i+2)+','+str(j+2)+')')
     plt.subplots_adjust(wspace=.35, hspace=.35)
 
-    plt.savefig('corr1.pdf', bbox_inches='tight', pad_inches=0, dpi=600)
-    plt.show()
+    plt.savefig('corr1.png', bbox_inches='tight', pad_inches=0, dpi=600)
+    plt.close()
 
-    correlation = data.corr()
+    cols = data.columns.tolist()
+    cols = cols[-6:]+cols[:-6]
+    correlation = data[cols].corr()
     plt.figure(figsize=(25,25))
     cbar_ax = fig.add_axes([.905, .3, .05, .3])
     sns.heatmap(correlation, vmin = -1, vmax=1, cbar_ax = cbar_ax, square=True,annot=True,cmap='viridis')
 
-    plt.savefig('corr2.pdf', bbox_inches='tight', pad_inches=0)
+    plt.savefig('corr2.png', bbox_inches='tight', pad_inches=0)
     plt.close()
 
 def scatter_temperature(dfsp, temp_dict):
