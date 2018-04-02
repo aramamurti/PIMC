@@ -1,0 +1,19 @@
+CXX = mpic++
+CXX_FLAGS = -std=c++14 -Ofast
+LD_FLAGS = -lgsl -lgslcblas -static-libstdc++
+INCLUDE = -I/gpfs/software/gsl-1.16-gnu/include/ -I/cm/local/apps/boost/1.58.0/include/
+LIBS = -L/gpfs/software/gsl-1.16-gnu/lib/ -L/cm/local/apps/boost/1.58.0/lib64/
+
+EXEC = PIMC
+TESTEXEC = PIMCTEST
+SOURCES = $(wildcard src/*.cpp)
+OBJECTS = $(SOURCES:.cpp=.o)
+
+$(EXEC): $(OBJECTS)
+        $(CXX) $(OBJECTS) $(INCLUDE) $(LIBS) $(LD_FLAGS) -o $(EXEC)
+
+%.o:%.cpp
+        $(CXX) -c $(CXX_FLAGS) $(INCLUDE) $(LIBS) $< -o $@
+
+clean:
+        rm -f $(OBJECTS)
