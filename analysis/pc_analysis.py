@@ -1,4 +1,4 @@
-####  STILL PRELIMINARY, NEEDS MORE WORK :: adapted from Mathematica notebook ####
+####  Calculates critical temperature using permutation cycle data ####
 
 ## run after aggregating data ##
 

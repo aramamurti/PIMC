@@ -6,7 +6,7 @@
     """
 
 
-####  STILL PRELIMINARY, NEEDS MORE WORK ####
+####  Machine learning analysis of critical temperature (STILL PRELIMINARY, NEEDS MORE WORK) ####
 
 
 import scipy as sp

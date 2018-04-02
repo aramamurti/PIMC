@@ -1,4 +1,4 @@
-####  STILL PRELIMINARY, NEEDS MORE WORK ####
+####  Calculates critical temperature using the superfluid fraction ####
 
 
 import scipy as sp
