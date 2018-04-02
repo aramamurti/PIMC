@@ -9,9 +9,16 @@
 #include <stdio.h>
 #include "moves.hpp"
 
+
+/**** Methods that define the different potentials available (feel free to add to this) ****/
+
+//Harmonic oscillator
 inline double potential_value_harmonic(double dist2){
     return 0.5*dist2;
 }
+
+
+//Aziz
 
 inline double aziz_pcws(double& dist){
     if(dist >= 3.68335)
@@ -25,6 +32,8 @@ inline double potential_value_aziz(double& dist){
     return val;
 }
 
+
+//Coulomb (Ewald sum for 1 component, normal (with core) for two)
 inline double potential_value_coulomb(std::vector<double>& dist, std::vector<int>& kVec, int& chgi, int& chgj, Parameters& params, Cos& cos){
     if(params.coupling == 0) return 0.0;
     double val = 0.0;
@@ -80,12 +89,14 @@ inline double potential_value_coulomb(std::vector<double>& dist, std::vector<int
             double rSq = std::pow(dist[0] + nx*params.box_size, 2.) + std::pow(dist[1] + ny*params.box_size, 2.) + std::pow(dist[2] + nz*params.box_size, 2.);
             double r = std::sqrt(rSq);
             if(rSq > 10E-10){
-                val += 1./std::pow(5.*r,20.) + chgi*chgj / r;
+                val += 1./std::pow(5.*r,20.) + chgi*chgj / r; //core size set to 1/(5r)^20
             }
         }
     }
     return params.coupling*val;
 }
+
+/*** Base class ***/
 
 Moves::Moves(MPI_Comm &local){
     num_attempts = 0;
@@ -135,6 +146,8 @@ void Moves::initialize_potential_table(int &id, Parameters &params, Paths &paths
     paths.update_potentials(newp);
 }
 
+/*** Center of Mass class: moves a whole worldline by a set amount ***/
+
 Center_of_Mass::Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : Moves(local){
     delta = sqrt(params.lambda*params.tau);
     move_name = "Center of Mass";
@@ -144,13 +157,20 @@ Center_of_Mass::Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : M
 
 int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::attempt(id, params, paths, rng, cos);
-    if(params.particles == 0) return 0;
+    
+    if(params.particles == 0) return 0; //If there are no particles, don't attempt anything
+    
+    //Pick a shift vector from a Gaussian distribution
     std::vector<double> shift(params.dimensions);
     for(auto &dim : shift)
         dim = rng.randgaussian(delta);
+    
+    //Choose a path to shift and broadcast it from the master process
     int ptcl = rng.randint(params.particles);
     MPI_Bcast(&shift[0], params.dimensions, MPI_DOUBLE, 0, local_comm);
     MPI_Bcast(&ptcl, 1, MPI_INT, 0, local_comm);
+    
+    //Figure out if there are windings in the paths, and get all particles to shift
     int cur_part = ptcl;
     int end_part = ptcl;
     if(paths.broken[ptcl]){
@@ -161,6 +181,8 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, 
         ptcls.push_back(cur_part);
         cur_part = paths.forward_connects[cur_part];
     }while(cur_part != end_part);
+    
+    //calculate new coordinates, distances and vectors
     new_coordinates.resize(params.slices_per_process*ptcls.size());
     new_coordinates_ahead.resize(new_coordinates.size());
     keys_ahead.resize(new_coordinates.size());
@@ -172,21 +194,27 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, 
                 std::transform(paths.get_coordinate(slice,ptcls[i]).begin(),paths.get_coordinate(slice,ptcls[i]).end(),shift.begin(),std::back_inserter(new_coordinates[i*params.slices_per_process+slice]), std::plus<double>());
         }
     }
+    
+    //check whether the move is acceptable (based on difference in potential), broadcast this result to all processors, and increment number of attempts
     check(id, params, paths, rng, cos);
     MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
     num_attempts++;
+    
+    //if the move is accepted, then increment accepts, move beads, and update separation/neigbor tables
     if(ac_re){
         num_accepts++;
+        
+        //set positions
         for(int i = 0; i < ptcls.size(); ++i)
             for(int slice = 0; slice < params.slices_per_process; ++slice)
                 if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first)){
                     put_in_box(new_coordinates[i*params.slices_per_process+slice], params.box_size);
                     paths.set_coordinate(slice, ptcls[i],new_coordinates[i*params.slices_per_process+slice], false);
                 }
-        paths.update_separations(new_distances);
+        paths.update_separations(new_distances); //update separations within slice
         if(!params.gce || params.potential != 2)
-            paths.update_potentials(new_potentials);
-        if(!params.gce){
+            paths.update_potentials(new_potentials); //update potential value
+        if(!params.gce){ //update kinetic separations
             for(int i = 0; i < ptcls.size(); ++i)
                 for(int slice = 0; slice < params.slices_per_process; ++slice)
                     if(!(ptcls[i] == params.worm_head.second && slice+params.my_start < params.worm_head.first) && !(ptcls[i] == params.worm_tail.second && slice+params.my_start > params.worm_tail.first))
@@ -224,6 +252,8 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, 
                 }
         }
     }
+    
+    //clear all move-related vectors
     ptcls.clear();
     new_coordinates.clear();
     new_coordinates_ahead.clear();
@@ -233,12 +263,15 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, 
     return 0;
 }
 
+//Checks the potential action of the new configuration vs. the old configuration and decides whether to accept the move
 void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
+    
+    //Set necessary parameters for Coulomb
     if(params.potential == 2 && params.gce){
         params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
         params.coulcut = sqrt(params.p)/params.alpha;
@@ -248,6 +281,8 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
         params.nmax = floor(params.coulcut/params.box_size);
         params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
     }
+    
+    //Go through configuration and calculate actions
     for(int j = 0; j < ptcls.size(); ++j){
         for(int i = 0; i < params.slices_per_process; ++i){
             if(!(ptcls[j] == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcls[j] == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
@@ -295,11 +330,12 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
             }
         }
     }
+    //Send old and new actions to master process
     if(id != 0){
         MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 0, local_comm);
         MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 1, local_comm);
     }
-    else{
+    else{ //master process collects old and new actions and determines whether to accept the move
         ac_re = false;
         std::vector<double> old_action;
         std::vector<double> new_action;
@@ -323,6 +359,9 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
             ac_re = true;
     }
 }
+
+
+/*** Pair Center of Mass class: moves two whole worldlines by a set amount (for use when molecules are formed) ***/
 
 Pair_Center_of_Mass::Pair_Center_of_Mass(int &id, Parameters &params, MPI_Comm &local) : Moves(local){
     delta = sqrt(params.lambda*params.tau);
@@ -445,6 +484,8 @@ int Pair_Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &
     return 0;
 }
 
+
+//checks whether to accept or reject move (same as center of mass class above)
 void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
@@ -536,7 +577,10 @@ void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &
     }
 }
 
+/*** Bisection class: does a bisection bridge move for a path of length multistep_dist ***/
+
 Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local){
+    //set up all constants/permutation possibilities
     multistep_dist = params.multistep_dist;
     minp.resize(params.num_workers);
     for(int i = 0; i < params.total_slices; ++i){
@@ -560,15 +604,15 @@ Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local
 int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
-    int set = rng.randint(multisteps.size());
+    int set = rng.randint(multisteps.size()); //choose a starting slice set
     bisection_info.clear();
-    bisection_info.push_back(multisteps[set].front());
-    bisection_info.push_back(multisteps[set].back());
-    if(multisteps[set].back() < multisteps[set].front())
+    bisection_info.push_back(multisteps[set].front()); //start slice
+    bisection_info.push_back(multisteps[set].back()); //end slice
+    if(multisteps[set].back() < multisteps[set].front()) //account for periodic boundary conditions
         bisection_info.back() += params.total_slices;
-    bisection_info.push_back(rng.randint(params.particles));
-    MPI_Bcast(&bisection_info[0], 3, MPI_INT, 0,local_comm);
-    if(paths.broken[bisection_info[2]]){
+    bisection_info.push_back(rng.randint(params.particles)); //choose a particle
+    MPI_Bcast(&bisection_info[0], 3, MPI_INT, 0,local_comm); //broadcast to all processors
+    if(paths.broken[bisection_info[2]]){ //if the particle is the worm, then make sure that the slices chosen don't go past the end of the worm
         int final_ptcl = bisection_info[2];
         if(bisection_info[1] > params.total_slices)
             final_ptcl = paths.forward_connects[final_ptcl];
@@ -576,41 +620,53 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
             return 1;
         }
     }
+    
+    //reserve memory for vectors
     new_coordinates.resize(params.slices_per_process);
     new_coordinates_ahead.resize(params.slices_per_process);
     keys_ahead.resize(params.slices_per_process);
     new_distances.reserve(params.slices_per_process*params.particles);
     new_potentials.reserve(params.slices_per_process*params.particles);
-    int level = int(round(log2(bisection_info[1]-bisection_info[0])));
-    int counter = 0;
-    ptcl_slice.resize(params.slices_per_process,bisection_info[2]);
-    if(bisection_info[1]>= params.total_slices)
+    
+    int level = int(round(log2(bisection_info[1]-bisection_info[0])));    //calculate the "level" of the bisection bridge: 2^n where n is the level
+    ptcl_slice.resize(params.slices_per_process,bisection_info[2]); //vector indicating which particle/bead to move at each slice
+    if(bisection_info[1]>= params.total_slices) //if worldline wraps, modify which bead to move
         for(int i = bisection_info[0]; i <=bisection_info[1]; ++i)
             if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end && i >= params.total_slices)
                 ptcl_slice[i%params.slices_per_process] = paths.forward_connects[bisection_info[2]];
+    
+    int counter = 0;
+    //while level != 0
     while(level){
+        //figure out which slices need to be computed for this level
         int num_comps = pow(2,counter);
-        counter++;
+        ++counter;
         std::vector<int> slices_to_compute;
         for(int i = 0; i < num_comps; ++i)
             slices_to_compute.push_back(int((1/pow(2.,counter) + i/pow(2.,counter-1))*(bisection_info[1]-bisection_info[0])+bisection_info[0])%params.total_slices);
+        
+        //for each slice to compute
         for(auto &slice : slices_to_compute){
             int first = int(slice - pow(2,level-1)+params.total_slices)%params.total_slices;
             int second = int(slice + pow(2, level-1))%params.total_slices;
+            
+            //if the particle to be moved is in "my" slices
             if(slice >= params.my_start && slice <= params.my_end){
                 std::vector<double> start(params.dimensions);
                 std::vector<double> end(params.dimensions);
+                
+                //if the the first endpoint is not in "my" slices, receive its location to the vector start
                 if(first < params.my_start || first > params.my_end)
                     MPI_Recv(&start[0], params.dimensions,MPI_DOUBLE,first/params.slices_per_process,2*counter-1,local_comm,MPI_STATUS_IGNORE);
-                else{
-                    if(counter == 1){
+                else{ //else set start with its location
+                    if(counter == 1){ //if this is the first computation, use the pre-existing configuration
                         start = paths.get_coordinate(first%params.slices_per_process, ptcl_slice[first%params.slices_per_process]);
                         new_coordinates[first%params.slices_per_process] = start;
                     }
-                    else
+                    else //else use the new computed coordinate
                         start = new_coordinates[first%params.slices_per_process];
                 }
-                if(second < params.my_start || second > params.my_end)
+                if(second < params.my_start || second > params.my_end) //if the second is not in "my" slices ... same as above
                     MPI_Recv(&end[0], params.dimensions,MPI_DOUBLE,second/params.slices_per_process,2*counter,local_comm,MPI_STATUS_IGNORE);
                 else{
                     if(counter == 1){
@@ -620,14 +676,14 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                     else
                         end = new_coordinates[second%params.slices_per_process];
                 }
-                average_loc(start, end, new_coordinates[slice%params.slices_per_process], params.box_size);
+                average_loc(start, end, new_coordinates[slice%params.slices_per_process], params.box_size); //find average location of the start and end
                 double tau = params.tau*pow(2, level-1);
                 double width = sqrt(params.lambda*tau);
                 for(auto &dim : new_coordinates[slice%params.slices_per_process]){
-                    dim += rng.randgaussian(width);
+                    dim += rng.randgaussian(width); //move the average location by some Gaussian-distributed value
                 }
             }
-            else{
+            else{ //if the particle to be moved is not in "my" slices, send relevant start and/or end locations if I have them
                 if(first >= params.my_start && first <= params.my_end){
                     if(counter == 1)
                         new_coordinates[first%params.slices_per_process] = paths.get_coordinate(first%params.slices_per_process, ptcl_slice[first%params.slices_per_process]);
@@ -642,8 +698,10 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
         }
         --level;
     }
-    check(id, params, paths, rng, cos);
-    MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm);
+    check(id, params, paths, rng, cos); //check action of old and new configurations
+    MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm); //broadcast acceptance/rejection to all processors
+    
+    //rest of method is basically same as CoM move
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
@@ -703,6 +761,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     return 0;
 }
 
+//basically same as CoM move method (see above)
 void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
@@ -794,6 +853,9 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
     }
 }
 
+/*** Permutation Bisection class: permutes two worldlines and builds bisection bridges for both ***/
+
+//Same constructor as above in the Bisection class
 Permutation_Bisection::Permutation_Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local){
     multistep_dist = params.multistep_dist;
     minp.resize(params.num_workers);
@@ -834,22 +896,26 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
             return 1;
         }
     }
-    keep_going = true;
+    
+    //figure out what two particles to swap (involves finding the all possible end particles and using kinetic separations to get probabilities, and then picking one)
+    keep_going = true; //stores whether to continue with swap
     int start_slice = bisection_info[0];
     int swap_slice = bisection_info[1]%params.total_slices;
-    if(start_slice >= params.my_start && start_slice <= params.my_end){
-        if(swap_slice >= params.my_start && swap_slice <= params.my_end){
+    if(start_slice >= params.my_start && start_slice <= params.my_end){ //if this processor owns the start slice
+        if(swap_slice >= params.my_start && swap_slice <= params.my_end){ //and if contains the swap slice as well
+            //get nearest neighboring particles and keys
             std::vector<int> possible_swaps = paths.get_nearest_neighbors(swap_slice%params.slices_per_process, paths.get_coordinate(start_slice%params.slices_per_process, bisection_info[2]));
             std::vector<int> possible_swaps_keys = paths.get_nearest_neighbor_keys(swap_slice%params.slices_per_process, paths.get_coordinate(start_slice%params.slices_per_process, bisection_info[2]));
-            if(!possible_swaps.empty())
+            if(!possible_swaps.empty()) //if there are possible, eliminate the ones with different charges to our starting particle
                 for(int poss = possible_swaps.size() - 1; poss >= 0; --poss)
                     if(paths.charge[possible_swaps[poss]] != paths.charge[bisection_info[2]]){
                         possible_swaps.erase(possible_swaps.begin() + poss);
                         possible_swaps_keys.erase(possible_swaps_keys.begin() + poss);
                     }
-            if(possible_swaps.size() == 0)
+            if(possible_swaps.size() == 0) //if no swaps possible, quit
                 keep_going = false;
             else{
+                //calculate kinetic separations and resulting probabilities (stored in rho0s)
                 std::vector<double> rho0s(possible_swaps.size(),0);
                 int sp_fwd = bisection_info[2];
                 if(start_slice + params.multistep_dist >= params.total_slices)
@@ -868,6 +934,8 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
                         rho0s[&i - &possible_swaps[0]] = (exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r1)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2))/(exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r1d)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2d));
                     }
                 }
+                
+                //choose a swap based on probabilities
                 double sum = 0;
                 for (auto &r : rho0s)
                     sum += r;
@@ -885,11 +953,11 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
                 int choice_back = choice;
                 if(start_slice + params.multistep_dist >= params.total_slices)
                     choice_back = paths.backward_connects[choice];
-                if(choice_back == bisection_info[2])
+                if(choice_back == bisection_info[2]) //make sure you're not trying to swap a particle with itself
                     keep_going = false;
             }
         }
-        else{
+        else{ //if contains start slice but not end slice, get final slice keys and do the same rho0s calculation as above, and choose swap
             MPI_Send(&paths.get_coordinate(start_slice%params.slices_per_process, bisection_info[2])[0], params.dimensions, MPI_DOUBLE,swap_slice/params.slices_per_process, 0, local_comm);
             std::vector<int> possible_swaps;
             std::vector<int> possible_swaps_keys;
@@ -944,7 +1012,7 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
                 keep_going = false;
         }
     }
-    else if(swap_slice >= params.my_start && swap_slice <= params.my_end){
+    else if(swap_slice >= params.my_start && swap_slice <= params.my_end){ //if we have the end slice and not the start slice, send the possible swaps to the start slice based on neighbor table
         std::vector<double> tail(params.dimensions,0);
         MPI_Recv(&tail[0], params.dimensions, MPI_DOUBLE, start_slice/params.slices_per_process, 0, local_comm, MPI_STATUS_IGNORE);
         int slice = swap_slice%params.slices_per_process;
@@ -968,14 +1036,17 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
             MPI_Send(&key_fwd, 1, MPI_INT,start_slice/params.slices_per_process, 4, local_comm);
         }
     }
-    MPI_Bcast(&keep_going, 1, MPI_INT, start_slice/params.slices_per_process, local_comm);
+    MPI_Bcast(&keep_going, 1, MPI_INT, start_slice/params.slices_per_process, local_comm); //start slice processor tells whether to continue with the move
     if(!keep_going)
         return 1;
-    MPI_Bcast(&choice, 1, MPI_INT, start_slice/params.slices_per_process, local_comm);
+    MPI_Bcast(&choice, 1, MPI_INT, start_slice/params.slices_per_process, local_comm); //if we're continuing, the start slice processor broadcasts the choice
     new_coordinates.resize(params.slices_per_process*2);
     new_distances.reserve(params.slices_per_process*params.particles*2);
     new_coordinates_ahead.resize(params.slices_per_process*2);
     keys_ahead.resize(params.slices_per_process*2);
+    
+    //Below is basically the same as bisection bridge above, except we are now doing it for two worldlines (see comments above)
+
     int level = int(round(log2(bisection_info[1]-bisection_info[0])));
     int counter = 0;
     ptcl_slice_1.resize(params.slices_per_process,bisection_info[2]);
@@ -987,7 +1058,6 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
             if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end && i < params.total_slices)
                 ptcl_slice_2[i%params.slices_per_process] = paths.backward_connects[choice];
         }
-    
     while(level){
         int num_comps = pow(2,counter);
         counter++;
@@ -1299,15 +1369,19 @@ void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG
     }
 }
 
+
+/*** Open class: opens a worldline into a worm ***/
 int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    if(params.worm_on) return 0;
-    if(params.particles == 0) return 0;
+    if(params.worm_on) return 0; //only do this move if there isn't already a worm
+    if(params.particles == 0) return 0; //and if there are more than zero particles
     Moves::attempt(id, params, paths, rng, cos);
+    
+    //choose a particle, slice to open and broadcast it
     open_info.push_back(rng.randint(params.particles));
     open_info.push_back(rng.randint(params.total_slices));
     open_info.push_back(rng.randint(params.Mbar)+1);
     MPI_Bcast(&open_info[0], 3, MPI_INT, 0, local_comm);
-    check(id, params, paths, rng, cos);
+    check(id, params, paths, rng, cos); //check whether it's beneficial to open the worldline, and if so, accept it and open the path
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(open_info[1]-open_info[2] < 0){
@@ -1321,6 +1395,7 @@ int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos)
     return 0;
 }
 
+//checks the open move by calculating the action with/without a certain set of beads, and determines whether it is beneficial or not
 void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     std::vector<double> first_part(params.dimensions,0);
     std::vector<double> second_part(params.dimensions,0);
@@ -1420,10 +1495,11 @@ void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     }
 }
 
+/*** Close move: takes an open worm path and closes it ***/
 int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    if(!params.worm_on) return 0;
-    int distance = (params.worm_head.first - params.worm_tail.first + params.total_slices)%params.total_slices;
-    if(distance > params.Mbar + 1 || distance == 0) return 1;
+    if(!params.worm_on) return 0; //only do the move if the worm is on
+    int distance = (params.worm_head.first - params.worm_tail.first + params.total_slices)%params.total_slices; //find the distance that needs to be closed
+    if(distance > params.Mbar + 1 || distance == 0) return 1; //only close if the distance isn't greater than Mbar + 1
     Moves::attempt(id, params, paths, rng, cos);
     new_coordinates.resize(params.slices_per_process);
     new_distances.resize(params.slices_per_process);
@@ -1437,7 +1513,7 @@ int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
     MPI_Bcast(&end[0],params.dimensions,MPI_DOUBLE,params.worm_head.first/params.slices_per_process,local_comm);
     int start_slice = (params.worm_tail.first+1)%params.total_slices;
     int start_col = params.worm_tail.second;
-    for(int i = 0; i < distance - 1; ++i){
+    for(int i = 0; i < distance - 1; ++i){ //build worldline using Levy construction (since this isn't necessarily a power of 2)
         int slice = (start_slice+i)%params.total_slices;
         int slicem1 = (start_slice+i-1+params.total_slices)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
@@ -1467,7 +1543,7 @@ int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
     }
     if(distance == 1 && params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end)
         new_coordinates[params.worm_tail.first%params.slices_per_process] = paths.get_coordinate(params.worm_tail.first%params.slices_per_process,start_col);
-    check(id, params, paths, rng, cos);
+    check(id, params, paths, rng, cos); //check whether new configuration is better than old one
     MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
     ++num_attempts;
     if(ac_re){
@@ -1578,6 +1654,9 @@ void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos)
     }
 }
 
+/************* Moves below operate on the same principles as the already detailed moves above (levy flight, checking, etc.), so comments will be sparse. Please contact if confusing. **********/
+
+/*** Insert move: inserts a worm of size <= Mbar into a diagonal configuration to make it non-diagonal ***/
 int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(params.worm_on) return 0;
     Moves::attempt(id, params, paths, rng, cos);
@@ -1710,6 +1789,7 @@ void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
     }
 }
 
+/*** Remove move: removes worm from a non-diagonal configuration ***/
 int Remove::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     if(params.worm_length > params.Mbar + 1) return 1;
@@ -1792,6 +1872,8 @@ void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
             ac_re = true;
     }
 }
+
+/*** Advance tail/head moves: advance the head or tail of the worm by a random length <= Mbar ***/
 
 int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
@@ -2039,6 +2121,8 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Co
     }
 }
 
+/*** Recede head/tail moves: recedes the head/tail of the worm by a random int <= Mbar ***/
+
 int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     Moves::attempt(id, params, paths, rng, cos);
@@ -2199,6 +2283,8 @@ void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos
             ac_re = true;
     }
 }
+
+/*** Swap tail and head moves: opens a closed worldline, and connects it to the head or tail of the worm via levy flight (much like closing the worm) ***/
 
 int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;

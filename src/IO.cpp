@@ -9,6 +9,8 @@
 #include "IO.hpp"
 #include <iomanip>
 
+
+//opens and writes headers for output files
 void IO::set_up_outfiles(int& id){
     std::stringstream sstm;
     sstm << "output/overview_" << id <<".txt";
@@ -67,6 +69,7 @@ void IO::set_up_outfiles(int& id){
 
 }
 
+//writes final output summary
 void IO::write_final(int counter, double particles, double energy_th, double energy_th_std, double energy_v, double energy_v_std, std::vector<std::vector<int> >& cycles, boost::ptr_vector<Moves> &moves){
     f1 << std::left << std::setw(25) << "Num. Samples" << std::left << std::setw(5) <<"=\t" << std::left << std::setw(15) << counter << "\n" << std::endl;
     f1 << std::endl;
@@ -109,7 +112,7 @@ void IO::write_final(int counter, double particles, double energy_th, double ene
     }
 }
 
-
+//writes step values to files (energy, permutations, winding)
 void IO::write_step_state(int step, int num_particles, std::vector<double>& energy, std::vector<int>& cycles, std::vector<int>& wnum){
     f2 << "["<< step << "],\t" << energy[0]/num_particles << ",\t" << energy[1]/num_particles << ",\t" << energy[2]/num_particles << ",\t" << energy[3]/num_particles << ",\t" << energy[4]/num_particles << ",\t" << energy[5]/num_particles << ",\t"<< num_particles << std::endl;
     f3 << "["<< step << "],\t";
@@ -129,6 +132,7 @@ void IO::write_step_state(int step, int num_particles, std::vector<double>& ener
     f4 << std::endl;
 }
 
+//writes simulation parameters to file
 void IO::write_parameters(Parameters& params){
     f1 << "[Simulation Parameters]\n";
     f1 << std::left << std::setw(25) << "Particle Type" <<std::left << std::setw(10) << ":" << std::right << std::setw(25) <<  params.particle_type << "\n";
@@ -152,6 +156,7 @@ void IO::write_parameters(Parameters& params){
     f5 << "Coupling, " << params.coupling << std::endl;
 }
 
+//writes parameters set during equilibration stage
 void IO::write_equil_parameters(Parameters& params, double delta, double delta_pair){
     f1 << "[Equilibration Parameters]\n";
     f1 << std::left << std::setw(25) << "Cent. of Mass delta" <<std::left << std::setw(10) << "=" << std::right << std::setw(25) << delta << "\n";
@@ -162,6 +167,7 @@ void IO::write_equil_parameters(Parameters& params, double delta, double delta_p
     f1 << std::endl;
 }
 
+//reads in parameters from input file
 void IO::read_parameters(std::string infile, Parameters& params){
     std::ifstream fin(infile.c_str());
     typedef boost::unordered_map<std::string, std::string> sectionmap;
@@ -189,6 +195,7 @@ void IO::read_parameters(std::string infile, Parameters& params){
     params.set_parameters(parameters_map);
 }
 
+//writes path configuration to file
 void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
     std::vector<std::vector<std::vector<double> > > all_locations;
     if(id == 0){
@@ -272,6 +279,8 @@ void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
         pathf3.flush();
     }
 }
+
+//writes acceptance statistics/ratios to file
 void IO::write_acceptances(int counter, boost::ptr_vector<Moves> &moves){
     f1 << std::left << std::setw(25) << "Num. Samples" << std::left << std::setw(5) <<"=\t" << std::left << std::setw(15) << counter << "\n" << std::endl;
     f1 << std::endl;

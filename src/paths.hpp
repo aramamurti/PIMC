@@ -23,21 +23,35 @@ inline int positive_modulo(int i, int n) {
 
 class Paths{
 private:
-    std::vector<std::vector<std::vector<double> > > coordinate_slices;
-    std::vector<std::vector<int> > coordinate_keys;
-    std::unordered_map<int, std::pair<int, int> > key_finder;
+    std::vector<std::vector<std::vector<double> > > coordinate_slices; //positions (N-d vector) for beads organized by row and slice
+    std::vector<std::vector<int> > coordinate_keys; //keys for beads organized by slice
+    std::unordered_map<int, std::pair<int, int> > key_finder; //locator for key->(row,slice)
+    
+    //neighbor and separation tables
     Neighbor_Table nt;
     Separation_Table st;
     Kinetic_Separation_Table kst;
+    
+    //random number generator
     RNG rng;
+    
     int bead_counter;
+    
+    //communicator for process
     MPI_Comm local_comm;
     
 public:
+    //vector holding wrap-around row numbers (for permutations)
     std::vector<int> forward_connects;
     std::vector<int> backward_connects;
+    
+    //is the row broken?
     std::vector<bool> broken;
+    
+    //charge of each row
     std::vector<int> charge;
+    
+    //number of broken worldlines in the simulation
     int broken_worldlines;
     
     Paths(int &id, Parameters &params, MPI_Comm &local) : nt(params), st(params), kst(params){
@@ -46,7 +60,10 @@ public:
         set_up(id, params);
     }
     
+    //initialize and set up all worldlines
     void set_up(int &id, Parameters &params){
+    
+        //master processor decides locations of each bead and broadcasts
         std::vector<double> locations(params.particles*params.dimensions);
         if(id == 0){
             for(auto &i : locations){
@@ -57,6 +74,8 @@ public:
             }
         }
         MPI_Bcast(&locations[0], (int)locations.size(), MPI_DOUBLE, 0, local_comm);
+        
+        //set up worldlines to be circular and initialize all variables
         forward_connects.resize(params.particles);
         backward_connects.resize(params.particles);
         charge.resize(params.particles,0);
@@ -70,10 +89,14 @@ public:
             for(int i = 0; i < params.particles; ++i)
                 charge[i] = (i%params.charges)*2-1;
         bead_counter = 1;
+        
+        //each processor gets its appropriate number of slices
         coordinate_slices.resize(params.slices_per_process);
         coordinate_keys.resize(params.slices_per_process);
         int slice_counter = 0;
         bead_counter += params.my_start*params.particles;
+        
+        //bead locations/keys are initialized and put into vectors; neigbors and separations calculated and put into lookup tables
         for(auto &slice: coordinate_slices){
             slice.resize(params.particles);
             coordinate_keys[&slice - &coordinate_slices[0]].resize(params.particles);
@@ -100,7 +123,9 @@ public:
         if(!params.gce)
             for(int slice = 0; slice < params.slices_per_process; ++slice)
                 for(int ptcl = 0; ptcl < params.particles; ++ptcl)
-                    kst.calculate_separations_start(slice, coordinate_keys[slice][ptcl]);
+                    kst.calculate_separations_start(slice, coordinate_keys[slice][ptcl]); //kinetic sep table only used when there is no worm (i.e. no gce)
+        
+        //no worm
         params.worm_on = false;
         params.worm_head.first = -1;
         params.worm_head.second = -1;
@@ -114,6 +139,7 @@ public:
      
      *******************************************************************************************************************************************/
     
+    //this method swaps multiple worldlines given a start and end configuration index
     void swap_worldlines(Parameters &params, int start_slice, std::vector<int> start_config, std::vector<int> end_config){
         std::vector<std::pair<int, int> > swaps(start_config.size()-1);
         int cur_index = 0;
@@ -138,6 +164,7 @@ public:
             backward_connects[forward_connects[i]] = i;
     }
     
+    //this method swaps worldlines given two worldline indices
     void swap_worldlines(Parameters &params, int start_slice, int p1, int p2){
         for(int slice = start_slice; slice < params.total_slices; ++slice){
             if(slice >= params.my_start && slice <= params.my_end){
@@ -159,8 +186,9 @@ public:
      
      *******************************************************************************************************************************************/
 
+    //advances tail of worm
     void worm_advance_tail(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
-        if(params.worm_on == false){
+        if(params.worm_on == false){ //if no worm exists, initialize it
             params.worm_on = true;
             params.worm_head.second = params.particles;
             params.worm_tail.second = params.particles;
@@ -175,7 +203,7 @@ public:
             else
                 charge.push_back(rng.randint(params.charges)*2-1);
         }
-        else if((++params.worm_tail.first) == params.total_slices){
+        else if((++params.worm_tail.first) == params.total_slices){ //otherwise, if worm wraps around, change parameters appropriately (i.e. add row with same charge and broken bool, change worm tail position locator)
             forward_connects[params.worm_tail.second] = params.particles;
             forward_connects.push_back(-1);
             backward_connects.push_back(params.worm_tail.second);
@@ -185,7 +213,7 @@ public:
             broken.push_back(true);
             ++params.particles;
         }
-        if(params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end){
+        if(params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end){ // if the worm is in the local processor's slices, add to it and add the new bead to the lookup tables
             int my_slice = params.worm_tail.first%params.slices_per_process;
             if(params.worm_tail.second >= coordinate_slices[my_slice].size()){
                 coordinate_slices[my_slice].resize(params.worm_tail.second+1);
@@ -212,6 +240,7 @@ public:
         ++params.worm_length;
     }
     
+    //same as above, except the head of the worm; only difference is that when worm wraps around, the whole worm shifts rows
     void worm_advance_head(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(!params.worm_on){
             params.worm_on = true;
@@ -267,6 +296,7 @@ public:
         ++params.worm_length;
     }
     
+    //recedes tail of worm
     void worm_recede_tail(Parameters& params){
         if(!params.worm_on) return;
         if(params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end){
@@ -339,6 +369,7 @@ public:
         }
     }
     
+    //recedes head of worm
     void worm_recede_head(Parameters& params){
         if(!params.worm_on) return;
         if(params.worm_head.first >= params.my_start && params.worm_head.first <= params.my_end){
@@ -411,6 +442,7 @@ public:
         }
     }
     
+    //takes a periodic worldline and opens it
     void open_path(Parameters& params, int column, int tail_slice, int distance){
         if(params.worm_on) return;
         params.worm_on = true;
@@ -462,6 +494,7 @@ public:
             worm_recede_head(params);
     }
     
+    //closes an open worldline
     void close_worm(Parameters& params, const std::vector<std::vector<double> >& new_coordinates, const std::vector<std::vector<std::tuple<int, std::vector<double>, double> > >& distances, const std::vector<std::vector<std::tuple<int, double> > >& potentials){
         if(!params.worm_on) return;
         while(params.worm_tail.first != positive_modulo(params.worm_head.first - 1, params.total_slices)){
@@ -529,6 +562,7 @@ public:
         params.worm_tail.second = -1;
     }
     
+    //opens a worldline and adds it to the head of the worm
     void swap_into_head(Parameters& params, int column, int distance, const std::vector<std::vector<double> >& new_coordinates = std::vector<std::vector<double> >()){
         if(!params.worm_on) return;
         int new_head_col = column;
@@ -596,6 +630,7 @@ public:
         params.worm_length -= (params.worm_head.first + (params.total_slices - params.worm_tail.first - 1));
     }
     
+    //opens a worldline and adds it to a tail of the worm
     void swap_into_tail(Parameters& params, int column, int distance, const std::vector<std::vector<double> >& new_coordinates = std::vector<std::vector<double> >()){
         if(!params.worm_on) return;
         int new_tail_col = column;

@@ -13,7 +13,7 @@
 #include "utility.hpp"
 #include "paths.hpp"
 
-
+//Base class for moves (see .cpp for implementation)
 class Moves{
 protected:
     int num_attempts;
@@ -27,13 +27,13 @@ public:
     Moves(MPI_Comm &local);
     virtual ~Moves(){};
     virtual Moves* clone() const = 0;
-    virtual double get_delta(){return 0;}
-    virtual void shift_delta(double shift){}
-    virtual void set_delta(double shift){}
-    virtual int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    bool check();
-    void accept();
-    void reject();
+    virtual double get_delta(){return 0;} //gets the delta parameter (for CoM moves)
+    virtual void shift_delta(double shift){} //shifts delta
+    virtual void set_delta(double shift){} //sets delta
+    virtual int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos); //attempt a move
+    bool check(); //check the action of the configuration
+    void accept(); //accept the move
+    void reject(); //reject the move
     int get_num_accepts(){return num_accepts;}
     int get_num_attempts(){return num_attempts;}
     void reset_acceptance_counters();
@@ -49,11 +49,11 @@ private:
     double delta;
     std::vector<int> ptcls;
     bool ac_re;
-    std::vector<std::vector<double> > new_coordinates;
-    std::vector<std::vector<double> > new_coordinates_ahead;
-    std::vector<int> keys_ahead;
-    std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
-    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
+    std::vector<std::vector<double> > new_coordinates; //new coordinates for move
+    std::vector<std::vector<double> > new_coordinates_ahead; //new coordinates for kinetic sep. table
+    std::vector<int> keys_ahead; //keys for kinetic sep. table
+    std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances; //new distances for sep. table
+    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials; //new potential values for sep. table
 
 
 public:
@@ -63,6 +63,7 @@ public:
     Center_of_Mass* clone() const{return new Center_of_Mass(*this);}
     
     int attempt(int &id,Parameters &params,Paths &paths, RNG &rng, Cos &cos);
+    
     void shift_delta(double shift){
         delta += shift*delta;
     }
@@ -79,7 +80,7 @@ public:
 };
 
 class Pair_Center_of_Mass : public Moves{
-    private:
+private:
     double delta;
     std::vector<int> ptcls;
     bool ac_re;
@@ -90,7 +91,7 @@ class Pair_Center_of_Mass : public Moves{
     std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
     
     
-    public:
+public:
     Pair_Center_of_Mass(int &id, Parameters &params, MPI_Comm &local);
     ~Pair_Center_of_Mass(){};
     
@@ -114,10 +115,10 @@ class Pair_Center_of_Mass : public Moves{
 
 class Bisection : public Moves{
 private:
-    int multistep_dist;
-    std::vector<std::vector<int> > multisteps;
-    std::vector<std::vector<int> > minp;
-    std::vector<int> bisection_info;
+    int multistep_dist; //distance for a bisection move
+    std::vector<std::vector<int> > multisteps; //vector of possible positions in imaginary time
+    std::vector<std::vector<int> > minp; //array that stores which multistep processes belong to which processor
+    std::vector<int> bisection_info; //bisection info array (to be broadcast by main process)
     std::vector<int> ptcl_slice;
     bool ac_re;
     std::vector<std::vector<double> > new_coordinates;
@@ -139,7 +140,7 @@ public:
 };
 
 class Permutation_Bisection : public Moves{
-private:
+private: //same as above Bisection class
     int multistep_dist;
     std::vector<std::vector<int> > multisteps;
     std::vector<std::vector<int> > minp;

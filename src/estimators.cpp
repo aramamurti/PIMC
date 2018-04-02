@@ -7,11 +7,13 @@
 //
 #include "estimators.hpp"
 
+//harmonic oscillator potential well (centered at zero)
 inline double potential_value_harmonic(double dist2){
     double val = 0.5*dist2;
     return val;
 }
 
+//piecewise portion of Aziz potential
 inline double aziz_pcws(double dist){
     if(dist >= 3.68335)
         return 1;
@@ -19,11 +21,13 @@ inline double aziz_pcws(double dist){
         return exp(-pow((3.68335/dist-1),2));
 }
 
+//Aziz potential
 inline double potential_value_aziz(double dist){
     double val = 10.8*(544850.4 * exp(-4.50018*dist)-(9424.94/pow(dist,10)+2556.63/pow(dist,8)+937.38/pow(dist,6))*aziz_pcws(dist));
     return val;
 }
 
+//Derivative of Aziz potential
 inline double deriv_aziz_pcws(double dist){
     if(dist >= 3.69912)
         return 0;
@@ -31,6 +35,7 @@ inline double deriv_aziz_pcws(double dist){
         return (7.3667*exp(-pow(3.68335/dist-1,2))*(3.68335/dist-1))/pow(dist,2);
 }
 
+//Gradient of Aziz potential
 inline double grad_potential_value_aziz(double dist){
     double part1 = -2.45192E6*exp(-4.50018*dist);
     double part2 = (-94249.4/pow(dist,11)-20453./pow(dist,9)-5624.28/pow(dist,7))*aziz_pcws(dist);
@@ -39,6 +44,7 @@ inline double grad_potential_value_aziz(double dist){
     return val;
 }
 
+//Coulomb potential (computed using Ewald summation)
 inline double potential_value_coulomb(std::vector<double>& dist, int chgi, int chgj, Parameters& params){
     if(params.coupling == 0) return 0;
     double val = 0;
@@ -87,6 +93,7 @@ inline double potential_value_coulomb(std::vector<double>& dist, int chgi, int c
     return val;
 }
 
+//Gradient of Coulomb potential
 inline std::vector<double> grad_potential_value_coulomb(std::vector<double>& dist, int chgi, int chgj, Parameters& params){
     if(params.coupling == 0) return std::vector<double>(params.dimensions, 0);
     std::vector<double> val(params.dimensions, 0);
@@ -142,8 +149,11 @@ inline std::vector<double> grad_potential_value_coulomb(std::vector<double>& dis
 }
 
 
+//Calculates energy, winding, and permutations for a configuration
 void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<double>& energy, std::vector<int>& winding, std::vector<int>& permutations){
     std::vector<std::vector<std::vector<double> > > all_locations;
+    
+    //Gather bead locations from all processors (sent to master)
     if(id == 0){
         std::vector<std::vector<double> > slice;
         for(int i = 0; i < params.slices_per_process; ++i){
@@ -170,11 +180,15 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
             for(int ptcl = 0; ptcl < params.particles; ++ptcl)
                 MPI_Send(&paths.get_coordinate(i,ptcl)[0], params.dimensions, MPI_DOUBLE, 0, i*params.particles+ptcl, local_comm);
     }
+    
+    //Master calculates all values
     if(id == 0){
-        double pe = 0;
-        double keth = 0;
-        double kev = 0;
-        double kd = 0;
+        double pe = 0; //potential energy
+        double keth = 0; //kinetic (thermal) energy
+        double kev = 0; // kinetic (virial) energy
+        double kd = 0; //square kinetic distance
+        
+        //Set Coulomb potential Ewald summation parameters
         if(params.potential == 2){
             params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
             params.coulcut = sqrt(params.p)/params.alpha;
@@ -184,9 +198,13 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
             params.nmax = floor(params.coulcut/params.box_size);
             params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
         }
+        
+        
         std::vector<double> dist(params.dimensions, 0);
+        
         for(int s = 0; s < params.total_slices; ++s)
             for(int p1 = 0; p1 < params.particles; ++p1){
+                //For each slice, calculate potential
                 switch(params.potential){
                     case 0:
                         pe += potential_value_harmonic(inner_product(all_locations[s][p1].begin(), all_locations[s][p1].end(), all_locations[s][p1].begin(), 0.0));
@@ -205,6 +223,8 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                         }
                         break;
                 }
+                
+                //and the square distance between each bead
                 if(s+1 != params.total_slices){
                     distance(all_locations[s+1][p1] , all_locations[s][p1],dist, params.box_size);
                     kd += inner_product(dist.begin(),dist.end(),dist.begin(),0.0);
@@ -217,12 +237,17 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
         if(params.potential == 2)
             pe = (pe/2);
         pe = pe/params.total_slices;
+        
+        //Kinetic (thermal) energy
         keth = 0.5*params.dimensions*params.particles/params.tau  - 1/(4.*params.lambda*pow(params.tau,2))*kd/params.total_slices;
+        
         std::vector<std::vector<std::vector<double> > > trajectories;
         std::vector<double> total_distance(params.dimensions, 0.0);
         trajectories.reserve(all_locations.size());
         trajectories.push_back(all_locations[0]);
         std::vector<std::vector<double> > slice;
+        
+        //calculate total distances and positions for each bead on each path (accounting for periodic conditions)
         for(int j = 1; j < params.total_slices; ++j){
             for(int i = 0; i < params.particles; ++i){
                 distance(all_locations[j-1][i], all_locations[j][i], dist, params.box_size);
@@ -258,12 +283,18 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
             trajectories.push_back(slice);
             slice.clear();
         }
+        
+        //Calculate energy using virial method
+        
+        //set constants
         int virial_window = params.total_slices;
         double E1 = 0.5*params.dimensions*params.particles/(params.tau*virial_window);
         double E2fac = 1/(4*params.lambda*params.total_slices*virial_window*params.tau*params.tau);
         double E2 = 0;
         double E3fac = 1./(2*params.total_slices);
         double E3 = 0;
+        
+        //virial window distances
         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
             for(int slice = 0; slice < params.total_slices; ++slice){
                 std::vector<double> v1;
@@ -276,6 +307,8 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                 E2 += inner_product(v1.begin(), v1.end(), v2.begin(), 0.0);
             }
         }
+        
+        //center of mass offsets
         std::vector<std::vector<double> > com(params.particles);
         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
             com[ptcl].resize(params.dimensions,0);
@@ -319,7 +352,10 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
                         }
                         break;
                 }
+        //total virial energy
         kev = E1 + E2fac * E2 + E3fac * E3;
+        
+        //calculate permutations based on forward connects values
         for(int part = 0; part < params.particles; ++part){
             int counter = 0;
             int particle = paths.forward_connects[part];
@@ -329,8 +365,12 @@ void Estimator::estimate(int& id, Paths& paths, Parameters &params, std::vector<
             }
             ++permutations[counter];
         }
+        
+        //calculate winding
         for(int dim = 0; dim < params.dimensions; ++dim)
             winding[dim] = round(total_distance[dim]/params.box_size);
+        
+        //combine energy calculations into a vector
         energy = {pe+keth,keth,pe, kev+pe, kev, pe};        
     }
 }

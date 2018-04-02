@@ -14,7 +14,7 @@
 
 #include <unordered_map>
 
-
+//hashing methods for two and three integers: ((n1+n2)*(n1+n2+1))/2+n2 for two ints, and recursively for three
 inline size_t pair_hash(std::pair<int, int> pair){
     return ((pair.first+pair.second)*(pair.first+pair.second+1))/2+pair.second;
 }
@@ -23,10 +23,11 @@ inline size_t triple_hash(std::tuple<int, int, int> tuple){
     return pair_hash(std::make_pair(pair_hash(std::make_pair(std::get<0>(tuple), std::get<1>(tuple))), std::get<2>(tuple)));
 }
 
+/***This class holds a neighbor table for the particles. It divides n-D space into a grid, and stores which particles are in neighboring grid boxes for quick lookup.***/
 class Neighbor_Table{
     
 public:
-    Neighbor_Table(Parameters &params){
+    Neighbor_Table(Parameters &params){ //sets box size and neighbor table grid size from parameters
         if(params.box_size != -1){
             box_size = params.box_size;
             box_start = 0;
@@ -48,6 +49,7 @@ public:
     
     ~Neighbor_Table(){}
     
+    //Sets up the neighbor table. Each grid box is assighned a unique key, and the neighboring grid boxes for any grid box are stored in a vector
     void set_up_neighbor_table(Parameters &params){
         size_t grid_key;
         for(int i = 0; i < num_grid; ++i){
@@ -96,6 +98,7 @@ public:
         }
     }
     
+    //helper method to find neighboring boxes
     std::vector<std::vector<int> > get_shifted_box(std::vector<int>& grid_box, Parameters &params){
         std::vector<std::vector<int> > shifts;
         switch(params.dimensions){
@@ -147,6 +150,7 @@ public:
         return neighboring_boxes;
     }
     
+    //adds a bead to the table (takes bead slice, bead key, and bead position)
     void add_bead(int slice, int key, const std::vector<double>& position){
         size_t grid_key = get_grid_key(position);
         auto found = cell_members[slice].find(grid_key);
@@ -156,6 +160,7 @@ public:
             cell_members[slice].insert({grid_key,{key}});
     }
     
+    //removes a bead from the table
     void remove_bead(int slice, int key, const std::vector<double>& position){
         if(position.size() != 0){
             size_t grid_key = get_grid_key(position);
@@ -165,6 +170,7 @@ public:
         }
     }
     
+    //updates a bead's position in the grid
     void update_grid(int slice, int key, const std::vector<double>& old_position, const std::vector<double>& new_position){
         size_t grid_key_old = get_grid_key(old_position);
         size_t grid_key_new = get_grid_key(new_position);
@@ -179,6 +185,7 @@ public:
             cell_members[slice].insert({grid_key_new,{key}});
     }
     
+    //gets the nearest neighbors of a bead given slice and position. returns neighboring keys.
     std::vector<int> get_nearest_neighbors(int slice, const std::vector<double>& position){
         size_t grid_key = get_grid_key(position);
         std::vector<size_t> neighbors = grid_neighbors.find(grid_key)->second;
@@ -194,6 +201,7 @@ public:
         return neighboring_particles;
     }
     
+    //gets beads in the same box as the given bead
     std::vector<int> get_cell_mates(int slice, const std::vector<double>& position){
         size_t grid_key = get_grid_key(position);
         std::vector<int> neighboring_particles(0);
@@ -203,6 +211,7 @@ public:
         return neighboring_particles;
     }
     
+    //checks whether two beads are nearest grid neighbors
     bool are_nearest_neighbors(const std::vector<double>& position1, const std::vector<double>& position2){
         size_t grid_key_1 = get_grid_key(position1);
         size_t grid_key_2 = get_grid_key(position2);
@@ -214,6 +223,7 @@ public:
             return false;
     }
     
+    //gets the key of the grid box given a position vector
     size_t get_grid_key(const std::vector<double>& position){
         std::vector<int> grid;
         for(auto &i : position)
@@ -229,6 +239,10 @@ public:
         }
     }
     
+    
+    /******* Checker methods ************/
+    
+    //prints the whole map to the console (grid key: {bead keys})
     void print_map(int slice){
         for(auto &it1 : cell_members[slice]){
             std::cout << it1.first << ":\t";
@@ -238,6 +252,7 @@ public:
         }
     }
     
+    //gets the number of beads in the map at any slice
     int get_members_size(int slice){
         int size = 0;
         for(auto &i : cell_members[slice]){
@@ -246,6 +261,7 @@ public:
         return size;
     }
     
+    //checks whether a bead is stored in the correct box
     bool is_in_box(int slice, int key, std::vector<double>& pos){
         size_t grid_key = get_grid_key(pos);
         auto cell = cell_members[slice].find(grid_key);
@@ -266,6 +282,7 @@ private:
     std::vector<std::unordered_map<size_t, std::vector<int> > > cell_members;
 };
 
+/*** This class stores the separations between all beads in a particular slice ***/
 class Separation_Table{
     
 public:
@@ -276,12 +293,14 @@ public:
     
     ~Separation_Table(){}
     
+    //adds a bead to the table
     void add_bead(int slice, int key, const std::vector<double>& position, bool update = true){
         locations[slice].insert({key,position});
         if(update)
             calculate_separations(slice, key);
     }
     
+    //removes a bead from the table
     void remove_bead(int slice, int key){
         auto i = locations[slice].find(key);
         if(i != locations[slice].end()){
@@ -299,6 +318,7 @@ public:
         }
     }
     
+    //updates the location of a bead
     void update_location(int slice, int key, const std::vector<double>& new_position, bool update = true){
         auto found = locations[slice].find(key);
         if(found != locations[slice].end())
@@ -307,6 +327,7 @@ public:
             calculate_separations(slice, key);
     }
     
+    //updates separations between beads given a set of pairs of keys, new distance vectors, and new distances
     void update_separations(std::vector<std::tuple<std::pair<int,int>, std::vector<double>, double> >& new_distances){
         for(auto &n : new_distances){
             size_t key_fwd = pair_hash(std::get<0>(n));
@@ -319,6 +340,7 @@ public:
         }
     }
     
+    //updates the potential values between beads given pair of keys and the potential value
     void update_potentials(std::vector<std::tuple<std::pair<int,int>, double> >& new_potentials){
         for(auto &n : new_potentials){
             size_t key_fwd = pair_hash(std::get<0>(n));
@@ -328,6 +350,7 @@ public:
         }
     }
     
+    //calculates the separations between one bead and all other beads
     void calculate_separations(int slice, int ptcl){
         auto i = locations[slice].find(ptcl);
         if(i != locations[slice].end()){
@@ -344,6 +367,8 @@ public:
             }
         }
     }
+    
+    /*** Getter methods ***/
     
     std::vector<double>& get_distance_vector(int key1, int key2){
         size_t key = pair_hash(std::pair<int, int>(key1,key2));
@@ -370,6 +395,7 @@ private:
 };
 
 
+/*** This class stores separations between beads in the imaginary time direction (across slices) ***/
 class Kinetic_Separation_Table{
     
 public:
@@ -389,7 +415,7 @@ public:
         end_locations[slice].insert({key,position});
     }
 
-    
+    //removes a bead from an end slice
     void remove_bead_end(int slice, int key){
         auto i = end_locations[slice].find(key);
         if(i != end_locations[slice].end()){
@@ -403,6 +429,7 @@ public:
         }
     }
     
+    //removes a bead from a start slice
     void remove_bead_start(int slice, int key){
         auto i = start_locations[slice].find(key);
         if(i != start_locations[slice].end()){
@@ -416,6 +443,7 @@ public:
         }
     }
     
+    //updates the location of a start bead
     void update_location_start(int slice, int key, const std::vector<double>& new_position, bool update = true){
         auto found = start_locations[slice].find(key);
         if(found != start_locations[slice].end())
@@ -424,6 +452,7 @@ public:
             calculate_separations_start(slice, key);
     }
     
+    //updates the location of an end bead
     void update_location_end(int slice, int key, const std::vector<double>& new_position, bool update = true){
         auto found = end_locations[slice].find(key);
         if(found != end_locations[slice].end())
@@ -435,6 +464,7 @@ public:
     
     // NOTE THAT THE SEPARATIONS STORED ARE SQUARE SEPARATIONS
     
+    //calculates distance from the start particle to all end particles
     void calculate_separations_start(int slice, int ptcl){
         auto i = start_locations[slice].find(ptcl);
         if(i != start_locations[slice].end()){
@@ -449,6 +479,7 @@ public:
         }
     }
     
+    //calcules distances from the end particle to all beginning
     void calculate_separations_end(int slice, int ptcl){
         auto i = end_locations[slice].find(ptcl);
         if(i != end_locations[slice].end()){
@@ -463,6 +494,7 @@ public:
         }
     }
     
+    //gets the distance between any two beads
     double get_distance(int key1, int key2){
         size_t key = pair_hash(std::pair<int, int>(key1,key2));
         return distances[key];
