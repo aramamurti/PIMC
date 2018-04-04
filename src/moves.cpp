@@ -109,9 +109,17 @@ int Moves::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
     return 0;
 }
 
-void Moves::reset_acceptance_counters(){
-    num_attempts = 0;
-    num_accepts = 0;
+void Moves::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    //Set necessary parameters for Coulomb
+    if(params.potential == 2){
+        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
+        params.coulcut = sqrt(params.p)/params.alpha;
+        params.coulcut2 = pow(params.coulcut,2);
+        params.kcut = 2.*params.p/params.coulcut;
+        params.kcut2 = pow(params.kcut,2);
+        params.nmax = floor(params.coulcut/params.box_size);
+        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
+    }
 }
 
 void Moves::initialize_potential_table(int &id, Parameters &params, Paths &paths, Cos &cos){
@@ -265,23 +273,12 @@ int Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, 
 
 //Checks the potential action of the new configuration vs. the old configuration and decides whether to accept the move
 void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    
-    //Set necessary parameters for Coulomb
-    if(params.potential == 2 && params.gce){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
-    
     //Go through configuration and calculate actions
     for(int j = 0; j < ptcls.size(); ++j){
         for(int i = 0; i < params.slices_per_process; ++i){
@@ -487,20 +484,12 @@ int Pair_Center_of_Mass::attempt(int &id,Parameters &params, Paths &paths, RNG &
 
 //checks whether to accept or reject move (same as center of mass class above)
 void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2 && params.gce){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     for(int j = 0; j < ptcls.size(); ++j){
         for(int i = 0; i < params.slices_per_process; ++i){
             if(!(ptcls[j] == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcls[j] == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
@@ -763,20 +752,12 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
 
 //basically same as CoM move method (see above)
 void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2 && params.gce){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
         int slice =i%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
@@ -1237,20 +1218,12 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
 }
 
 void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
         int slice =i%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
@@ -1397,6 +1370,7 @@ int Open::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos)
 
 //checks the open move by calculating the action with/without a certain set of beads, and determines whether it is beneficial or not
 void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> first_part(params.dimensions,0);
     std::vector<double> second_part(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
@@ -1404,15 +1378,6 @@ void Open::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     int es = open_info[1];
     int myp = open_info[0];
     std::vector<double> old_action_p(params.slices_per_process,0);
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     for(int i = open_info[1]-open_info[2]+1; i < open_info[1]; ++i){
         int slice = (i+params.total_slices)%params.total_slices;
         int part = open_info[0];
@@ -1557,6 +1522,7 @@ int Close::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
 }
 
 void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     int disty = (params.worm_head.first - params.worm_tail.first + params.total_slices)%params.total_slices;
     std::vector<double> first_part(params.dimensions,0);
     std::vector<double> second_part(params.dimensions,0);
@@ -1564,15 +1530,6 @@ void Close::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos)
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = (params.worm_tail.first)%params.total_slices;
     for(int i = 0; i <= disty; ++i){
         int slice = (start_slice+i)%params.total_slices;
@@ -1719,19 +1676,11 @@ int Insert::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &co
 }
 
 void Insert::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = insert_info[0];
     for(int i = 0; i <= insert_info[1]; ++i){
         int slice = (start_slice+i)%params.total_slices;
@@ -1806,17 +1755,9 @@ int Remove::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &co
 }
 
 void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int slice = params.worm_head.first;
     int column = params.worm_head.second;
     for(int i = 0; i < params.worm_length; ++i){
@@ -1928,19 +1869,11 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, C
 }
 
 void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = params.worm_tail.first;
     for(int i = 0; i <= M; ++i){
         int slice = (start_slice+i)%params.total_slices;
@@ -2051,20 +1984,12 @@ int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, C
 }
 
 void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     int start_slice = params.worm_head.first;
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     for(int i = 0; i <= M; ++i){
         int slice = (start_slice-i+params.total_slices)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
@@ -2142,17 +2067,9 @@ int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Co
 }
 
 void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = params.worm_head.first;
     int col = params.worm_head.second;
     for(int i = 0; i < M; ++i){
@@ -2222,17 +2139,9 @@ int Recede_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Co
 }
 
 void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = params.worm_tail.first;
     int col = params.worm_tail.second;
     for(int i = 0; i < M; i++){
@@ -2503,20 +2412,12 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
 }
 
 void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
     std::vector<double> dist(params.dimensions);
     double pot_val = 0.0;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = params.worm_tail.first;
     for(int i = 0; i <= params.Mbar; ++i){
         int slice = (start_slice+i)%params.total_slices;
@@ -2819,20 +2720,12 @@ int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
 }
 
 void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+    Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions,0);
     double pot_val = 0.0;
-    if(params.potential == 2){
-        params.alpha = sqrt(M_PI)*pow(params.particles/params.volume2,1/6.);
-        params.coulcut = sqrt(params.p)/params.alpha;
-        params.coulcut2 = pow(params.coulcut,2);
-        params.kcut = 2.*params.p/params.coulcut;
-        params.kcut2 = pow(params.kcut,2);
-        params.nmax = floor(params.coulcut/params.box_size);
-        params.kmax = ceil(params.kcut/(2.*M_PI/params.box_size));
-    }
     int start_slice = params.worm_head.first;
     for(int i = 0; i <= params.Mbar; ++i){
         int ptcl1 = choice;

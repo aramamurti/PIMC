@@ -31,12 +31,12 @@ public:
     virtual void shift_delta(double shift){} //shifts delta
     virtual void set_delta(double shift){} //sets delta
     virtual int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos); //attempt a move
-    bool check(); //check the action of the configuration
+    virtual void check(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos); //check the action of the configuration
     void accept(); //accept the move
     void reject(); //reject the move
     int get_num_accepts(){return num_accepts;}
     int get_num_attempts(){return num_attempts;}
-    void reset_acceptance_counters();
+    void reset_acceptance_counters(){num_attempts = 0; num_accepts = 0;}
     std::string get_move_name(){return move_name;}
     std::pair<bool, bool> get_move_type(){return std::pair<bool, bool>(worm_off, worm_on);}
     

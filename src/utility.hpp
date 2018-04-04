@@ -53,6 +53,7 @@ public:
     }
 };
 
+//Utility class for cosine table 
 class Cos{
     static const int table_size = 4096;
     std::array<double, table_size> CosTable;
