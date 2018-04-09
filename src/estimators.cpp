@@ -7,6 +7,15 @@
 //
 #include "estimators.hpp"
 
+
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the energy estimator for the PIMC simulation.
+
+See estimators.hpp for class structure.
+
+*---------------------------------------------------------------------------------------------------*/
+
 //harmonic oscillator potential well (centered at zero)
 inline double potential_value_harmonic(double dist2){
     double val = 0.5*dist2;

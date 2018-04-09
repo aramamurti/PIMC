@@ -9,6 +9,12 @@
 #include "IO.hpp"
 #include <iomanip>
 
+/*----------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the IO class. This class handles all the reading,
+and writing to files for parameters, results, paths, etc. See IO.hpp for class structure.
+
+*----------------------------------------------------------------------------------------------------*/
 
 //opens and writes headers for output files
 void IO::set_up_outfiles(int& id){

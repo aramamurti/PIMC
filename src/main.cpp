@@ -14,7 +14,12 @@
 #include "runner.hpp"
 
 
-/* This file contains the main method for the program */
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the main method for the PIMC program. It initializes MPI, reads in/sets parameters,
+and runs the simulation.
+
+*---------------------------------------------------------------------------------------------------*/
 int main(int argc, char * argv[]) {
 
     //Initialize the MPI

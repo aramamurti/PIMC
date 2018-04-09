@@ -13,6 +13,14 @@
 #include "utility.hpp"
 #include "paths.hpp"
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the class structure for the various PIMC worldine moves. There is a base class,
+called  Moves, and derived classes for Center of Mass, Bisection (standard and permutation),
+and all of the worm moves.
+
+*---------------------------------------------------------------------------------------------------*/
+
 //Base class for moves (see .cpp for implementation)
 class Moves{
 protected:

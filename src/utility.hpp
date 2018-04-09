@@ -20,6 +20,12 @@
 #include <numeric>
 #include <iostream>
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the random number generator and cosine table, as well as the
+declaration of various utility methods needed by the simulation.
+
+*---------------------------------------------------------------------------------------------------*/
 
 
 class RNG{

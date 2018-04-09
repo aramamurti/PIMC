@@ -13,6 +13,14 @@
 #include <boost/any.hpp>
 #include <boost/unordered_map.hpp>
 
+
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the Parameters class, which handles storing, as well as reading in, the parameters
+of the simulation.
+
+*---------------------------------------------------------------------------------------------------*/
+
 typedef boost::unordered_map<std::string, std::string> sectionmap;
 
 class Parameters{

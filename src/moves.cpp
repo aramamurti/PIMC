@@ -10,6 +10,14 @@
 #include "moves.hpp"
 
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the various PIMC worldine moves. There is a base class,
+called  Moves, and derived classes for Center of Mass, Bisection (standard and permutation),
+and all of the worm moves. See moves.hpp as well.
+
+*---------------------------------------------------------------------------------------------------*/
+
 /**** Methods that define the different potentials available (feel free to add to this) ****/
 
 //Harmonic oscillator
@@ -19,7 +27,6 @@ inline double potential_value_harmonic(double dist2){
 
 
 //Aziz
-
 inline double aziz_pcws(double& dist){
     if(dist >= 3.68335)
         return 1.;
@@ -122,6 +129,7 @@ void Moves::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos)
     }
 }
 
+//initializes the potential table held in the paths class
 void Moves::initialize_potential_table(int &id, Parameters &params, Paths &paths, Cos &cos){
     std::vector<std::tuple<std::pair<int, int>, double> > newp;
     std::vector<int> kVec(params.dimensions);
@@ -569,22 +577,26 @@ void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &
 /*** Bisection class: does a bisection bridge move for a path of length multistep_dist ***/
 
 Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local){
-    //set up all constants/permutation possibilities
-    multistep_dist = params.multistep_dist;
-    minp.resize(params.num_workers);
-    for(int i = 0; i < params.total_slices; ++i){
-        multisteps.push_back(std::vector<int>(1,i));
-        minp[i/params.slices_per_process].push_back(i);
-        for(int j = 1; j <= multistep_dist; ++j){
-            multisteps[i].push_back((i+j)%params.total_slices);
-            minp[((i+j)%params.total_slices)/params.slices_per_process].push_back(i);
+    multistep_dist = params.multistep_dist; //sets the move's time-step distance
+    
+    //The code below initializes and fills the vectors that hold the information of what processors
+    //are used for what time slices.
+    
+    minp.resize(params.num_workers); //minp is a vector of vectors of ints
+    for(int slice = 0; slice < params.total_slices; ++slice){
+        multisteps.push_back(std::vector<int>(1,slice)); //push the starting slice
+        minp[slice/params.slices_per_process].push_back(slice); //processor no. (slice/s_p_p) gets slice
+        for(int slice2 = 1; slice2 <= multistep_dist; ++slice2){ //for all slices slice < slice2 <= slice+multistep
+            multisteps[slice].push_back((slice+slice2)%params.total_slices); //slice2 included in the multisteps starting at slice
+            minp[((slice+slice2)%params.total_slices)/params.slices_per_process].push_back(slice); //append slice to processors belonging to this multistep process
         }
     }
-    for(auto &i : minp){
+    for(auto &i : minp){ //erase duplicates, if any
         sort(i.begin(), i.end());
         auto last = unique(i.begin(), i.end());
         i.erase(last, i.end());
     }
+    
     move_name = "Bisection";
     worm_off = true;
     worm_on = true;
@@ -666,8 +678,11 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                         end = new_coordinates[second%params.slices_per_process];
                 }
                 average_loc(start, end, new_coordinates[slice%params.slices_per_process], params.box_size); //find average location of the start and end
+                
+                //parameters for gaussian
                 double tau = params.tau*pow(2, level-1);
                 double width = sqrt(params.lambda*tau);
+                
                 for(auto &dim : new_coordinates[slice%params.slices_per_process]){
                     dim += rng.randgaussian(width); //move the average location by some Gaussian-distributed value
                 }
@@ -692,43 +707,43 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     
     //rest of method is basically same as CoM move
     ++num_attempts;
-    if(ac_re){
+    if(ac_re){//if move is accepted
         ++num_accepts;
-        for(int i = bisection_info[0]; i <= bisection_info[1]; ++i)
+        for(int i = bisection_info[0]; i <= bisection_info[1]; ++i) //for each slice in the bisection bridge
             if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end){
                 int slice = (i%params.total_slices)%params.slices_per_process;
-                put_in_box(new_coordinates[slice], params.box_size);
-                paths.set_coordinate(slice, ptcl_slice[slice],new_coordinates[slice], false);
+                put_in_box(new_coordinates[slice], params.box_size); //put the new coordinate into the box
+                paths.set_coordinate(slice, ptcl_slice[slice],new_coordinates[slice], false); //set the bead's coordinate to the new coordinate
             }
-        paths.update_separations(new_distances);
+        paths.update_separations(new_distances); //update separation table
         if(!params.gce || params.potential != 2)
-            paths.update_potentials(new_potentials);
+            paths.update_potentials(new_potentials); //update potential table
         if(!params.gce){
-            for(int i = bisection_info[0]; i <= bisection_info[1]; ++i)
+            for(int i = bisection_info[0]; i <= bisection_info[1]; ++i) //calculate kinetic separations
                 if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end){
                     int slice = (i%params.total_slices)%params.slices_per_process;
                     paths.calculate_kinetic_separations_start(slice, paths.get_coordinate_key(slice, ptcl_slice[slice]));
                 }
-            for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
+            for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){ //tell other processes about kinetic separations
                 int slice_back = positive_modulo(i-params.multistep_dist, params.total_slices);
                 int tslice = i%params.total_slices;
-                if(tslice >= params.my_start && tslice <= params.my_end){
+                if(tslice >= params.my_start && tslice <= params.my_end){//if a particle in my slices was moved
                     int slice = tslice%params.slices_per_process;
                     int send_rank = slice_back/params.slices_per_process;
                     int send_tag = slice_back;
                     new_coordinates[slice].resize(params.dimensions);
                     int key = paths.get_coordinate_key(slice, ptcl_slice[slice]);
-                    if(slice_back < params.my_start || slice_back > params.my_end){
+                    if(slice_back < params.my_start || slice_back > params.my_end){ //if the slice-multistep is not in my slices, send coordinate info
                         MPI_Send(&new_coordinates[slice][0], params.dimensions, MPI_DOUBLE, send_rank, send_tag, local_comm);
                         MPI_Send(&key, 1, MPI_INT, send_rank, send_tag+params.slices_per_process, local_comm);
                     }
-                    else{
+                    else{//else update kinetic separation info
                         keys_ahead[slice_back%params.slices_per_process] = key;
                         new_coordinates_ahead[slice_back%params.slices_per_process] = new_coordinates[slice];
                         paths.set_kinetic_end(slice_back%params.slices_per_process, keys_ahead[slice_back%params.slices_per_process], new_coordinates_ahead[slice_back%params.slices_per_process]);
                     }
                 }
-                else if(slice_back >= params.my_start && slice_back <= params.my_end){
+                else if(slice_back >= params.my_start && slice_back <= params.my_end){//otherwise, receive coordinate info and update kinetic separations
                     int slice = slice_back%params.slices_per_process;
                     int recv_rank = tslice/params.slices_per_process;
                     int recv_tag = slice_back;
@@ -740,6 +755,8 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
             }
         }
     }
+    
+    //clear all vectors
     bisection_info.clear();
     ptcl_slice.clear();
     new_coordinates.clear();
@@ -750,7 +767,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     return 0;
 }
 
-//basically same as CoM move method (see above)
+//Checks new and old actions and determines acceptance; basically same as CoM move method above
 void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
@@ -758,9 +775,9 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){
+    for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){ //for each slice in the bisection
         int slice =i%params.total_slices;
-        if(slice >= params.my_start && slice <= params.my_end){
+        if(slice >= params.my_start && slice <= params.my_end){ //if the slice is in "my" slices, calculate the new and old actions
             switch(params.potential){
                 case 0:
                     old_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).end(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),0.0));
@@ -803,11 +820,11 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
             }
         }
     }
-    if(id != 0){
+    if(id != 0){ //send new and old actions to the master process (id == 0)
         MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 0, local_comm);
         MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 1, local_comm);
     }
-    else{
+    else{ //master process collects all action calculations and makes decision to accept or reject the move
         ac_re = false;
         std::vector<double> old_action;
         std::vector<double> new_action;
@@ -858,6 +875,7 @@ Permutation_Bisection::Permutation_Bisection(int& id, Parameters &params, MPI_Co
     worm_on = true;
 }
 
+
 int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
@@ -899,10 +917,10 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
                 //calculate kinetic separations and resulting probabilities (stored in rho0s)
                 std::vector<double> rho0s(possible_swaps.size(),0);
                 int sp_fwd = bisection_info[2];
-                if(start_slice + params.multistep_dist >= params.total_slices)
+                if(start_slice + params.multistep_dist >= params.total_slices) //account for periodicity in tau direction
                     sp_fwd = paths.forward_connects[bisection_info[2]];
                 double r1d = paths.get_kinetic_separation(start_slice%params.slices_per_process, paths.get_coordinate_key(start_slice%params.slices_per_process, bisection_info[2]), paths.get_coordinate_key(swap_slice%params.slices_per_process, sp_fwd));
-                for(auto &i : possible_swaps){
+                for(auto &i : possible_swaps){ // for each of the possible swaps, calculate the rho0
                     int ps_back = i;
                     if(start_slice + params.multistep_dist >= params.total_slices)
                         ps_back = paths.backward_connects[i];
@@ -942,9 +960,9 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
             MPI_Send(&paths.get_coordinate(start_slice%params.slices_per_process, bisection_info[2])[0], params.dimensions, MPI_DOUBLE,swap_slice/params.slices_per_process, 0, local_comm);
             std::vector<int> possible_swaps;
             std::vector<int> possible_swaps_keys;
-            int number_amt = 0;
+            int number_amt = 0; //holds the number of possible swaps
             MPI_Recv(&number_amt, 1, MPI_INT, swap_slice/params.slices_per_process, 1, local_comm, MPI_STATUS_IGNORE);
-            if(number_amt != 0){
+            if(number_amt != 0){ //if there are swaps available, receive them and calculate rho0s (as above)
                 possible_swaps.resize(number_amt);
                 possible_swaps_keys.resize(number_amt);
                 MPI_Recv(&possible_swaps[0], number_amt, MPI_INT, swap_slice/params.slices_per_process, 2, local_comm, MPI_STATUS_IGNORE);
@@ -997,8 +1015,8 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
         std::vector<double> tail(params.dimensions,0);
         MPI_Recv(&tail[0], params.dimensions, MPI_DOUBLE, start_slice/params.slices_per_process, 0, local_comm, MPI_STATUS_IGNORE);
         int slice = swap_slice%params.slices_per_process;
-        std::vector<int> possible_swaps = paths.get_nearest_neighbors(slice, tail);
-        std::vector<int> possible_swaps_keys = paths.get_nearest_neighbor_keys(slice, tail);
+        std::vector<int> possible_swaps = paths.get_nearest_neighbors(slice, tail); //find all nearest neighbors for possible swaps
+        std::vector<int> possible_swaps_keys = paths.get_nearest_neighbor_keys(slice, tail); //find all keys for possible swaps
         if(!possible_swaps.empty())
             for(int poss = possible_swaps.size() - 1; poss >= 0; --poss)
                 if(paths.charge[possible_swaps[poss]] != paths.charge[bisection_info[2]]){
@@ -1006,8 +1024,8 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
                     possible_swaps_keys.erase(possible_swaps_keys.begin() + poss);
                 }
         int number_amt = possible_swaps.size();
-        MPI_Send(&number_amt, 1, MPI_INT,start_slice/params.slices_per_process, 1, local_comm);
-        if(number_amt != 0){
+        MPI_Send(&number_amt, 1, MPI_INT,start_slice/params.slices_per_process, 1, local_comm); //tell the receiving processor how many neighbors to expect
+        if(number_amt != 0){//if there are possible swaps, send them so the other processor can calculate rho0s
             MPI_Send(&possible_swaps[0], number_amt, MPI_INT, start_slice/params.slices_per_process, 2, local_comm);
             MPI_Send(&possible_swaps_keys[0], number_amt, MPI_INT, start_slice/params.slices_per_process, 3, local_comm);
             int orig_part = bisection_info[2];
@@ -1026,7 +1044,7 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
     new_coordinates_ahead.resize(params.slices_per_process*2);
     keys_ahead.resize(params.slices_per_process*2);
     
-    //Below is basically the same as bisection bridge above, except we are now doing it for two worldlines (see comments above)
+    // **Below is basically the same as bisection bridge above, except we are now doing it for two worldlines (see comments for bisection attempt above)**
 
     int level = int(round(log2(bisection_info[1]-bisection_info[0])));
     int counter = 0;
@@ -1217,6 +1235,8 @@ int Permutation_Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG
     return 0;
 }
 
+//Checks new and old actions and determines whether to accept; same process as with bisection above (see those comments for details),
+//except do everything twice for two worldlines
 void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
@@ -1311,11 +1331,11 @@ void Permutation_Bisection::check(int &id, Parameters &params, Paths &paths, RNG
             }
         }
     }
-    if(id != 0){
+    if(id != 0){ //send all actions to master processor
         MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 0, local_comm);
         MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 1, local_comm);
     }
-    else{
+    else{//master processor collects all actions, sums them, and decides whether to accept/reject the move
         ac_re = false;
         std::vector<double> old_action;
         std::vector<double> new_action;

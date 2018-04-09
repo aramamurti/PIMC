@@ -8,6 +8,12 @@
 
 #include "utility.hpp"
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the various utility methods needed by the simulation.
+
+*---------------------------------------------------------------------------------------------------*/
+
 double vector_avg(std::vector<double>& v)
 {
     double mean = 0;

@@ -17,9 +17,20 @@
 #include "parameters.hpp"
 #include "lookuptable.hpp"
 
+
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the Paths class. This class holds the worldlines, as well
+as any relevant information (such as separations, permutations, etc.) of the worldlines. It also
+implements the setting, getting of bead locations; permuting of worldlines; closing, opening of
+worldlines; inserting, removing, advancing, receding, swapping into the worm.
+
+*---------------------------------------------------------------------------------------------------*/
+
 inline int positive_modulo(int i, int n) {
     return (n + (i % n)) % n;
 }
+
 
 class Paths{
 private:
@@ -66,11 +77,11 @@ public:
         //master processor decides locations of each bead and broadcasts
         std::vector<double> locations(params.particles*params.dimensions);
         if(id == 0){
-            for(auto &i : locations){
+            for(auto &loc : locations){
                 if(params.box_size != -1)
-                    i = rng.randnormed(params.box_size);
+                    loc = rng.randnormed(params.box_size);
                 else
-                    i = 1-rng.randnormed(2);
+                    loc = 1-rng.randnormed(2);
             }
         }
         MPI_Bcast(&locations[0], (int)locations.size(), MPI_DOUBLE, 0, local_comm);
@@ -123,7 +134,7 @@ public:
         if(!params.gce)
             for(int slice = 0; slice < params.slices_per_process; ++slice)
                 for(int ptcl = 0; ptcl < params.particles; ++ptcl)
-                    kst.calculate_separations_start(slice, coordinate_keys[slice][ptcl]); //kinetic sep table only used when there is no worm (i.e. no gce)
+                    kst.calculate_separations_start(slice, coordinate_keys[slice][ptcl]); //kinetic sep table only initialized when there is no worm (i.e. no gce)
         
         //no worm
         params.worm_on = false;
@@ -139,19 +150,19 @@ public:
      
      *******************************************************************************************************************************************/
     
-    //this method swaps multiple worldlines given a start and end configuration index
+    //this method swaps multiple worldlines given a start and end configuration index, i.e. start_config = (1,2,3,4), end_config = (2,4,1,3)
     void swap_worldlines(Parameters &params, int start_slice, std::vector<int> start_config, std::vector<int> end_config){
         std::vector<std::pair<int, int> > swaps(start_config.size()-1);
         int cur_index = 0;
-        for(int i = 0; i < swaps.size(); ++i){
+        for(int i = 0; i < swaps.size(); ++i){ //finds the appropriate swap indices for each swap
             swaps[i] = std::make_pair(start_config[cur_index], end_config[cur_index]);
             auto it = std::find(start_config.begin(),start_config.end(), end_config[cur_index]);
             *it = start_config[cur_index];
             cur_index = it - start_config.begin();
         }
         for(int slice = start_slice; slice < params.total_slices; ++slice){
-            if(slice >= params.my_start && slice <= params.my_end){
-                for(auto &i : swaps){
+            if(slice >= params.my_start && slice <= params.my_end){ //for each slice
+                for(auto &i : swaps){//swap permuations, coordinates, keys, and update the key finder
                     std::iter_swap(forward_connects.begin()+i.first, forward_connects.begin()+i.second);
                     std::iter_swap(coordinate_slices[slice%params.slices_per_process].begin()+i.first, coordinate_slices[slice%params.slices_per_process].begin()+i.second);
                     std::iter_swap(coordinate_keys[slice%params.slices_per_process].begin()+i.first, coordinate_keys[slice%params.slices_per_process].begin()+i.second);
@@ -160,7 +171,7 @@ public:
                 }
             }
         }
-        for(int i = 0; i < params.particles; ++i)
+        for(int i = 0; i < params.particles; ++i) //update backwards connects
             backward_connects[forward_connects[i]] = i;
     }
     
@@ -190,12 +201,12 @@ public:
     void worm_advance_tail(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(params.worm_on == false){ //if no worm exists, initialize it
             params.worm_on = true;
-            params.worm_head.second = params.particles;
+            params.worm_head.second = params.particles; //worm is initialized the row after the diagonal configuration
             params.worm_tail.second = params.particles;
-            params.worm_head.first = worm_start;
+            params.worm_head.first = worm_start; //worm_start is slice of worm head/tail
             params.worm_tail.first = worm_start;
             ++params.particles;
-            forward_connects.push_back(-1);
+            forward_connects.push_back(-1); //-1 is the indicator for worm head/tail backwards/forwards connects
             backward_connects.push_back(-1);
             broken.push_back(true);
             if(chg != -10)

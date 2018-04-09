@@ -14,6 +14,14 @@
 
 #include <unordered_map>
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the various lookup tables necessary for the PIMC simulation.
+There are implementations of neighbor tables and separation tables herein.
+
+*---------------------------------------------------------------------------------------------------*/
+
+
 //hashing methods for two and three integers: ((n1+n2)*(n1+n2+1))/2+n2 for two ints, and recursively for three
 inline size_t pair_hash(std::pair<int, int> pair){
     return ((pair.first+pair.second)*(pair.first+pair.second+1))/2+pair.second;
@@ -464,7 +472,7 @@ public:
     
     // NOTE THAT THE SEPARATIONS STORED ARE SQUARE SEPARATIONS
     
-    //calculates distance from the start particle to all end particles
+    //calculates distance from the chosen start particle to all end particles
     void calculate_separations_start(int slice, int ptcl){
         auto i = start_locations[slice].find(ptcl);
         if(i != start_locations[slice].end()){
@@ -479,7 +487,7 @@ public:
         }
     }
     
-    //calcules distances from the end particle to all beginning
+    //calculates distances from the chosen end particle to all beginning particles
     void calculate_separations_end(int slice, int ptcl){
         auto i = end_locations[slice].find(ptcl);
         if(i != end_locations[slice].end()){

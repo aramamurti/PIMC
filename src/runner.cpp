@@ -9,6 +9,13 @@
 
 #include "runner.hpp"
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the implementation of the runner class for the simulation. It takes care of
+equilibrating the system and running the total simulation. See runner.hpp for class structure.
+
+*---------------------------------------------------------------------------------------------------*/
+
 //Initializer
 Runner::Runner(int &id, Parameters &params, MPI_Comm &local){
     local_comm = local;

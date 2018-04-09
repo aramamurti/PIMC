@@ -14,6 +14,12 @@
 #include "parameters.hpp"
 #include "utility.hpp"
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the class structure of the energy estimator for the PIMC simulation.
+
+*---------------------------------------------------------------------------------------------------*/
+
 class Estimator{
 public:
     Estimator(MPI_Comm& local){

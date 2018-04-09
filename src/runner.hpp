@@ -19,6 +19,13 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <stdio.h>
 
+/*---------------------------------------------------------------------------------------------------*
+
+This file contains the structure of runner class for the simulation. It takes care of
+equilibrating the system and running the total simulation.
+
+*---------------------------------------------------------------------------------------------------*/
+
 class Runner{
 public:
     Runner(int &id, Parameters &params, MPI_Comm &local);

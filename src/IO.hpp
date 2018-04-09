@@ -21,6 +21,12 @@
 #include <numeric>
 #include <vector>
 
+/*-------------------------------------------------------------------------------------------*
+
+This file contains the IO class. This class handles all the reading,
+and writing to files for parameters, results, paths, etc.
+
+*-------------------------------------------------------------------------------------------*/
 
 
 
