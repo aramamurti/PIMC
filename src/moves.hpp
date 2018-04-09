@@ -54,7 +54,7 @@ public:
 
 class Center_of_Mass : public Moves{
 private:
-    double delta;
+    double delta; //gaussian parameter for center of mass moves
     std::vector<int> ptcls;
     bool ac_re;
     std::vector<std::vector<double> > new_coordinates; //new coordinates for move
@@ -148,7 +148,7 @@ public:
 };
 
 class Permutation_Bisection : public Moves{
-private: //same as above Bisection class
+private: //same as above Bisection class, for two worldlines
     int multistep_dist;
     std::vector<std::vector<int> > multisteps;
     std::vector<std::vector<int> > minp;
@@ -157,7 +157,7 @@ private: //same as above Bisection class
     std::vector<int> ptcl_slice_2;
     bool ac_re;
     int choice;
-    bool keep_going;
+    bool keep_going; //bool that keeps track if a permutation swap is possible
     std::vector<std::vector<double> > new_coordinates;
     std::vector<std::vector<double> > new_coordinates_ahead;
     std::vector<int> keys_ahead;
