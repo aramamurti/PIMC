@@ -61,34 +61,46 @@ public:
     void set_up_neighbor_table(Parameters &params){
         size_t grid_key;
         for(int i = 0; i < num_grid; ++i){
+            
             std::vector<int> grid(params.dimensions);
-            grid[0]=i;
-            if(params.dimensions>1)
+            
+            //get grid "coordinate" for each grid box and get it's hashed value (1d - grid "coordinate", 2d - pair hash of coords, 3d triple hash of coords)
+            grid[0]=i; //1d
+            if(params.dimensions>1) //2d or 3d
                 for(int j = 0; j < num_grid; ++j){
                     grid[1]=j;
-                    if(params.dimensions>2)
+                    if(params.dimensions>2) //3d
                         for(int k = 0; k < num_grid; ++k){
                             grid[2]=k;
+                            
                             grid_key = triple_hash(std::make_tuple(grid[0],grid[1],grid[2]));
+                            
                             std::vector<std::vector<int> > neighboring_boxes = get_shifted_box(grid, params);
                             std::vector<size_t> neighbor_box_keys(0);
+                            
                             for(std::vector<std::vector<int> >::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); ++it)
                                 neighbor_box_keys.push_back(triple_hash(std::make_tuple((*it)[0],(*it)[1],(*it)[2])));
+                            
                             std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
                             auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
                             neighbor_box_keys.erase(last, neighbor_box_keys.end());
+                            
                             grid_neighbors.insert(std::pair<size_t, std::vector<size_t> >(grid_key, neighbor_box_keys));
                         }
-                    else{
+                    else{//2d
                         grid_key = pair_hash(std::pair<int, int>(grid[0],grid[1]));
+                        
                         std::vector<std::vector<int> > neighboring_boxes = get_shifted_box(grid, params);
                         std::vector<size_t> neighbor_box_keys(0);
+                        
                         for(std::vector<std::vector<int> >::iterator it = neighboring_boxes.begin(); it != neighboring_boxes.end(); ++it){
                             neighbor_box_keys.push_back(pair_hash(std::pair<int,int>((*it)[0],(*it)[1])));
                         }
+                        
                         std::sort(neighbor_box_keys.begin(), neighbor_box_keys.end());
                         auto last = std::unique(neighbor_box_keys.begin(), neighbor_box_keys.end());
                         neighbor_box_keys.erase(last, neighbor_box_keys.end());
+                        
                         grid_neighbors.insert(std::pair<size_t, std::vector<size_t> >(grid_key, neighbor_box_keys));
                     }
                 }
@@ -109,6 +121,7 @@ public:
     //helper method to find neighboring boxes
     std::vector<std::vector<int> > get_shifted_box(std::vector<int>& grid_box, Parameters &params){
         std::vector<std::vector<int> > shifts;
+        
         switch(params.dimensions){
             case 1:
                 for(int i = -1; i <= 1; ++i)
@@ -141,20 +154,26 @@ public:
                             }
                 break;
         }
+        
         std::vector<std::vector<int> > neighboring_boxes;
+        
         for(std::vector<std::vector<int> >::iterator it = shifts.begin(); it != shifts.end(); ++it){
+        
             std::vector<int> shift = *it;
             std::vector<int> result;
             result.reserve(params.dimensions);
             std::transform(grid_box.begin(), grid_box.end(), shift.begin(), std::back_inserter(result), std::plus<int>());
-            for(std::vector<int>::iterator it2 = result.begin(); it2 != result.end(); ++it2){
+            
+            for(std::vector<int>::iterator it2 = result.begin(); it2 != result.end(); ++it2){ //account for periodic box
                 if(*it2 < 0)
                     *it2 = num_grid-1;
                 if(*it2 >= num_grid)
                     *it2 = *it2-num_grid;
             }
+            
             neighboring_boxes.push_back(result);
         }
+        
         return neighboring_boxes;
     }
     
@@ -234,17 +253,18 @@ public:
     //gets the key of the grid box given a position vector
     size_t get_grid_key(const std::vector<double>& position){
         std::vector<int> grid;
-        for(auto &i : position)
-            grid.push_back((i-box_start)/grid_step);
-        if(grid.size() == 1){
+        
+        //find grid indices (per dimension) based on position
+        for(auto &pos_dim : position)
+            grid.push_back((pos_dim-box_start)/grid_step);
+        
+        //find and return grid key
+        if(grid.size() == 1)
             return grid[0];
-        }
-        else if(grid.size() == 2){
+        else if(grid.size() == 2)
             return pair_hash(std::pair<int,int>(grid[0],grid[1]));
-        }
-        else{
+        else
             return triple_hash(std::make_tuple(grid[0],grid[1],grid[2]));
-        }
     }
     
     

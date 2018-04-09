@@ -291,19 +291,21 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
     for(int j = 0; j < ptcls.size(); ++j){
         for(int i = 0; i < params.slices_per_process; ++i){
             if(!(ptcls[j] == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcls[j] == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
-                switch(params.potential){
-                    case 0:
+                switch(params.potential){ //switch based on the interparticle potential
+                    case 0: //harmonic osc.
                         new_action_p[i]+= potential_value_harmonic(inner_product(new_coordinates[j*params.slices_per_process+i].begin(),new_coordinates[j*params.slices_per_process+i].end(),new_coordinates[j*params.slices_per_process+i].begin(),0.0));
                         old_action_p[i] = potential_value_harmonic(inner_product(paths.get_coordinate(i,ptcls[j]).begin(),paths.get_coordinate(i,ptcls[j]).end(),paths.get_coordinate(i,ptcls[j]).begin(),0.0));
                         break;
-                    case 1:
+                    case 1: //aziz potential (he4)
                         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                             if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
                                 if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
                                     old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
+                                    
                                     distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
                                     double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                     pot_val = potential_value_aziz(r);
+                                    
                                     new_action_p[i] += pot_val;
                                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
                                     new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), pot_val));
@@ -311,7 +313,7 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
                             }
                         }
                         break;
-                    case 2:
+                    case 2: //coulomb potential
                         for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                             if(!(ptcl == params.worm_head.second && i+params.my_start < params.worm_head.first) && !(ptcl == params.worm_tail.second && i+params.my_start > params.worm_tail.first)){
                                 if(std::find(ptcls.begin(), ptcls.end(), ptcl) == ptcls.end()){
@@ -319,10 +321,12 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
                                         old_action_p[i] += potential_value_coulomb(paths.get_separation_vector(i, ptcl, ptcls[j]), kVec, paths.charge[ptcl],paths.charge[ptcls[j]],  params, cos);
                                     else
                                         old_action_p[i] += paths.get_potential(i, ptcl, ptcls[j]);
+                                    
                                     double r = 0;
                                     distance(paths.get_coordinate(i,ptcl), new_coordinates[j*params.slices_per_process+i], dist, params.box_size);
                                     r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                     pot_val = potential_value_coulomb(dist, kVec,  paths.charge[ptcl],paths.charge[ptcls[j]], params, cos);
+                                    
                                     new_action_p[i] += pot_val;
                                     new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(i, ptcl), paths.get_coordinate_key(i, ptcls[j])), dist, r));
                                     if(!params.gce)
@@ -346,6 +350,8 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
         std::vector<double> new_action;
         old_action.reserve(params.total_slices);
         new_action.reserve(params.total_slices);
+        
+        //accumulate old/new actions per slice
         old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
         new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
         for(int j = 1; j < params.num_workers; ++j){
@@ -354,12 +360,16 @@ void Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &rng, 
             old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
             new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
         }
+        
+        //sum actions (with factors)
         double oa = 0;
         double na = 0;
         for(int j = 0; j < params.total_slices; ++j){
             oa += params.tau*(old_action[j]);
             na += params.tau*(new_action[j]);
         }
+        
+        //determine acceptance/rejection
         if(rng.randnormed(1) < exp(-(na - oa)))
             ac_re = true;
     }
@@ -576,6 +586,7 @@ void Pair_Center_of_Mass::check(int &id, Parameters &params, Paths &paths, RNG &
 
 /*** Bisection class: does a bisection bridge move for a path of length multistep_dist ***/
 
+//constructor
 Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local){
     multistep_dist = params.multistep_dist; //sets the move's time-step distance
     
@@ -602,17 +613,22 @@ Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local
     worm_on = true;
 }
 
+//attempts the bisection move
 int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::attempt(id, params, paths, rng, cos);
     if(params.particles == 0) return 0;
     int set = rng.randint(multisteps.size()); //choose a starting slice set
+    
     bisection_info.clear();
     bisection_info.push_back(multisteps[set].front()); //start slice
     bisection_info.push_back(multisteps[set].back()); //end slice
-    if(multisteps[set].back() < multisteps[set].front()) //account for periodic boundary conditions
+    
+    if(multisteps[set].back() < multisteps[set].front()) //account for periodic boundary conditions in imaginary time
         bisection_info.back() += params.total_slices;
     bisection_info.push_back(rng.randint(params.particles)); //choose a particle
+    
     MPI_Bcast(&bisection_info[0], 3, MPI_INT, 0,local_comm); //broadcast to all processors
+    
     if(paths.broken[bisection_info[2]]){ //if the particle is the worm, then make sure that the slices chosen don't go past the end of the worm
         int final_ptcl = bisection_info[2];
         if(bisection_info[1] > params.total_slices)
@@ -630,6 +646,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     new_potentials.reserve(params.slices_per_process*params.particles);
     
     int level = int(round(log2(bisection_info[1]-bisection_info[0])));    //calculate the "level" of the bisection bridge: 2^n where n is the level
+    
     ptcl_slice.resize(params.slices_per_process,bisection_info[2]); //vector indicating which particle/bead to move at each slice
     if(bisection_info[1]>= params.total_slices) //if worldline wraps, modify which bead to move
         for(int i = bisection_info[0]; i <=bisection_info[1]; ++i)
@@ -637,8 +654,8 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                 ptcl_slice[i%params.slices_per_process] = paths.forward_connects[bisection_info[2]];
     
     int counter = 0;
-    //while level != 0
-    while(level){
+    while(level){ //while level != 0
+    
         //figure out which slices need to be computed for this level
         int num_comps = pow(2,counter);
         ++counter;
@@ -648,11 +665,13 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
         
         //for each slice to compute
         for(auto &slice : slices_to_compute){
-            int first = int(slice - pow(2,level-1)+params.total_slices)%params.total_slices;
-            int second = int(slice + pow(2, level-1))%params.total_slices;
+        
+            int first = int(slice - pow(2,level-1)+params.total_slices)%params.total_slices; //first endpoint
+            int second = int(slice + pow(2, level-1))%params.total_slices; //second endpoint
             
             //if the particle to be moved is in "my" slices
             if(slice >= params.my_start && slice <= params.my_end){
+            
                 std::vector<double> start(params.dimensions);
                 std::vector<double> end(params.dimensions);
                 
@@ -664,7 +683,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                         start = paths.get_coordinate(first%params.slices_per_process, ptcl_slice[first%params.slices_per_process]);
                         new_coordinates[first%params.slices_per_process] = start;
                     }
-                    else //else use the new computed coordinate
+                    else //else use the new coordinate
                         start = new_coordinates[first%params.slices_per_process];
                 }
                 if(second < params.my_start || second > params.my_end) //if the second is not in "my" slices ... same as above
@@ -677,15 +696,17 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                     else
                         end = new_coordinates[second%params.slices_per_process];
                 }
-                average_loc(start, end, new_coordinates[slice%params.slices_per_process], params.box_size); //find average location of the start and end
+                
+                //find average location of the start and end
+                average_loc(start, end, new_coordinates[slice%params.slices_per_process], params.box_size);
                 
                 //parameters for gaussian
                 double tau = params.tau*pow(2, level-1);
                 double width = sqrt(params.lambda*tau);
                 
-                for(auto &dim : new_coordinates[slice%params.slices_per_process]){
+                for(auto &dim : new_coordinates[slice%params.slices_per_process])
                     dim += rng.randgaussian(width); //move the average location by some Gaussian-distributed value
-                }
+                
             }
             else{ //if the particle to be moved is not in "my" slices, send relevant start and/or end locations if I have them
                 if(first >= params.my_start && first <= params.my_end){
@@ -700,8 +721,9 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                 }
             }
         }
-        --level;
+        --level; //reduce the level of the bisection move
     }
+    
     check(id, params, paths, rng, cos); //check action of old and new configurations
     MPI_Bcast(&ac_re, 1, MPI_INT, 0, local_comm); //broadcast acceptance/rejection to all processors
     
@@ -715,25 +737,34 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                 put_in_box(new_coordinates[slice], params.box_size); //put the new coordinate into the box
                 paths.set_coordinate(slice, ptcl_slice[slice],new_coordinates[slice], false); //set the bead's coordinate to the new coordinate
             }
+        
         paths.update_separations(new_distances); //update separation table
+        
         if(!params.gce || params.potential != 2)
             paths.update_potentials(new_potentials); //update potential table
+        
         if(!params.gce){
+        
             for(int i = bisection_info[0]; i <= bisection_info[1]; ++i) //calculate kinetic separations
                 if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end){
                     int slice = (i%params.total_slices)%params.slices_per_process;
                     paths.calculate_kinetic_separations_start(slice, paths.get_coordinate_key(slice, ptcl_slice[slice]));
                 }
+            
             for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){ //tell other processes about kinetic separations
                 int slice_back = positive_modulo(i-params.multistep_dist, params.total_slices);
                 int tslice = i%params.total_slices;
-                if(tslice >= params.my_start && tslice <= params.my_end){//if a particle in my slices was moved
+                if(tslice >= params.my_start && tslice <= params.my_end){//if a particle in my slices was moved...
                     int slice = tslice%params.slices_per_process;
+                    
                     int send_rank = slice_back/params.slices_per_process;
                     int send_tag = slice_back;
+                    
                     new_coordinates[slice].resize(params.dimensions);
+                    
                     int key = paths.get_coordinate_key(slice, ptcl_slice[slice]);
-                    if(slice_back < params.my_start || slice_back > params.my_end){ //if the slice-multistep is not in my slices, send coordinate info
+                    
+                    if(slice_back < params.my_start || slice_back > params.my_end){ //if the slice-multistep is not in my slices, send coordinate info to processors that need to know
                         MPI_Send(&new_coordinates[slice][0], params.dimensions, MPI_DOUBLE, send_rank, send_tag, local_comm);
                         MPI_Send(&key, 1, MPI_INT, send_rank, send_tag+params.slices_per_process, local_comm);
                     }
@@ -745,11 +776,15 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
                 }
                 else if(slice_back >= params.my_start && slice_back <= params.my_end){//otherwise, receive coordinate info and update kinetic separations
                     int slice = slice_back%params.slices_per_process;
+                    
                     int recv_rank = tslice/params.slices_per_process;
                     int recv_tag = slice_back;
+                    
                     new_coordinates_ahead[slice].resize(params.dimensions);
+                    
                     MPI_Recv(&new_coordinates_ahead[slice][0], params.dimensions, MPI_DOUBLE, recv_rank, recv_tag, local_comm, MPI_STATUS_IGNORE);
                     MPI_Recv(&keys_ahead[slice], 1, MPI_INT, recv_rank, recv_tag+params.slices_per_process, local_comm, MPI_STATUS_IGNORE);
+                    
                     paths.set_kinetic_end(slice, keys_ahead[slice], new_coordinates_ahead[slice]);
                 }
             }
@@ -770,27 +805,32 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
 //Checks new and old actions and determines acceptance; basically same as CoM move method above
 void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
+    
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions);
     std::vector<int> kVec(params.dimensions);
+    
     double pot_val = 0.;
     for(int i = bisection_info[0]; i <= bisection_info[1]; ++i){ //for each slice in the bisection
         int slice =i%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){ //if the slice is in "my" slices, calculate the new and old actions
-            switch(params.potential){
-                case 0:
+            switch(params.potential){ //switch based on the interparticle potential
+                case 0: //harmonic osc.
                     old_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).end(),paths.get_coordinate(slice%params.slices_per_process,ptcl_slice[slice%params.slices_per_process]).begin(),0.0));
                     new_action_p[slice%params.slices_per_process] += potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(),new_coordinates[slice%params.slices_per_process].end(),new_coordinates[slice%params.slices_per_process].begin(),0.0));
                     break;
-                case 1:
+                case 1: //aziz potential (he4)
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice[slice%params.slices_per_process]){
                                 old_action_p[slice%params.slices_per_process]  += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]);
+                                
+                                //calculate new potential
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                 pot_val = potential_value_aziz(r);
+                                
                                 new_action_p[slice%params.slices_per_process]  += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
                                 new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), pot_val));
@@ -798,7 +838,7 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
                         }
                     }
                     break;
-                case 2:
+                case 2: //coulomb
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
                         if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
                             if(ptcl != ptcl_slice[slice%params.slices_per_process]){
@@ -806,9 +846,12 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
                                     old_action_p[slice%params.slices_per_process]  += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]), kVec,  paths.charge[ptcl],paths.charge[ptcl_slice[slice%params.slices_per_process]], params, cos);
                                 else
                                     old_action_p[slice%params.slices_per_process]  += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl_slice[slice%params.slices_per_process]);
+                                
+                                //calculate new potential
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                 pot_val = potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl_slice[slice%params.slices_per_process]],  params, cos);
+                                
                                 new_action_p[slice%params.slices_per_process]  += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
                                 if(!params.gce)
@@ -826,10 +869,14 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
     }
     else{ //master process collects all action calculations and makes decision to accept or reject the move
         ac_re = false;
+        
         std::vector<double> old_action;
         std::vector<double> new_action;
+        
         old_action.reserve(params.total_slices);
         new_action.reserve(params.total_slices);
+        
+        //accumulate all old/new actions per slice
         old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
         new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
         for(int i = 1; i < params.num_workers; ++i){
@@ -838,6 +885,8 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
             old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
             new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
         }
+        
+        //calculate total action
         double oa = 0;
         double na = 0;
         for(int j = bisection_info[0]; j < bisection_info[1]; ++j){
@@ -846,6 +895,8 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
             oa += params.tau/2.*(old_action[slice] + old_action[slicep1]);
             na += params.tau/2.*(new_action[slice] + new_action[slicep1]);
         }
+        
+        //determine whether to accept or reject
         if(rng.randnormed(1) < exp(-(na - oa)))
             ac_re = true;
     }

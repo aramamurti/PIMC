@@ -153,13 +153,26 @@ public:
     //this method swaps multiple worldlines given a start and end configuration index, i.e. start_config = (1,2,3,4), end_config = (2,4,1,3)
     void swap_worldlines(Parameters &params, int start_slice, std::vector<int> start_config, std::vector<int> end_config){
         std::vector<std::pair<int, int> > swaps(start_config.size()-1);
+        
+        //the below loop finds the appropriate swap indices for each swap (it's a bit confusing so let's try to walk through one)
+        // so for start_config = (1,2,3,4), end_config = (2,4,1,3):
+        // the first swap is 1 <-> 2 (2,1,3,4)
+        // then we look for 2 in start_config and replace with 1 (with the iterator/pointer to start_config[1]) and begin again
+        // so then the next swap is 1 <-> 4, look for 4 in start_config and replace with 1
+        // next swap is 1 <-> 3, look for 3 in start_config and replace with 1
+        // last is 1<->1 and we're done.
+        
+        //summarizing (1,2,3,4) -> swap 1<>2 -> (2,1,3,4) -> swap 1<>4 -> (2,4,3,1) -> swap 1<>3 -> (2,4,1,3) and we have our final config.
+        
         int cur_index = 0;
-        for(int i = 0; i < swaps.size(); ++i){ //finds the appropriate swap indices for each swap
+        for(int i = 0; i < swaps.size(); ++i){
             swaps[i] = std::make_pair(start_config[cur_index], end_config[cur_index]);
             auto it = std::find(start_config.begin(),start_config.end(), end_config[cur_index]);
             *it = start_config[cur_index];
             cur_index = it - start_config.begin();
         }
+        
+        //go through and actually execute the swaps using iter_swap and the pairs of swaps in order
         for(int slice = start_slice; slice < params.total_slices; ++slice){
             if(slice >= params.my_start && slice <= params.my_end){ //for each slice
                 for(auto &i : swaps){//swap permuations, coordinates, keys, and update the key finder
