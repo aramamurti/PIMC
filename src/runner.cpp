@@ -37,12 +37,12 @@ Runner::Runner(int &id, Parameters &params, MPI_Comm &local){
         moves.push_back(new Close(id, params, local));
         moves.push_back(new Insert(id, params, local));
         moves.push_back(new Remove(id, params, local));
-        moves.push_back(new Advance_Tail(id, params, local));
-        moves.push_back(new Advance_Head(id, params, local));
-        moves.push_back(new Recede_Tail(id, params, local));
-        moves.push_back(new Recede_Head(id, params, local));
-        moves.push_back(new Swap_Tail(id, params, local));
-        moves.push_back(new Swap_Head(id, params, local));
+        moves.push_back(new Advance(id, params, local, true));
+        moves.push_back(new Advance(id, params, local, false));
+        moves.push_back(new Recede(id, params, local, true));
+        moves.push_back(new Recede(id, params, local, false));
+        moves.push_back(new Swap(id, params, local, true));
+        moves.push_back(new Swap(id, params, local, false));
     }
     
     move_choices.resize(2); // move choices vector holds indices of moves in the move vector in two categories/types: worm moves and non-worm moves

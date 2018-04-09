@@ -1834,9 +1834,13 @@ void Remove::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos
     }
 }
 
+
+/***************** TEST ********************/
+
 /*** Advance tail/head moves: advance the head or tail of the worm by a random length <= Mbar ***/
 
-int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+
+int Advance::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
@@ -1845,25 +1849,41 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, C
     new_distances.resize(params.slices_per_process);
     new_potentials.resize(params.slices_per_process);
     for(int i = 1; i <= M; ++i){
-        int slice = (params.worm_tail.first+i)%params.total_slices;
-        int slicem1 = (params.worm_tail.first+i-1)%params.total_slices;
+        int slice = 0;
+        int slicepm1 = 0;
+        if(head){
+            slice = (params.worm_head.first-i+params.total_slices)%params.total_slices;
+            slicepm1 = (params.worm_head.first-i+1+params.total_slices)%params.total_slices;
+        }
+        else{
+            slice = (params.worm_tail.first+i)%params.total_slices;
+            slicepm1 = (params.worm_tail.first+i-1)%params.total_slices;
+        }
         if(slice >= params.my_start && slice <= params.my_end){
             new_coordinates[slice%params.slices_per_process].resize(params.dimensions);
-            if(slicem1 >= params.my_start && slicem1 <= params.my_end){
-                if(i == 1)
-                    new_coordinates[slicem1%params.slices_per_process] = paths.get_coordinate(slicem1%params.slices_per_process,params.worm_tail.second);
-                new_coordinates[slice%params.slices_per_process] = new_coordinates[slicem1%params.slices_per_process];
+            if(slicepm1 >= params.my_start && slicepm1 <= params.my_end){
+                if(i == 1){
+                    if(head)
+                        new_coordinates[slicepm1%params.slices_per_process] = paths.get_coordinate(slicepm1%params.slices_per_process,params.worm_head.second);
+                    else
+                        new_coordinates[slicepm1%params.slices_per_process] = paths.get_coordinate(slicepm1%params.slices_per_process,params.worm_tail.second);
+                }
+                new_coordinates[slice%params.slices_per_process] = new_coordinates[slicepm1%params.slices_per_process];
             }
             else
-                MPI_Recv(&new_coordinates[slice%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slicem1/params.slices_per_process,i, local_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&new_coordinates[slice%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slicepm1/params.slices_per_process,i, local_comm, MPI_STATUS_IGNORE);
             double width = sqrt(2*params.lambda*params.tau);
             for(auto &j : new_coordinates[slice%params.slices_per_process])
                 j += rng.randgaussian(width);
         }
-        else if(slicem1 >= params.my_start && slicem1 <= params.my_end){
-            if(i == 1)
-                new_coordinates[slicem1%params.slices_per_process] = paths.get_coordinate(slicem1%params.slices_per_process,params.worm_tail.second);
-            MPI_Send(&new_coordinates[slicem1%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slice/params.slices_per_process,i, local_comm);
+        else if(slicepm1 >= params.my_start && slicepm1 <= params.my_end){
+            if(i == 1){
+                if(head)
+                    new_coordinates[slicepm1%params.slices_per_process] = paths.get_coordinate(slicepm1%params.slices_per_process,params.worm_head.second);
+                else
+                    new_coordinates[slicepm1%params.slices_per_process] = paths.get_coordinate(slicepm1%params.slices_per_process,params.worm_tail.second);
+            }
+            MPI_Send(&new_coordinates[slicepm1%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slice/params.slices_per_process,i, local_comm);
         }
     }
     check(id, params, paths, rng, cos);
@@ -1871,15 +1891,30 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, C
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
-        int start_slice = params.worm_tail.first;
+        int start_slice = 0;
+        if(head)
+            start_slice = params.worm_head.first;
+        else
+            start_slice = params.worm_tail.first;
         for(int i = 1; i <= M; ++i){
-            int slice = (start_slice+i)%params.total_slices;
+            int slice = 0;
+            if(head)
+                slice = (start_slice-i+params.total_slices)%params.total_slices;
+            else
+                slice = (start_slice+i)%params.total_slices;
             if(slice >= params.my_start && slice <= params.my_end){
                 put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-                paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
+                if(head)
+                    paths.worm_advance_head(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
+                else
+                    paths.worm_advance_tail(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
             }
-            else
-                paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0), std::vector<std::tuple<int, double> >(0));
+            else{
+                if(head)
+                    paths.worm_advance_head(params, std::vector<double>(0),std::vector<std::tuple<int, std::vector<double>, double> >(0),std::vector<std::tuple<int, double> >(0));
+                else
+                    paths.worm_advance_tail(params, std::vector<double>(0), std::vector<std::tuple<int, std::vector<double>, double> >(0), std::vector<std::tuple<int, double> >(0));
+            }
         }
     }
     new_coordinates.clear();
@@ -1888,15 +1923,23 @@ int Advance_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, C
     return 0;
 }
 
-void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+void Advance::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
+    int start_slice = 0;
+    if(head)
+        start_slice = params.worm_head.first;
+    else
+        start_slice = params.worm_tail.first;
     std::vector<double> new_action_p(params.slices_per_process,0);
     std::vector<double> dist(params.dimensions,0);
     std::vector<int> kVec(params.dimensions);
     double pot_val = 0.;
-    int start_slice = params.worm_tail.first;
     for(int i = 0; i <= M; ++i){
-        int slice = (start_slice+i)%params.total_slices;
+        int slice = 0;
+        if(head)
+            slice = (start_slice-i+params.total_slices)%params.total_slices;
+        else
+            slice = (start_slice+i)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
             new_distances[slice%params.slices_per_process].reserve(params.particles);
             switch(params.potential){
@@ -1905,122 +1948,7 @@ void Advance_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Co
                     break;
                 case 1:
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
-                            distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                            double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            pot_val = potential_value_aziz(r);
-                            new_action_p[slice%params.slices_per_process]  += pot_val;
-                            new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
-                            new_potentials[slice%params.slices_per_process].push_back(std::tuple<int,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), pot_val));
-                        }
-                    }
-                    break;
-                case 2:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first)){
-                            distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                            double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_tail.second], params, cos);
-                            new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
-                        }
-                    }
-                    dist = std::vector<double>(params.dimensions,0);
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_tail.second], paths.charge[params.worm_tail.second], params, cos);
-                    break;
-            }
-        }
-    }
-    if(id != 0)
-        MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0,0,local_comm);
-    else{
-        ac_re = false;
-        std::vector<double> new_action;
-        new_action.reserve(params.total_slices);
-        new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
-        for(int j = 1; j < params.num_workers; ++j){
-            MPI_Recv(&new_action_p[0], params.slices_per_process, MPI_DOUBLE,j,0,local_comm,MPI_STATUS_IGNORE);
-            new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
-        }
-        double na = 0;
-        for(int j = 0; j < M; ++j){
-            int slice = (start_slice+j)%params.total_slices;
-            na += params.tau/2*(new_action[slice]+new_action[(slice+1)%params.total_slices]);
-        }
-        if(rng.randnormed(1) < exp(-na)*exp(params.mu*M*params.tau))
-            ac_re = true;
-    }
-}
-
-int Advance_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng, cos);
-    M = rng.randint(params.Mbar)+1;
-    MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
-    new_coordinates.resize(params.slices_per_process);
-    new_distances.resize(params.slices_per_process);
-    new_potentials.resize(params.slices_per_process);
-    for(int i = 1; i <= M; ++i){
-        int slice = (params.worm_head.first-i+params.total_slices)%params.total_slices;
-        int slicep1 = (params.worm_head.first-i+1+params.total_slices)%params.total_slices;
-        if(slice >= params.my_start && slice <= params.my_end){
-            new_coordinates[slice%params.slices_per_process].resize(params.dimensions);
-            if(slicep1 >= params.my_start && slicep1 <= params.my_end){
-                if(i == 1)
-                    new_coordinates[slicep1%params.slices_per_process] = paths.get_coordinate(slicep1%params.slices_per_process,params.worm_head.second);
-                new_coordinates[slice%params.slices_per_process] = new_coordinates[slicep1%params.slices_per_process];
-            }
-            else
-                MPI_Recv(&new_coordinates[slice%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slicep1/params.slices_per_process,i, local_comm, MPI_STATUS_IGNORE);
-            double width = sqrt(2*params.lambda*params.tau);
-            for(auto &j : new_coordinates[slice%params.slices_per_process])
-                j += rng.randgaussian(width);
-        }
-        else if(slicep1 >= params.my_start && slicep1 <= params.my_end){
-            if(i == 1)
-                new_coordinates[slicep1%params.slices_per_process] = paths.get_coordinate(slicep1%params.slices_per_process,params.worm_head.second);
-            MPI_Send(&new_coordinates[slicep1%params.slices_per_process][0],params.dimensions,MPI_DOUBLE,slice/params.slices_per_process,i, local_comm);
-        }
-    }
-    check(id, params, paths, rng, cos);
-    MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
-    ++num_attempts;
-    if(ac_re){
-        ++num_accepts;
-        int start_slice = params.worm_head.first;
-        for(int i = 1; i <= M; ++i){
-            int slice = (start_slice-i+params.total_slices)%params.total_slices;
-            if(slice >= params.my_start && slice <= params.my_end){
-                put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-                paths.worm_advance_head(params, new_coordinates[slice%params.slices_per_process],new_distances[slice%params.slices_per_process],new_potentials[slice%params.slices_per_process]);
-            }
-            else
-                paths.worm_advance_head(params, std::vector<double>(0),std::vector<std::tuple<int, std::vector<double>, double> >(0),std::vector<std::tuple<int, double> >(0));
-        }
-    }
-    new_coordinates.clear();
-    new_distances.clear();
-    new_potentials.clear();
-    return 0;
-}
-
-void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    Moves::check(id, params, paths, rng, cos);
-    int start_slice = params.worm_head.first;
-    std::vector<double> new_action_p(params.slices_per_process,0);
-    std::vector<double> dist(params.dimensions,0);
-    std::vector<int> kVec(params.dimensions);
-    double pot_val = 0.;
-    for(int i = 0; i <= M; ++i){
-        int slice = (start_slice-i+params.total_slices)%params.total_slices;
-        if(slice >= params.my_start && slice <= params.my_end){
-            new_distances[slice%params.slices_per_process].reserve(params.particles);
-            switch(params.potential){
-                case 0:
-                    new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(), 0.0));
-                    break;
-                case 1:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
+                        if((head &&!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)) || (!head && !(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first))){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                             pot_val = potential_value_aziz(r);
@@ -2031,16 +1959,17 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Co
                     }
                     break;
                 case 2:
+                    int worm_charge = paths.charge[params.worm_head.second];
                     for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
+                        if((head &&!(ptcl == params.worm_head.second && slice <= params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)) || (!head && !(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice >= params.worm_tail.first))){
                             distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                             double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[params.worm_head.second], params, cos);
+                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], worm_charge, params, cos);
                             new_distances[slice%params.slices_per_process].push_back(std::tuple<int,std::vector<double>,double>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl), dist, r));
                         }
                     }
                     dist = std::vector<double>(params.dimensions,0);
-                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[params.worm_head.second], paths.charge[params.worm_head.second], params, cos);
+                    new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, worm_charge, worm_charge, params, cos);
                     break;
             }
         }
@@ -2058,8 +1987,14 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Co
         }
         double na = 0;
         for(int j = 0; j < M; ++j){
-            int slice = (start_slice-j+params.total_slices)%params.total_slices;
-            na += params.tau/2*(new_action[slice]+new_action[(slice-1+params.total_slices)%params.total_slices]);
+            if(head){
+                int slice = (start_slice-j+params.total_slices)%params.total_slices;
+                na += params.tau/2*(new_action[slice]+new_action[(slice-1+params.total_slices)%params.total_slices]);
+            }
+            else{
+                int slice = (start_slice+j)%params.total_slices;
+                na += params.tau/2*(new_action[slice]+new_action[(slice+1)%params.total_slices]);
+            }
         }
         if(rng.randnormed(1) < exp(-na)*exp(params.mu*M*params.tau))
             ac_re = true;
@@ -2068,7 +2003,7 @@ void Advance_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Co
 
 /*** Recede head/tail moves: recedes the head/tail of the worm by a random int <= Mbar ***/
 
-int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+int Recede::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     Moves::attempt(id, params, paths, rng, cos);
     M = rng.randint(params.Mbar)+1;
@@ -2081,93 +2016,40 @@ int Recede_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Co
     if(ac_re){
         ++num_accepts;
         for(int i = 0; i < M; ++i)
-            paths.worm_recede_head(params);
+            if(head)
+                paths.worm_recede_head(params);
+            else
+                paths.worm_recede_tail(params);
     }
     return 0;
 }
 
-void Recede_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+void Recede::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<int> kVec(params.dimensions);
-    int start_slice = params.worm_head.first;
-    int col = params.worm_head.second;
-    for(int i = 0; i < M; ++i){
-        int slice = (start_slice+i)%params.total_slices;
-        if(start_slice+i == params.total_slices)
-            col = paths.forward_connects[col];
-        if(slice >= params.my_start && slice <= params.my_end){
-            switch(params.potential){
-                case 0:
-                    old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process,col).begin(),paths.get_coordinate(slice%params.slices_per_process,col).end(),paths.get_coordinate(slice%params.slices_per_process,col).begin(),0.0));
-                    break;
-                case 1:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            if(ptcl != col){
-                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, col);
-                            }
-                        }
-                    }
-                    break;
-                case 2:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, col), kVec, paths.charge[ptcl], paths.charge[col], params, cos);
-                        }
-                    }
-                    break;
-            }
-        }
+    int start_slice = 0;
+    int col = 0;
+    if(head){
+        start_slice = params.worm_head.first;
+        col = params.worm_head.second;
     }
-    if(id != 0)
-        MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0,0,local_comm);
     else{
-        ac_re = false;
-        std::vector<double> old_action;
-        old_action.reserve(params.total_slices);
-        for(int j = 1; j < params.num_workers; ++j){
-            MPI_Recv(&old_action_p[0], params.slices_per_process, MPI_DOUBLE,j,0,local_comm,MPI_STATUS_IGNORE);
-            old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
-        }
-        double oa = 0;
-        for(int j = 0; j < M-1; ++j){
-            int slice = (start_slice+j)%params.total_slices;
-            oa += params.tau/2*(old_action[slice]+old_action[(slice+1)%params.total_slices]);
-        }
-        double rn = rng.randnormed(1);
-        if(rn < exp(oa)*exp(-params.mu*M*params.tau))
-            ac_re = true;
+        start_slice = params.worm_tail.first;
+        col = params.worm_tail.second;
     }
-}
-
-int Recede_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng, cos);
-    M = rng.randint(params.Mbar)+1;
-    if(M > params.worm_length) M = params.worm_length;
-    MPI_Bcast(&M, 1, MPI_INT, 0, local_comm);
-    check(id, params, paths, rng, cos);
-    MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
-    ++num_attempts;
-    if(ac_re){
-        ++num_accepts;
-        for(int i = 0; i < M; ++i)
-            paths.worm_recede_tail(params);
-    }
-    return 0;
-}
-
-void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    Moves::check(id, params, paths, rng, cos);
-    std::vector<double> old_action_p(params.slices_per_process,0);
-    std::vector<int> kVec(params.dimensions);
-    int start_slice = params.worm_tail.first;
-    int col = params.worm_tail.second;
-    for(int i = 0; i < M; i++){
-        int slice = (start_slice-i+params.total_slices)%params.total_slices;
-        if(start_slice - i == -1)
-            col = paths.backward_connects[col];
+    for(int i = 0; i < M; ++i){
+        int slice = 0;
+        if(head){
+            slice = (start_slice+i)%params.total_slices;
+            if(start_slice+i == params.total_slices)
+                col = paths.forward_connects[col];
+        }
+        else{
+            slice = (start_slice-i+params.total_slices)%params.total_slices;
+            if(start_slice - i == -1)
+                col = paths.backward_connects[col];
+        }
         if(slice >= params.my_start && slice <= params.my_end){
             switch(params.potential){
                 case 0:
@@ -2205,30 +2087,49 @@ void Recede_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos
         }
         double oa = 0;
         for(int j = 0; j < M-1; ++j){
-            int slice = (start_slice-j+params.total_slices)%params.total_slices;
-            oa += params.tau/2*(old_action[slice]+old_action[(slice-1+params.total_slices)%params.total_slices]);
+            int slice = 0;
+            if(head){
+                slice = (start_slice+j)%params.total_slices;
+                oa += params.tau/2*(old_action[slice]+old_action[(slice+1)%params.total_slices]);
+            }
+            else{
+                slice = (start_slice-j+params.total_slices)%params.total_slices;
+                oa += params.tau/2*(old_action[slice]+old_action[(slice-1+params.total_slices)%params.total_slices]);
+            }
         }
-        if(rng.randnormed(1) < exp(oa)*exp(-params.mu*M*params.tau))
+        double rn = rng.randnormed(1);
+        if(rn < exp(oa)*exp(-params.mu*M*params.tau))
             ac_re = true;
     }
 }
 
 /*** Swap tail and head moves: opens a closed worldline, and connects it to the head or tail of the worm via levy flight (much like closing the worm) ***/
 
-int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+int Swap::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     if(!params.worm_on) return 0;
     Moves::attempt(id, params, paths, rng, cos);
-    int start_slice = params.worm_tail.first;
-    int swap_slice = (start_slice + params.Mbar) % params.total_slices;
+    int start_slice = 0;
+    int swap_slice = 0;
+    if(head){
+        start_slice = params.worm_head.first;
+        swap_slice = (start_slice - params.Mbar + params.total_slices) % params.total_slices;
+    }
+    else{
+        start_slice = params.worm_tail.first;
+        swap_slice = (start_slice + params.Mbar) % params.total_slices;
+    }
     keep_going = true;
     sigma_I = 0;
     sigma_Z = 0;
     std::vector<double> start(params.dimensions,0);
     std::vector<double> end(params.dimensions,0);
+    choice = 0;
     if(start_slice >= params.my_start && start_slice <= params.my_end){
-        int col = params.worm_tail.second;
         int sslice = start_slice%params.slices_per_process;
-        start = paths.get_coordinate(sslice, col);
+        if(head)
+            start = paths.get_coordinate(sslice, params.worm_head.second);
+        else
+            start = paths.get_coordinate(sslice, params.worm_tail.second);
         if(swap_slice >= params.my_start && swap_slice <= params.my_end){
             int eslice = swap_slice%params.slices_per_process;
             std::vector<int> possible_swaps = paths.get_nearest_neighbors(eslice, start);
@@ -2260,15 +2161,26 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
                     }
                 }
                 if(paths.broken[choice]){
-                    int back_part = choice;
-                    if(start_slice + params.Mbar >= params.total_slices)
-                        back_part = paths.backward_connects[choice];
-                    if(back_part == -1 || (back_part == params.worm_head.second && start_slice < params.worm_head.first))
-                        keep_going = false;
+                    if(head){
+                        int for_part = choice;
+                        if(start_slice - params.Mbar < 0)
+                            for_part = paths.forward_connects[choice];
+                        if(for_part == -1 || (for_part == params.worm_tail.second && start_slice > params.worm_tail.first))
+                            keep_going = false;
+                    }
+                    else{
+                        int back_part = choice;
+                        if(start_slice + params.Mbar >= params.total_slices)
+                            back_part = paths.backward_connects[choice];
+                        if(back_part == -1 || (back_part == params.worm_head.second && start_slice < params.worm_head.first))
+                            keep_going = false;
+                    }
                 }
                 if(keep_going){
                     int choice_back = choice;
-                    if(start_slice + params.Mbar >= params.total_slices)
+                    if(head && (start_slice - params.Mbar < 0))
+                        choice_back = paths.forward_connects[choice];
+                    else if(!head && (start_slice + params.Mbar >= params.total_slices))
                         choice_back = paths.backward_connects[choice];
                     std::vector<double> cb_loc(params.dimensions,0);
                     end = paths.get_coordinate(eslice, choice);
@@ -2301,9 +2213,10 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
                 if(keep_going){
                     MPI_Recv(&choice, 1, MPI_INT, swap_slice/params.slices_per_process, 3, local_comm, MPI_STATUS_IGNORE);
                     int choice_back = choice;
-                    if(start_slice + params.Mbar >= params.total_slices){
+                    if(head && (start_slice - params.Mbar <  0))
+                        choice_back = paths.forward_connects[choice];
+                    else if(!head && (start_slice + params.Mbar >= params.total_slices))
                         choice_back = paths.backward_connects[choice];
-                    }
                     std::vector<double> cb_loc(params.dimensions,0);
                     cb_loc = paths.get_coordinate(sslice,choice_back);
                     MPI_Send(&cb_loc[0], params.dimensions, MPI_DOUBLE,swap_slice/params.slices_per_process, 4, local_comm);
@@ -2345,17 +2258,26 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
                 }
             }
             if(paths.broken[choice]){
-                int back_part = choice;
-                if(start_slice + params.Mbar >= params.total_slices)
-                    back_part = paths.backward_connects[choice];
-                if(back_part == -1 || (back_part == params.worm_head.second && start_slice < params.worm_head.first))
-                    keep_going = false;
+                if(head){
+                    int for_part = choice;
+                    if(start_slice - params.Mbar < 0)
+                        for_part = paths.forward_connects[choice];
+                    if(for_part == -1 || (for_part == params.worm_tail.second && start_slice > params.worm_tail.first))
+                        keep_going = false;
+                }
+                else{
+                    int back_part = choice;
+                    if(start_slice + params.Mbar >= params.total_slices)
+                        back_part = paths.backward_connects[choice];
+                    if(back_part == -1 || (back_part == params.worm_head.second && start_slice < params.worm_head.first))
+                        keep_going = false;
+                }
             }
             MPI_Send(&keep_going, 1, MPI_INT, start_slice/params.slices_per_process, 2, local_comm);
             if(keep_going){
                 MPI_Send(&choice, 1, MPI_INT, start_slice/params.slices_per_process, 3, local_comm);
                 end = paths.get_coordinate(slice, choice);
-                std::vector<double> cb(params.dimensions);
+                std::vector<double> cb(params.dimensions,0);
                 MPI_Recv(&cb[0], params.dimensions, MPI_DOUBLE, start_slice/params.slices_per_process, 4, local_comm, MPI_STATUS_IGNORE);
                 if((keep_going = paths.are_neighbors(cb, end))){
                     std::vector<int> possible_swaps_2 = paths.get_nearest_neighbors(slice, cb);
@@ -2386,20 +2308,29 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
     new_coordinates.resize(params.slices_per_process);
     new_distances.reserve(params.Mbar*params.particles);
     new_potentials.reserve(params.Mbar*params.particles);
+    if(swap_slice >= params.my_start && swap_slice <= params.my_end)
+        new_coordinates[swap_slice%params.slices_per_process] = end;
     for(int i = 1; i < params.Mbar; ++i){
-        int slice = (start_slice+i)%params.total_slices;
-        int slicem1 = (start_slice+i-1+params.total_slices)%params.total_slices;
-        if(swap_slice >= params.my_start && swap_slice <= params.my_end){
-            new_coordinates[swap_slice%params.slices_per_process] = end;
+    
+        int slice = 0;
+        int slicepm1 = 0;
+
+        if(head){
+            slice = (start_slice-i + params.total_slices)%params.total_slices;
+            slicepm1 = (start_slice-i+1+params.total_slices)%params.total_slices;
+        }
+        else{
+            slice = (start_slice+i)%params.total_slices;
+            slicepm1 = (start_slice+i-1+params.total_slices)%params.total_slices;
         }
         if(slice >= params.my_start && slice <= params.my_end){
-            if(slicem1 >= params.my_start && slicem1 <= params.my_end){
+            if(slicepm1 >= params.my_start && slicepm1 <= params.my_end){
                 if(i == 1)
-                    new_coordinates[slicem1%params.slices_per_process] = start;
-                start = new_coordinates[slicem1%params.slices_per_process];
+                    new_coordinates[slicepm1%params.slices_per_process] = start;
+                start = new_coordinates[slicepm1%params.slices_per_process];
             }
             else
-                MPI_Recv(&start[0], params.dimensions, MPI_DOUBLE, slicem1/params.slices_per_process, i, local_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&start[0], params.dimensions, MPI_DOUBLE, slicepm1/params.slices_per_process, i, local_comm, MPI_STATUS_IGNORE);
             average_loc_weighted(start, end, new_coordinates[slice%params.slices_per_process], params.box_size, 1, params.Mbar-i);
             double tau_w = params.tau*params.Mbar-i;
             double width = sqrt(2.*params.lambda/(1./params.tau+1./tau_w));
@@ -2408,10 +2339,10 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
             put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
         }
         else{
-            if(slicem1 >= params.my_start && slicem1 <= params.my_end){
+            if(slicepm1 >= params.my_start && slicepm1 <= params.my_end){
                 if(i == 1)
-                    new_coordinates[slicem1%params.slices_per_process] = start;
-                MPI_Send(&new_coordinates[slicem1%params.slices_per_process][0], params.dimensions,MPI_DOUBLE,slice/params.slices_per_process, i, local_comm);
+                    new_coordinates[slicepm1%params.slices_per_process] = start;
+                MPI_Send(&new_coordinates[slicepm1%params.slices_per_process][0], params.dimensions,MPI_DOUBLE,slice/params.slices_per_process, i, local_comm);
             }
         }
     }
@@ -2420,7 +2351,10 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
     ++num_attempts;
     if(ac_re){
         ++num_accepts;
-        paths.swap_into_tail(params, choice, params.Mbar, new_coordinates);
+        if(head)
+            paths.swap_into_head(params, choice, params.Mbar, new_coordinates);
+        else
+            paths.swap_into_tail(params, choice, params.Mbar, new_coordinates);
         paths.update_separations(new_distances);
         if(params.potential != 2)
             paths.update_potentials(new_potentials);
@@ -2431,19 +2365,29 @@ int Swap_Tail::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos 
     return 0;
 }
 
-void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+void Swap::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::check(id, params, paths, rng, cos);
     std::vector<double> old_action_p(params.slices_per_process,0);
     std::vector<double> new_action_p(params.slices_per_process,0);
-    std::vector<int> kVec(params.dimensions);
-    std::vector<double> dist(params.dimensions);
+    std::vector<double> dist(params.dimensions,0);
+    std::vector<int> kVec(params.dimensions,0);
     double pot_val = 0.0;
-    int start_slice = params.worm_tail.first;
+    int start_slice = 0;
+    if(head)
+        start_slice = params.worm_head.first;
+    else
+        start_slice = params.worm_tail.first;
     for(int i = 0; i <= params.Mbar; ++i){
-        int slice = (start_slice+i)%params.total_slices;
         int ptcl1 = choice;
+        int slice = 0;
+        if(head)
+            slice = (start_slice-i+params.total_slices)%params.total_slices;
+        else
+            slice = (start_slice+i)%params.total_slices;
         if(slice >= params.my_start && slice <= params.my_end){
-            if(start_slice+params.Mbar >= params.total_slices && start_slice+i < params.total_slices)
+            if(head && (start_slice-params.Mbar < 0 && start_slice-i >= 0))
+                ptcl1 = paths.forward_connects[ptcl1];
+            if(!head && (start_slice+params.Mbar >= params.total_slices && start_slice+i < params.total_slices))
                 ptcl1 = paths.backward_connects[ptcl1];
             switch(params.potential){
                 case 0:
@@ -2462,14 +2406,14 @@ void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
                                 pot_val = potential_value_aziz(r);
                                 new_action_p[slice%params.slices_per_process] += pot_val;
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
-                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)), pot_val));
+                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  pot_val));
                             }
                             else if(i == 0){
                                 if(ptcl != ptcl1)
                                     old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
-//                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-//                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                if(ptcl != params.worm_tail.second)
+                                if(head && ptcl != params.worm_head.second)
+                                    new_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, params.worm_head.second);
+                                if(!head && ptcl != params.worm_tail.second)
                                     new_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, params.worm_tail.second);
                             }
                         }
@@ -2514,316 +2458,11 @@ void Swap_Tail::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
         double na = 0;
         double oa = 0;
         for(int j = 0; j < params.Mbar; ++j){
-            int slice = (start_slice+j)%params.total_slices;
-            na += params.tau/2*(new_action[slice]+new_action[(slice+1)%params.total_slices]);
-            oa += params.tau/2*(old_action[slice]+old_action[(slice+1)%params.total_slices]);
-        }
-        if(rng.randnormed(1) < (sigma_I/sigma_Z)*exp(-(na-oa)))
-            ac_re = true;
-    }
-}
-
-int Swap_Head::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    if(!params.worm_on) return 0;
-    Moves::attempt(id, params, paths, rng, cos);
-    int start_slice = params.worm_head.first;
-    int swap_slice = (start_slice - params.Mbar + params.total_slices) % params.total_slices;
-    keep_going = true;
-    sigma_I = 0;
-    sigma_Z = 0;
-    std::vector<double> start(params.dimensions,0);
-    std::vector<double> end(params.dimensions,0);
-    choice = 0;
-    if(start_slice >= params.my_start && start_slice <= params.my_end){
-        int sslice = start_slice%params.slices_per_process;
-        start = paths.get_coordinate(sslice, params.worm_head.second);
-        if(swap_slice >= params.my_start && swap_slice <= params.my_end){
-            int eslice = swap_slice%params.slices_per_process;
-            std::vector<int> possible_swaps = paths.get_nearest_neighbors(eslice, start);
-            if(!possible_swaps.empty()){
-                for(int poss = possible_swaps.size() - 1; poss >= 0; --poss){
-                    if(paths.charge[possible_swaps[poss]] != paths.charge[params.worm_tail.second])
-                        possible_swaps.erase(possible_swaps.begin() + poss);
-                }
-            }
-            if(possible_swaps.size() == 0)
-                keep_going = false;
-            else{
-                std::vector<double> rho0s(possible_swaps.size(),0);
-                std::vector<double> dist(params.dimensions,0);
-                for(auto &i : possible_swaps){
-                    distance(start, paths.get_coordinate(eslice, i), dist, params.box_size);
-                    double r2 = inner_product(dist.begin(), dist.end(), dist.begin(),0.0);
-                    rho0s[&i - &possible_swaps[0]] = pow((4* M_PI*params.lambda*params.Mbar*params.tau),-params.dimensions/2.)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2);
-                }
-                for (auto &r : rho0s)
-                    sigma_I += r;
-                double total = 0;
-                double rn = rng.randnormed(sigma_I);
-                for(auto &r: rho0s){
-                    total += r;
-                    if(rn <= total){
-                        choice = possible_swaps[&r - &rho0s[0]];
-                        break;
-                    }
-                }
-                if(paths.broken[choice]){
-                    int for_part = choice;
-                    if(start_slice - params.Mbar < 0)
-                        for_part = paths.forward_connects[choice];
-                    if(for_part == -1 || (for_part == params.worm_tail.second && start_slice > params.worm_tail.first))
-                        keep_going = false;
-                }
-                if(keep_going){
-                    int choice_back = choice;
-                    if(start_slice - params.Mbar < 0)
-                            choice_back = paths.forward_connects[choice];
-                    std::vector<double> cb_loc(params.dimensions,0);
-                    end = paths.get_coordinate(eslice, choice);
-                    cb_loc = paths.get_coordinate(sslice,choice_back);
-                    if((keep_going = paths.are_neighbors(cb_loc, end))){
-                        std::vector<int> possible_swaps_2 = paths.get_nearest_neighbors(eslice, cb_loc);
-                        if(!possible_swaps_2.empty()){
-                            for(int poss = possible_swaps_2.size() - 1; poss >= 0; --poss){
-                                if(paths.charge[possible_swaps_2[poss]] != paths.charge[params.worm_tail.second])
-                                    possible_swaps_2.erase(possible_swaps_2.begin() + poss);
-                            }
-                        }
-                        std::vector<double> rho0s_2(possible_swaps_2.size(),0);
-                        for(auto &i : possible_swaps_2){
-                            distance(cb_loc, paths.get_coordinate(eslice, i), dist, params.box_size);
-                            double r2 = inner_product(dist.begin(),dist.end(), dist.begin(),0.0);
-                            rho0s_2[&i - &possible_swaps_2[0]] = pow((4* M_PI*params.lambda*params.Mbar*params.tau),-params.dimensions/2.)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2);
-                        }
-                        for (auto &r : rho0s_2)
-                            sigma_Z += r;
-                    }
-                }
-            }
-        }
-        else{
-            MPI_Send(&start[0], params.dimensions, MPI_DOUBLE,swap_slice/params.slices_per_process, 0, local_comm);
-            MPI_Recv(&keep_going, 1, MPI_INT, swap_slice/params.slices_per_process, 1, local_comm, MPI_STATUS_IGNORE);
-            if(keep_going){
-                MPI_Recv(&keep_going, 1, MPI_INT, swap_slice/params.slices_per_process, 2, local_comm, MPI_STATUS_IGNORE);
-                if(keep_going){
-                    MPI_Recv(&choice, 1, MPI_INT, swap_slice/params.slices_per_process, 3, local_comm, MPI_STATUS_IGNORE);
-                    int choice_back = choice;
-                    if(start_slice - params.Mbar <  0){
-                        choice_back = paths.forward_connects[choice];
-                    }
-                    std::vector<double> cb_loc(params.dimensions,0);
-                    cb_loc = paths.get_coordinate(sslice,choice_back);
-                    MPI_Send(&cb_loc[0], params.dimensions, MPI_DOUBLE,swap_slice/params.slices_per_process, 4, local_comm);
-                }
-            }
-        }
-    }
-    else if(swap_slice >= params.my_start && swap_slice <= params.my_end){
-        std::vector<double> tail(params.dimensions,0);
-        MPI_Recv(&tail[0], params.dimensions, MPI_DOUBLE, start_slice/params.slices_per_process, 0, local_comm, MPI_STATUS_IGNORE);
-        int slice = swap_slice%params.slices_per_process;
-        std::vector<int> possible_swaps = paths.get_nearest_neighbors(slice, tail);
-        if(!possible_swaps.empty()){
-            for(int poss = possible_swaps.size() - 1; poss >= 0; --poss){
-                if(paths.charge[possible_swaps[poss]] != paths.charge[params.worm_tail.second])
-                    possible_swaps.erase(possible_swaps.begin() + poss);
-            }
-        }
-        if(possible_swaps.size() == 0)
-            keep_going = false;
-        MPI_Send(&keep_going, 1, MPI_INT, start_slice/params.slices_per_process, 1, local_comm);
-        if(keep_going){
-            std::vector<double> rho0s(possible_swaps.size(),0);
-            std::vector<double> dist(params.dimensions,0);
-            for(auto &i : possible_swaps){
-                distance(tail, paths.get_coordinate(slice, i), dist, params.box_size);
-                double r2 = inner_product(dist.begin(),dist.end(), dist.begin(),0.0);
-                rho0s[&i - &possible_swaps[0]] = pow((4* M_PI*params.lambda*params.Mbar*params.tau),-params.dimensions/2.)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2);
-            }
-            for (auto &r : rho0s)
-                sigma_I += r;
-            double total = 0;
-            double rn = rng.randnormed(sigma_I);
-            for(auto &r : rho0s){
-                total += r;
-                if(rn <= total){
-                    choice = possible_swaps[&r - &rho0s[0]];
-                    break;
-                }
-            }
-            if(paths.broken[choice]){
-                int for_part = choice;
-                if(start_slice - params.Mbar < 0)
-                    for_part = paths.forward_connects[choice];
-                if(for_part == -1 || (for_part == params.worm_tail.second && start_slice > params.worm_tail.first))
-                    keep_going = false;
-            }
-            MPI_Send(&keep_going, 1, MPI_INT, start_slice/params.slices_per_process, 2, local_comm);
-            if(keep_going){
-                MPI_Send(&choice, 1, MPI_INT, start_slice/params.slices_per_process, 3, local_comm);
-                end = paths.get_coordinate(slice, choice);
-                std::vector<double> cb(params.dimensions,0);
-                MPI_Recv(&cb[0], params.dimensions, MPI_DOUBLE, start_slice/params.slices_per_process, 4, local_comm, MPI_STATUS_IGNORE);
-                if((keep_going = paths.are_neighbors(cb, end))){
-                    std::vector<int> possible_swaps_2 = paths.get_nearest_neighbors(slice, cb);
-                    if(!possible_swaps_2.empty()){
-                        for(int poss = possible_swaps_2.size() - 1; poss >= 0; --poss){
-                            if(paths.charge[possible_swaps_2[poss]] != paths.charge[params.worm_tail.second])
-                                possible_swaps_2.erase(possible_swaps_2.begin() + poss);
-                        }
-                    }
-                    std::vector<double> rho0s_2(possible_swaps_2.size(),0);
-                    for(auto &i : possible_swaps_2){
-                        distance(end, paths.get_coordinate(slice, i), dist, params.box_size);
-                        double r2 = inner_product(dist.begin(),dist.end(), dist.begin(),0.0);
-                        rho0s_2[&i - &possible_swaps_2[0]] = pow((4* M_PI*params.lambda*params.Mbar*params.tau),-params.dimensions/2.)*exp(-1.0/(4.0*params.lambda*params.Mbar*params.tau)*r2);
-                    }
-                    for (auto &r : rho0s_2)
-                        sigma_Z += r;
-                }
-            }
-        }
-    }
-    MPI_Bcast(&keep_going, 1, MPI_INT, swap_slice/params.slices_per_process, local_comm);
-    if(!keep_going) return 1;
-    MPI_Bcast(&choice, 1, MPI_INT, swap_slice/params.slices_per_process, local_comm);
-    MPI_Bcast(&sigma_I, 1, MPI_DOUBLE, swap_slice/params.slices_per_process, local_comm);
-    MPI_Bcast(&sigma_Z, 1, MPI_DOUBLE, swap_slice/params.slices_per_process, local_comm);
-    MPI_Bcast(&end[0], params.dimensions, MPI_DOUBLE, swap_slice/params.slices_per_process, local_comm);
-    new_coordinates.resize(params.slices_per_process);
-    new_distances.reserve(params.Mbar*params.particles);
-    new_potentials.reserve(params.Mbar*params.particles);
-    if(swap_slice >= params.my_start && swap_slice <= params.my_end)
-        new_coordinates[swap_slice%params.slices_per_process] = end;
-    for(int i = 1; i < params.Mbar; ++i){
-        int slice = (start_slice-i + params.total_slices)%params.total_slices;
-        int slicep1 = (start_slice-i+1+params.total_slices)%params.total_slices;
-        if(slice >= params.my_start && slice <= params.my_end){
-            if(slicep1 >= params.my_start && slicep1 <= params.my_end){
-                if(i == 1){
-                    new_coordinates[slicep1%params.slices_per_process] = start;
-                }
-                start = new_coordinates[slicep1%params.slices_per_process];
-            }
+            int slice = 0;
+            if(head)
+                slice = (start_slice-j+params.total_slices)%params.total_slices;
             else
-                MPI_Recv(&start[0], params.dimensions, MPI_DOUBLE, slicep1/params.slices_per_process, i, local_comm, MPI_STATUS_IGNORE);
-            average_loc_weighted(start, end, new_coordinates[slice%params.slices_per_process], params.box_size, 1, params.Mbar-i);
-            double tau_w = params.tau*params.Mbar-i;
-            double width = sqrt(2.*params.lambda/(1./params.tau+1./tau_w));
-            for(auto &j : new_coordinates[slice%params.slices_per_process])
-                j += rng.randgaussian(width);
-            put_in_box(new_coordinates[slice%params.slices_per_process], params.box_size);
-        }
-        else{
-            if(slicep1 >= params.my_start && slicep1 <= params.my_end){
-                if(i == 1)
-                    new_coordinates[slicep1%params.slices_per_process] = start;
-                MPI_Send(&new_coordinates[slicep1%params.slices_per_process][0], params.dimensions,MPI_DOUBLE,slice/params.slices_per_process, i, local_comm);
-            }
-        }
-    }
-    check(id, params, paths, rng, cos);
-    MPI_Bcast(&ac_re, 1, MPI_INT,0, local_comm);
-    ++num_attempts;
-    if(ac_re){
-        ++num_accepts;
-        paths.swap_into_head(params, choice, params.Mbar, new_coordinates);
-        paths.update_separations(new_distances);
-        if(params.potential != 2)
-            paths.update_potentials(new_potentials);
-    }
-    new_coordinates.clear();
-    new_distances.clear();
-    new_potentials.clear();
-    return 0;
-}
-
-void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
-    Moves::check(id, params, paths, rng, cos);
-    std::vector<double> old_action_p(params.slices_per_process,0);
-    std::vector<double> new_action_p(params.slices_per_process,0);
-    std::vector<double> dist(params.dimensions,0);
-    std::vector<int> kVec(params.dimensions,0);
-    double pot_val = 0.0;
-    int start_slice = params.worm_head.first;
-    for(int i = 0; i <= params.Mbar; ++i){
-        int ptcl1 = choice;
-        int slice = (start_slice-i+params.total_slices)%params.total_slices;
-        if(slice >= params.my_start && slice <= params.my_end){
-            if(start_slice-params.Mbar < 0 && start_slice-i >= 0)
-                ptcl1 = paths.forward_connects[ptcl1];
-            switch(params.potential){
-                case 0:
-                {
-                    new_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(new_coordinates[slice%params.slices_per_process].begin(), new_coordinates[slice%params.slices_per_process].end(), new_coordinates[slice%params.slices_per_process].begin(),0.0));
-                    old_action_p[slice%params.slices_per_process] = potential_value_harmonic(inner_product(paths.get_coordinate(slice%params.slices_per_process, ptcl1).begin(), paths.get_coordinate(slice%params.slices_per_process, ptcl1).end(), paths.get_coordinate(slice%params.slices_per_process, ptcl1).begin(), 0.0));
-                    break;
-                }
-                case 1:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            if(i != 0 && ptcl != ptcl1){
-                                old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
-                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                pot_val = potential_value_aziz(r);
-                                new_action_p[slice%params.slices_per_process] += pot_val;
-                                new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
-                                new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  pot_val));
-                            }
-                            else if(i == 0){
-                                if(ptcl != ptcl1)
-                                    old_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, ptcl1);
-//                                distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-//                                double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                                if(ptcl != params.worm_head.second){
-                                    new_action_p[slice%params.slices_per_process] += paths.get_potential(slice%params.slices_per_process, ptcl, params.worm_head.second);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                case 2:
-                    for(int ptcl = 0; ptcl < params.particles; ++ptcl){
-                        if(!(ptcl == params.worm_head.second && slice < params.worm_head.first) && !(ptcl == params.worm_tail.second && slice > params.worm_tail.first)){
-                            old_action_p[slice%params.slices_per_process] += potential_value_coulomb(paths.get_separation_vector(slice%params.slices_per_process, ptcl, ptcl1), kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
-                            distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
-                            double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
-                            new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl], paths.charge[ptcl1], params, cos);
-                            new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl1)),  dist, r));
-                        }
-                    }
-                    if(i != 0 && i != params.Mbar){
-                        dist = std::vector<double>(params.dimensions, 0);
-                        new_action_p[slice%params.slices_per_process] += potential_value_coulomb(dist, kVec, paths.charge[ptcl1], paths.charge[ptcl1], params, cos);
-                    }
-                    break;
-            }
-        }
-    }
-    if(id != 0){
-        MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0,0,local_comm);
-        MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0,1,local_comm);
-    }
-    else{
-        ac_re = false;
-        std::vector<double> new_action;
-        std::vector<double> old_action;
-        new_action.reserve(params.total_slices);
-        old_action.reserve(params.total_slices);
-        old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
-        new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
-        for(int j = 1; j < params.num_workers; ++j){
-            MPI_Recv(&old_action_p[0], params.slices_per_process, MPI_DOUBLE,j,0,local_comm,MPI_STATUS_IGNORE);
-            old_action.insert(old_action.end(),old_action_p.begin(),old_action_p.end());
-            MPI_Recv(&new_action_p[0], params.slices_per_process, MPI_DOUBLE,j,1,local_comm,MPI_STATUS_IGNORE);
-            new_action.insert(new_action.end(),new_action_p.begin(),new_action_p.end());
-        }
-        double na = 0;
-        double oa = 0;
-        for(int j = 0; j < params.Mbar; ++j){
-            int slice = (start_slice-j+params.total_slices)%params.total_slices;
+                slice = (start_slice+j)%params.total_slices;
             na += params.tau/2*(new_action[slice]+new_action[(slice+1)%params.total_slices]);
             oa += params.tau/2*(old_action[slice]+old_action[(slice+1)%params.total_slices]);
         }
@@ -2831,3 +2470,5 @@ void Swap_Head::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
             ac_re = true;
     }
 }
+
+

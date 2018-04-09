@@ -21,7 +21,7 @@ and all of the worm moves.
 
 *---------------------------------------------------------------------------------------------------*/
 
-//Base class for moves (see .cpp for implementation)
+//Base class for moves
 class Moves{
 protected:
     int num_attempts;
@@ -272,8 +272,9 @@ public:
     
 };
 
-class Advance_Tail : public Moves{
+class Advance : public Moves{
 private:
+    bool head;
     bool ac_re;
     int M;
     std::vector<std::vector<double> > new_coordinates;
@@ -283,13 +284,18 @@ private:
     std::vector<std::vector<std::tuple<int, double> > > new_potentials;
     
 public:
-    Advance_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Advance Tail";
+    Advance(int &id, Parameters &params, MPI_Comm &local, bool h_or_t) : Moves(local) {
+        head = h_or_t;
+        if(head)
+            move_name = "Advance Head";
+        else
+            move_name = "Advance Tail";
         worm_off = false;
         worm_on = true;
 };
-    ~Advance_Tail(){};
+    ~Advance(){};
     
-    Advance_Tail* clone() const{return new Advance_Tail(*this);}
+    Advance* clone() const{return new Advance(*this);}
     
     int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
@@ -298,47 +304,26 @@ public:
     
 };
 
-
-class Advance_Head : public Moves{
+class Recede : public Moves{
 private:
-    bool ac_re;
-    int M;
-    std::vector<std::vector<double> > new_coordinates;
-    std::vector<std::vector<double> > new_coordinates_ahead;
-    std::vector<int> keys_ahead;
-    std::vector<std::vector<std::tuple<int, std::vector<double>, double> > > new_distances;
-    std::vector<std::vector<std::tuple<int, double> > > new_potentials;
-    
-public:
-    Advance_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Advance Head";
-        worm_off = false;
-        worm_on = true;
-};
-    ~Advance_Head(){};
-    
-    Advance_Head* clone() const{return new Advance_Head(*this);}
-    
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void accept();
-    void reject();
-    
-};
-
-class Recede_Head : public Moves{
-private:
+    bool head;
     bool ac_re;
     int M;
     std::vector<int> keys_ahead;
     
 public:
-    Recede_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Recede Head";
+    Recede(int &id, Parameters &params, MPI_Comm &local, bool h_or_t) : Moves(local) {
+        head = h_or_t;
+        if(head)
+            move_name = "Recede Head";
+        else
+            move_name = "Recede Tail";
         worm_off = false;
         worm_on = true;
 };
-    ~Recede_Head(){};
+    ~Recede(){};
     
-    Recede_Head* clone() const{return new Recede_Head(*this);}
+    Recede* clone() const{return new Recede(*this);}
     
     int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
@@ -347,30 +332,9 @@ public:
     
 };
 
-class Recede_Tail : public Moves{
+class Swap : public Moves{
 private:
-    bool ac_re;
-    int M;
-    std::vector<int> keys_ahead;
-    
-public:
-    Recede_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Recede Tail";
-        worm_off = false;
-        worm_on = true;
-};
-    ~Recede_Tail(){};
-    
-    Recede_Tail* clone() const{return new Recede_Tail(*this);}
-    
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void accept();
-    void reject();
-    
-};
-
-class Swap_Tail : public Moves{
-private:
+    bool head;
     bool ac_re;
     double sigma_I;
     double sigma_Z;
@@ -383,40 +347,20 @@ private:
     std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
     
 public:
-    Swap_Tail(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Swap Tail";
-        worm_off = false;
-        worm_on = true;
-};
-    ~Swap_Tail(){};
+    Swap(int &id, Parameters &params, MPI_Comm &local, bool h_or_t) : Moves(local) {
+    head = h_or_t;
+    if(head)
+        move_name = "Swap Head";
+    else
+        move_name = "Swap Tail";
+    worm_off = false;
+    worm_on = true;
+
+    };
     
-    Swap_Tail* clone() const{return new Swap_Tail(*this);}
+    ~Swap(){};
     
-    int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
-    void accept();
-    void reject();
-    
-};
-class Swap_Head : public Moves{
-private:
-    bool ac_re;
-    double sigma_I;
-    double sigma_Z;
-    int choice;
-    bool keep_going;
-    std::vector<std::vector<double> > new_coordinates;
-    std::vector<std::vector<double> > new_coordinates_ahead;
-    std::vector<int> keys_ahead;
-    std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > new_distances;
-    std::vector<std::tuple<std::pair<int, int>, double> > new_potentials;
-    
-public:
-    Swap_Head(int &id, Parameters &params, MPI_Comm &local) : Moves(local) {move_name = "Swap Head";        worm_off = false;
-        worm_on = true;
-};
-    ~Swap_Head(){};
-    
-    Swap_Head* clone() const{return new Swap_Head(*this);}
+    Swap* clone() const{return new Swap(*this);}
     
     int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
     void check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos);
