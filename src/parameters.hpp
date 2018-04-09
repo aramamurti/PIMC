@@ -26,10 +26,10 @@ typedef boost::unordered_map<std::string, std::string> sectionmap;
 class Parameters{
 public:
     int total_slices = -1;
-    int my_start = -1;
-    int my_end = -1;
+    int my_start = -1; //processor start slice
+    int my_end = -1; //processor end slice
     int slices_per_process = -1;
-    int num_workers = 0;
+    int num_workers = 0; //number of processors
     int multistep_dist = 2;
     
     int equilibration = 0;
@@ -57,19 +57,20 @@ public:
     int charges = 0;
     double coupling = 0;
     
+    //Worm parameters
     double C0 = 1;
     double C = 1;
     int Mbar = 2;
     double mu = 0;
-    
     bool gce = false;
     bool worm_on = false;
-    std::pair<int, int> worm_head;
-    std::pair<int, int> worm_tail;
+    std::pair<int, int> worm_head; //row, col of worm head
+    std::pair<int, int> worm_tail; //row, col of worm tail
     int worm_length = 0;
     
     int potential = 0;
     
+    //Ewald parameters
     double p = 23.0258;//-log(ewaldError);
     double alpha = -1;
     double coulcut = -1;

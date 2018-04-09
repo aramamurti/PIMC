@@ -75,8 +75,8 @@ public:
     void shift_delta(double shift){
         delta += shift*delta;
     }
-    void set_delta(double shift){
-        delta = shift;
+    void set_delta(double set){
+        delta = set;
     }
     double get_delta(){
         return delta;
@@ -109,8 +109,8 @@ public:
     void shift_delta(double shift){
         delta += shift*delta;
     }
-    void set_delta(double shift){
-        delta = shift;
+    void set_delta(double set){
+        delta = set;
     }
     double get_delta(){
         return delta;

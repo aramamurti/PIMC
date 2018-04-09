@@ -201,40 +201,57 @@ public:
     void worm_advance_tail(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(params.worm_on == false){ //if no worm exists, initialize it
             params.worm_on = true;
+            
             params.worm_head.second = params.particles; //worm is initialized the row after the diagonal configuration
             params.worm_tail.second = params.particles;
             params.worm_head.first = worm_start; //worm_start is slice of worm head/tail
             params.worm_tail.first = worm_start;
-            ++params.particles;
+            
             forward_connects.push_back(-1); //-1 is the indicator for worm head/tail backwards/forwards connects
             backward_connects.push_back(-1);
-            broken.push_back(true);
+            
             if(chg != -10)
                 charge.push_back(chg);
             else
                 charge.push_back(rng.randint(params.charges)*2-1);
+      
+            broken.push_back(true);
+            ++broken_worldlines;
+            
+            ++params.particles;
+
         }
         else if((++params.worm_tail.first) == params.total_slices){ //otherwise, if worm wraps around, change parameters appropriately (i.e. add row with same charge and broken bool, change worm tail position locator)
             forward_connects[params.worm_tail.second] = params.particles;
+            
             forward_connects.push_back(-1);
             backward_connects.push_back(params.worm_tail.second);
+            
             charge.push_back(charge[params.worm_tail.second]);
+            
             params.worm_tail.first = 0;
             params.worm_tail.second = params.particles;
+            
             broken.push_back(true);
+            ++broken_worldlines;
+            
             ++params.particles;
         }
         if(params.worm_tail.first >= params.my_start && params.worm_tail.first <= params.my_end){ // if the worm is in the local processor's slices, add to it and add the new bead to the lookup tables
             int my_slice = params.worm_tail.first%params.slices_per_process;
+            
             if(params.worm_tail.second >= coordinate_slices[my_slice].size()){
                 coordinate_slices[my_slice].resize(params.worm_tail.second+1);
                 coordinate_keys[my_slice].resize(params.worm_tail.second+1);
             }
             coordinate_slices[my_slice][params.worm_tail.second] = location;
+            
             coordinate_keys[my_slice][params.worm_tail.second] = bead_counter;
             key_finder.insert({bead_counter, std::pair<int, int>(my_slice,params.worm_tail.second)});
+            
             nt.add_bead(my_slice, bead_counter, location);
             st.add_bead(my_slice, bead_counter, location, false);
+            
             std::vector<std::tuple<std::pair<int, int>, std::vector<double>, double> > seps;
             std::vector<std::tuple<std::pair<int, int>, double> > pots;
             seps.reserve(distances.size()+1);
@@ -255,29 +272,39 @@ public:
     void worm_advance_head(Parameters& params, const std::vector<double>& location, const std::vector<std::tuple<int, std::vector<double>, double> >& distances, const std::vector<std::tuple<int, double> >& potentials, int worm_start = 0, int chg = -10){
         if(!params.worm_on){
             params.worm_on = true;
+            
             params.worm_head.second = params.particles;
             params.worm_tail.second = params.particles;
             params.worm_head.first = worm_start;
             params.worm_tail.first = worm_start;
-            ++params.particles;
+            
             forward_connects.push_back(-1);
             backward_connects.push_back(-1);
+            
             if(chg != -10)
                 charge.push_back(chg);
             else
                 charge.push_back(rng.randint(params.charges)*2-1);
+            
             broken.push_back(true);
             ++broken_worldlines;
+            
+            ++params.particles;
         }
         else if((--params.worm_head.first) == -1){
             backward_connects[params.worm_head.second] = params.particles;
+            
             backward_connects.push_back(-1);
             forward_connects.push_back(params.worm_head.second);
+            
             charge.push_back(charge[params.worm_head.second]);
+            
             params.worm_head.first = params.total_slices - 1;
             params.worm_head.second = params.particles;
+            
             broken.push_back(true);
             ++broken_worldlines;
+            
             ++params.particles;
         }
         if(params.worm_head.first >= params.my_start && params.worm_head.first <= params.my_end){
@@ -456,8 +483,10 @@ public:
     //takes a periodic worldline and opens it
     void open_path(Parameters& params, int column, int tail_slice, int distance){
         if(params.worm_on) return;
+        
         params.worm_on = true;
         params.worm_length = 0;
+        
         int current_column = column;
         do{
             params.worm_length += params.total_slices;
@@ -465,6 +494,7 @@ public:
             ++broken_worldlines;
             current_column = backward_connects[current_column];
         }while(current_column != column);
+        
         if(tail_slice != params.total_slices - 1){
             backward_connects.push_back(backward_connects[column]);
             forward_connects[backward_connects.back()] = params.particles;
