@@ -40,8 +40,6 @@ public:
     virtual void set_delta(double shift){} //sets delta
     virtual int attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos); //attempt a move
     virtual void check(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos); //check the action of the configuration
-    void accept(); //accept the move
-    void reject(); //reject the move
     int get_num_accepts(){return num_accepts;}
     int get_num_attempts(){return num_attempts;}
     void reset_acceptance_counters(){num_attempts = 0; num_accepts = 0;}

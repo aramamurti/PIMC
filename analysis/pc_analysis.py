@@ -35,9 +35,19 @@ def read_input(pc_file_path):
     pc_df_std.rename(columns={0:'temperature'}, inplace = True)
     pc_df_std.temperature = pc_df.temperature
 
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+
     f, ax = plt.subplots()
     for col in pc_df.columns[1:7]:
-        ax.errorbar(pc_df['temperature'],pc_df[col],yerr=pc_df_std[col]*2,fmt='o',markersize=7,capsize=2)
+        ax.errorbar(pc_df['temperature'],pc_df[col],yerr=pc_df_std[col]*2,fmt='o',markersize=7,capsize=2, label = col)
+    plt.legend()
+    ax.xaxis.grid(color='gray',linestyle='dashed')
+    ax.yaxis.grid(color='gray',linestyle='dashed')
+
+    ax.set_xlabel(r'$T$')
+    ax.set_ylabel(r'$\rho_k$')
     plt.show()
 
     return (pc_df,pc_df_std)
@@ -68,13 +78,14 @@ def scatter_mu_hats(mu_hats, mu_hat_errs, fit_vals, name):
     plt.rc('font', family='serif')
 
     f, ax = plt.subplots()
-    ax.errorbar(mu_hats[:,0],mu_hats[:,1],yerr = mu_hat_errs[:,1],fmt='o',markersize=7,capsize=2,c='b')
-    xfit = np.linspace(fit_vals[1],np.max(mu_hats[:,0]),100)
+    ax.errorbar(mu_hats[19:,0],mu_hats[19:,1],yerr = mu_hat_errs[19:,1],fmt='o',markersize=7,capsize=2,c='b')
+    xfit = np.linspace(fit_vals[1],np.max(mu_hats[:,0])+.5,100)
     ax.plot(xfit, fit_vals[0]*(xfit-fit_vals[1])**fit_vals[2],c='b')
     ax.xaxis.grid(color='gray',linestyle='dashed')
     ax.yaxis.grid(color='gray',linestyle='dashed')
     ax.set_xlabel(r'$T/T_c$',fontsize=16)
     ax.set_ylabel(r'$\hat{\mu}$',fontsize=16)
+    ax.set_xlim(1.5,5.3)
 
 #    plt.savefig(name,dpi=600)
     plt.show()

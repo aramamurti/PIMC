@@ -593,7 +593,7 @@ Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local
     //The code below initializes and fills the vectors that hold the information of what processors
     //are used for what time slices.
     
-    minp.resize(params.num_workers); //minp is a vector of vectors of ints
+    minp.resize(params.num_workers); //minp is a vector of vectors of ints that contains the info of what processor belongs to what multistep process
     for(int slice = 0; slice < params.total_slices; ++slice){
         multisteps.push_back(std::vector<int>(1,slice)); //push the starting slice
         minp[slice/params.slices_per_process].push_back(slice); //processor no. (slice/s_p_p) gets slice
@@ -614,17 +614,22 @@ Bisection::Bisection(int& id, Parameters &params, MPI_Comm &local) : Moves(local
 }
 
 //attempts the bisection move
-int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &cos){
+int Bisection::attempt(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &cos){
     Moves::attempt(id, params, paths, rng, cos);
-    if(params.particles == 0) return 0;
-    int set = rng.randint(multisteps.size()); //choose a starting slice set
+    
+    if(params.particles == 0) return 0; //if there are no particles, don't do anything
+    
+    int set = rng.randint(multisteps.size()); //choose a bisection slice set
     
     bisection_info.clear();
+    bisection_info.reserve(3);
+    
     bisection_info.push_back(multisteps[set].front()); //start slice
     bisection_info.push_back(multisteps[set].back()); //end slice
     
     if(multisteps[set].back() < multisteps[set].front()) //account for periodic boundary conditions in imaginary time
         bisection_info.back() += params.total_slices;
+    
     bisection_info.push_back(rng.randint(params.particles)); //choose a particle
     
     MPI_Bcast(&bisection_info[0], 3, MPI_INT, 0,local_comm); //broadcast to all processors
@@ -645,20 +650,22 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     new_distances.reserve(params.slices_per_process*params.particles);
     new_potentials.reserve(params.slices_per_process*params.particles);
     
-    int level = int(round(log2(bisection_info[1]-bisection_info[0])));    //calculate the "level" of the bisection bridge: 2^n where n is the level
-    
     ptcl_slice.resize(params.slices_per_process,bisection_info[2]); //vector indicating which particle/bead to move at each slice
-    if(bisection_info[1]>= params.total_slices) //if worldline wraps, modify which bead to move
-        for(int i = bisection_info[0]; i <=bisection_info[1]; ++i)
-            if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end && i >= params.total_slices)
-                ptcl_slice[i%params.slices_per_process] = paths.forward_connects[bisection_info[2]];
     
+    if(bisection_info[1]>= params.total_slices) //if worldline wraps, modify which bead to move
+        for(int i = params.total_slices; i <=bisection_info[1]; ++i) //for each slice after the wraparound
+            if(i%params.total_slices >= params.my_start && i%params.total_slices <= params.my_end && i >= params.total_slices) //if this processor contains that slice
+                ptcl_slice[i%params.slices_per_process] = paths.forward_connects[bisection_info[2]]; //update which particle to move
+    
+    int level = int(round(log2(bisection_info[1]-bisection_info[0])));    //calculate the "level" of the bisection bridge: 2^n where n is the level
+
     int counter = 0;
     while(level){ //while level != 0
     
         //figure out which slices need to be computed for this level
         int num_comps = pow(2,counter);
         ++counter;
+        
         std::vector<int> slices_to_compute;
         for(int i = 0; i < num_comps; ++i)
             slices_to_compute.push_back(int((1/pow(2.,counter) + i/pow(2.,counter-1))*(bisection_info[1]-bisection_info[0])+bisection_info[0])%params.total_slices);
@@ -729,6 +736,7 @@ int Bisection::attempt(int &id,Parameters &params, Paths &paths, RNG &rng, Cos &
     
     //rest of method is basically same as CoM move
     ++num_attempts;
+    
     if(ac_re){//if move is accepted
         ++num_accepts;
         for(int i = bisection_info[0]; i <= bisection_info[1]; ++i) //for each slice in the bisection bridge
@@ -830,8 +838,8 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
                                 distance(paths.get_coordinate(slice%params.slices_per_process,ptcl), new_coordinates[slice%params.slices_per_process], dist, params.box_size);
                                 double r = sqrt(std::inner_product(dist.begin(), dist.end(), dist.begin(), 0.0));
                                 pot_val = potential_value_aziz(r);
-                                
                                 new_action_p[slice%params.slices_per_process]  += pot_val;
+                                
                                 new_distances.push_back(std::tuple<std::pair<int,int>,std::vector<double>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), dist, r));
                                 new_potentials.push_back(std::tuple<std::pair<int,int>,double>(std::pair<int,int>(paths.get_coordinate_key(slice%params.slices_per_process, ptcl),paths.get_coordinate_key(slice%params.slices_per_process, ptcl_slice[slice%params.slices_per_process])), pot_val));
                             }
@@ -863,6 +871,7 @@ void Bisection::check(int &id, Parameters &params, Paths &paths, RNG &rng, Cos &
             }
         }
     }
+    
     if(id != 0){ //send new and old actions to the master process (id == 0)
         MPI_Send(&old_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 0, local_comm);
         MPI_Send(&new_action_p[0], params.slices_per_process, MPI_DOUBLE, 0, 1, local_comm);
