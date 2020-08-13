@@ -263,7 +263,7 @@ void IO::path_dump(int& id, int count, Paths& paths, Parameters &params){
             else
                 pathf << "}";
         }
-        pathf << "}},"  ;
+        pathf << "}}\n"  ;
         pathf.flush();
         pathf2 << "{";
         for(int ptcl = 0; ptcl < params.particles; ++ptcl){

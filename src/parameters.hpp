@@ -219,7 +219,10 @@ public:
                 charged = false;
                 boson = true;
                 if(per_bound_cond){
-                    box_size = pow(particles/10.,1./dimensions)*7.7099;
+                    if(dimensions == 3)
+                        box_size = pow(particles/.0218,1./3);
+                    else if(dimensions == 2)
+                        box_size = pow(particles/.0432,1./2);
                     volume = pow(box_size, 3);
                     volume2 = pow(volume, 2);
                     kfac = 2*M_PI/box_size;
